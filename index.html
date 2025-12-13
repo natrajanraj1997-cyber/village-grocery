@@ -8,24 +8,36 @@
 <style>
 body {
   font-family: Arial, sans-serif;
-  background:#f4f4f4;
+  background: linear-gradient(135deg,#f4f4f4,#e8f5e9);
   margin:0;
   padding-bottom:90px;
 }
 
+/* HEADER */
 header {
   background:#2e7d32;
   color:#fff;
-  padding:15px;
-  text-align:center;
-  font-size:20px;
+  padding:14px 16px;
+  text-align:left;
+  font-size:18px;
   cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  box-shadow:0 2px 6px rgba(0,0,0,0.15);
+}
+header span.subtitle {
+  font-size:12px;
+  opacity:0.9;
+}
+header.admin-active {
+  background:#1976D2 !important;
 }
 
 .container {
-  padding:10px;
+  padding:12px;
   max-width:480px;
-  margin:0 auto;
+  margin:10px auto 0 auto;
 }
 
 /* PRODUCT CARD */
@@ -33,17 +45,29 @@ header {
   background:#fff;
   display:flex;
   align-items:center;
-  padding:10px;
-  margin-bottom:10px;
+  padding:12px;
+  margin-bottom:12px;
+  border-radius:14px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  position:relative;
+}
+
+.product .tag {
+  position:absolute;
+  top:8px;
+  left:12px;
+  background:#ffcc80;
+  color:#4e342e;
+  font-size:10px;
+  padding:2px 6px;
   border-radius:10px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.08);
 }
 
 .product img {
-  width:70px;
-  height:70px;
-  border-radius:8px;
-  margin-right:10px;
+  width:72px;
+  height:72px;
+  border-radius:12px;
+  margin-right:12px;
   object-fit:cover;
 }
 
@@ -60,17 +84,17 @@ header {
 
 .product button {
   margin-left:auto;
-  background:#ff5722;
+  background:#ff7043;
   color:#fff;
   border:none;
-  padding:8px 12px;
-  border-radius:5px;
+  padding:8px 13px;
+  border-radius:20px;
   cursor:pointer;
-  font-size:14px;
+  font-size:13px;
 }
 
 .product button:disabled {
-  background:#ccc !important;
+  background:#cfd8dc !important;
   cursor:not-allowed !important;
 }
 
@@ -83,13 +107,13 @@ header {
 .form {
   background:#fff;
   padding:12px 14px;
-  border-radius:10px;
+  border-radius:14px;
   margin-top:15px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+  box-shadow:0 4px 12px rgba(0,0,0,0.08);
 }
 
 .form h4 {
-  margin:0 0 8px 0;
+  margin:0 0 10px 0;
 }
 
 .form label {
@@ -104,9 +128,10 @@ header {
   width:100%;
   padding:9px;
   margin-bottom:10px;
-  border-radius:6px;
-  border:1px solid #ccc;
+  border-radius:8px;
+  border:1px solid #cfd8dc;
   font-size:14px;
+  background:#fafafa;
 }
 
 .form input:focus,
@@ -140,23 +165,23 @@ header {
   position:fixed;
   bottom:0;
   width:100%;
-  background:#fff;
-  padding:10px;
-  box-shadow:0 -2px 6px rgba(0,0,0,.2);
+  background:#ffffff;
+  padding:8px 10px;
+  box-shadow:0 -3px 10px rgba(0,0,0,.25);
 }
 
 .cart-bar button {
   width:100%;
-  background:#2e7d32;
+  background:linear-gradient(90deg,#2e7d32,#43a047);
   color:#fff;
   border:none;
   padding:12px;
   font-size:16px;
-  border-radius:6px;
+  border-radius:30px;
   cursor:pointer;
 }
 
-/* ADMIN */
+/* ADMIN PANELS */
 #adminPanel {
   position:fixed;
   top:20px;
@@ -220,10 +245,6 @@ header {
 
 .admin-mode .admin-controls { display:inline-block !important; }
 .admin-mode .product button { margin-left:5px !important; }
-
-header.admin-active {
-  background:#1976D2 !important;
-}
 </style>
 </head>
 
@@ -244,12 +265,16 @@ header.admin-active {
   <button id="inStock" class="btn-admin" onclick="restockAll()">Restock All</button>
 </div>
 
-<header onclick="showAdminLogin()">Village Grocery – Home Delivery</header>
+<header onclick="showAdminLogin()">
+  <div>Village Grocery – Home Delivery</div>
+  <span class="subtitle">Tap here for admin login</span>
+</header>
 
 <div class="container">
 
   <!-- Products -->
   <div class="product" data-product="Rice (1 Kg)">
+    <span class="tag">Staple</span>
     <img src="https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Rice">
     <div>
       <h4>Rice (1 Kg)</h4>
@@ -262,6 +287,7 @@ header.admin-active {
   </div>
 
   <div class="product" data-product="Cooking Oil (1 L)">
+    <span class="tag">Daily Use</span>
     <img src="https://images.pexels.com/photos/1459343/pexels-photo-1459343.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Cooking Oil">
     <div>
       <h4>Cooking Oil (1 L)</h4>
@@ -274,6 +300,7 @@ header.admin-active {
   </div>
 
   <div class="product" data-product="Sugar (1 Kg)">
+    <span class="tag">Popular</span>
     <img src="https://images.pexels.com/photos/1854664/pexels-photo-1854664.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Sugar">
     <div>
       <h4>Sugar (1 Kg)</h4>
@@ -304,6 +331,11 @@ header.admin-active {
     <div class="hint">Only 10 digits, without country code. Example: 9876543210</div>
     <div id="mobileError" class="error">Enter a valid 10‑digit mobile number.</div>
 
+    <button type="button" id="locBtn" style="width:100%;margin-bottom:8px;padding:8px;border-radius:8px;border:none;background:#eeeeee;cursor:pointer;font-size:13px;">
+      📍 Use my current location
+    </button>
+    <div id="locInfo" class="hint"></div>
+
     <label for="address">Delivery Address<span class="required">*</span></label>
     <textarea id="address" rows="3" placeholder="House / Street / Village / Pincode"></textarea>
     <div id="addressError" class="error">Address is required.</div>
@@ -318,8 +350,9 @@ header.admin-active {
 <script>
 let cart = {};
 let total = 0;
-const phone = "916380176168"; // Your WhatsApp number (country code + number, no +)
+const phone = "916380176168"; // Your WhatsApp number (country code + number, no '+')
 const ADMIN_PASSWORD = "admin123"; // Change this password
+
 
 // STOCK STATUS
 let stockStatus = {
@@ -329,7 +362,9 @@ let stockStatus = {
 };
 
 let isAdminMode = false;
+let customerLocation = null; // {lat, lng}
 
+// ADMIN LOGIN
 function showAdminLogin() {
   document.getElementById('loginPanel').style.display = 'block';
   document.body.style.overflow = 'hidden';
@@ -383,15 +418,20 @@ function toggleStock(item) {
 }
 
 function markAllOutOfStock() {
-  Object.keys(stockStatus).forEach(item => stockStatus[item] = false);
+  Object.keys(stockStatus).forEach(item => {
+    stockStatus[item] = false;
+  });
   updateProductButtons();
 }
 
 function restockAll() {
-  Object.keys(stockStatus).forEach item => stockStatus[item] = true);
+  Object.keys(stockStatus).forEach(item => {
+    stockStatus[item] = true;
+  });
   updateProductButtons();
 }
 
+// CART
 function addToCart(item, price) {
   if (!stockStatus[item]) {
     alert(`${item} is out of stock!`);
@@ -412,7 +452,7 @@ function updateProductButtons() {
     if (!stockStatus[product]) {
       btn.textContent = 'Out of Stock';
       btn.disabled = true;
-      btn.style.background = '#ccc';
+      btn.style.background = '#cfd8dc';
       const priceId = `price-${product.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
       const priceEl = document.getElementById(priceId);
       if (priceEl) {
@@ -422,7 +462,7 @@ function updateProductButtons() {
     } else {
       btn.textContent = 'Add';
       btn.disabled = false;
-      btn.style.background = '#ff5722';
+      btn.style.background = '#ff7043';
       const priceId = `price-${product.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
       const priceEl = document.getElementById(priceId);
       if (priceEl) {
@@ -448,11 +488,49 @@ function updateCartUI() {
   totalEl.textContent = total;
 }
 
+// MOBILE VALIDATION
 function validateMobile(mobile) {
   const onlyDigits = mobile.replace(/\D/g, '');
   return onlyDigits.length === 10;
 }
 
+document.getElementById('mobile').addEventListener('blur', function () {
+  const mobileErrorEl = document.getElementById("mobileError");
+  const mobile = this.value.trim();
+  if (!validateMobile(mobile) && mobile !== "") {
+    mobileErrorEl.style.display = "block";
+  } else {
+    mobileErrorEl.style.display = "none";
+  }
+});
+
+// LOCATION BUTTON
+document.getElementById('locBtn').addEventListener('click', function () {
+  const info = document.getElementById('locInfo');
+
+  if (!('geolocation' in navigator)) {
+    info.textContent = 'Location not supported on this device.';
+    return;
+  }
+
+  info.textContent = 'Getting location…';
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      customerLocation = { lat, lng };
+      info.textContent = `Location captured: ${lat}, ${lng}`;
+    },
+    (err) => {
+      info.textContent = 'Could not get location (permission denied or error).';
+      console.error(err);
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+});
+
+// PLACE ORDER
 function placeOrder() {
   const name = document.getElementById("name").value.trim();
   const mobile = document.getElementById("mobile").value.trim();
@@ -463,13 +541,11 @@ function placeOrder() {
 
   let hasError = false;
 
-  // Name simple check
   if (!name) {
     alert("Please enter your name.");
     hasError = true;
   }
 
-  // Mobile validation: 10 digits
   if (!validateMobile(mobile)) {
     mobileErrorEl.style.display = "block";
     hasError = true;
@@ -477,7 +553,6 @@ function placeOrder() {
     mobileErrorEl.style.display = "none";
   }
 
-  // Address mandatory
   if (!address) {
     addressErrorEl.style.display = "block";
     hasError = true;
@@ -497,12 +572,20 @@ function placeOrder() {
     itemsText += `${item} × ${cart[item].qty} — ₹${cart[item].price * cart[item].qty}\n`;
   }
 
+  let locationText = "";
+  if (customerLocation) {
+    locationText =
+      "\n📍 Location: " + customerLocation.lat + ", " + customerLocation.lng +
+      "\n🔗 Map: https://www.google.com/maps?q=" + customerLocation.lat + "," + customerLocation.lng + "\n";
+  }
+
   let message =
     "🛒 *New Grocery Order*\n\n" +
     "👤 Name: " + name + "\n" +
     "📞 Mobile: " + mobile + "\n" +
-    "🏠 Address: " + address + "\n\n" +
-    "📦 Items:\n" +
+    "🏠 Address: " + address + "\n" +
+    locationText +
+    "\n📦 Items:\n" +
     itemsText +
     "\n💰 Total: ₹" + total +
     "\n🚚 Payment: Cash on Delivery";
