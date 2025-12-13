@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Village Grocery Delivery</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background:#f4f4f4;
+  margin:0;
+  padding-bottom:90px;
+}
+
+header {
+  background:#2e7d32;
+  color:#fff;
+  padding:15px;
+  text-align:center;
+  font-size:20px;
+  cursor:pointer;
+}
+
+.container {
+  padding:10px;
+}
+
+.product {
+  background:#fff;
+  display:flex;
+  align-items:center;
+  padding:10px;
+  margin-bottom:10px;
+  border-radius:8px;
+}
+
+.product img {
+  width:70px;
+  height:70px;
+  border-radius:6px;
+  margin-right:10px;
+}
+
+.product h4 {
+  margin:0;
+  font-size:16px;
+}
+
+.product p {
+  margin:5px 0;
+  color:green;
+  font-weight:bold;
+}
+
+.product button {
+  margin-left:auto;
+  background:#ff5722;
+  color:#fff;
+  border:none;
+  padding:8px 12px;
+  border-radius:5px;
+  cursor:pointer;
+}
+
+.product button:disabled {
+  background:#ccc !important;
+  cursor:not-allowed !important;
+}
+
+.product .admin-controls {
+  display:none;
+  margin-left:10px;
+}
+
+.form {
+  background:#fff;
+  padding:10px;
+  border-radius:8px;
+  margin-top:15px;
+}
+
+.form input,
+.form textarea {
+  width:100%;
+  padding:10px;
+  margin-bottom:10px;
+  border-radius:5px;
+  border:1px solid #ccc;
+}
+
+.form ul {
+  padding-left:18px;
+}
+
+.cart-bar {
+  position:fixed;
+  bottom:0;
+  width:100%;
+  background:#fff;
+  padding:10px;
+  box-shadow:0 -2px 6px rgba(0,0,0,.2);
+}
+
+.cart-bar button {
+  width:100%;
+  background:#2e7d32;
+  color:#fff;
+  border:none;
+  padding:12px;
+  font-size:16px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+#adminPanel {
+  position:fixed;
+  top:20px;
+  right:20px;
+  background:#fff;
+  padding:15px;
+  border-radius:8px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.3);
+  z-index:1000;
+  display:none;
+  min-width:200px;
+}
+
+#adminPanel button {
+  width:100%;
+  margin-bottom:8px;
+  padding:8px;
+  border-radius:4px;
+  border:none;
+  cursor:pointer;
+}
+
+#loginPanel {
+  position:fixed;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  background:#fff;
+  padding:30px;
+  border-radius:12px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.3);
+  z-index:2000;
+  display:none;
+  text-align:center;
+  min-width:280px;
+}
+
+#loginPanel input {
+  width:90%;
+  padding:12px;
+  margin:10px 0 20px 0;
+  border:2px solid #ddd;
+  border-radius:6px;
+  font-size:16px;
+}
+
+#loginPanel button {
+  width:100%;
+  padding:12px;
+  background:#2e7d32;
+  color:#fff;
+  border:none;
+  border-radius:6px;
+  font-size:16px;
+  cursor:pointer;
+}
+
+.btn-admin { background:#2196F3; color:#fff; }
+#outOfStock.btn-admin { background:#f44336; }
+#inStock.btn-admin { background:#4CAF50; }
+
+.admin-mode .admin-controls { display:inline-block !important; }
+.admin-mode .product button { margin-left:5px !important; }
+
+header.admin-active {
+  background:#1976D2 !important;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ADMIN LOGIN MODAL -->
+<div id="loginPanel">
+  <h3>🔐 Admin Login</h3>
+  <input type="password" id="adminPassword" placeholder="Enter Password">
+  <button onclick="checkAdminLogin()">Login</button>
+</div>
+
+<!-- ADMIN PANEL -->
+<div id="adminPanel">
+  <h4>🔧 Admin Panel</h4>
+  <button id="toggleAdmin" class="btn-admin" onclick="toggleAdminMode()">Exit Admin</button>
+  <button id="outOfStock" class="btn-admin" onclick="markAllOutOfStock()">Mark All Out of Stock</button>
+  <button id="inStock" class="btn-admin" onclick="restockAll()">Restock All</button>
+</div>
+
+<header onclick="showAdminLogin()">Village Grocery – Home Delivery</header>
+
+<div class="container">
+
+  <!-- Products -->
+  <div class="product" data-product="Rice (1 Kg)">
+    <img src="https://via.placeholder.com/70">
+    <div>
+      <h4>Rice (1 Kg)</h4>
+      <p id="price-rice">₹55</p>
+    </div>
+    <div class="admin-controls">
+      <button onclick="toggleStock('Rice (1 Kg)')">Toggle Stock</button>
+    </div>
+    <button class="add-btn" onclick="addToCart('Rice (1 Kg)',55)">Add</button>
+  </div>
+
+  <div class="product" data-product="Cooking Oil (1 L)">
+    <img src="https://via.placeholder.com/70">
+    <div>
+      <h4>Cooking Oil (1 L)</h4>
+      <p id="price-oil">₹160</p>
+    </div>
+    <div class="admin-controls">
+      <button onclick="toggleStock('Cooking Oil (1 L)')">Toggle Stock</button>
+    </div>
+    <button class="add-btn" onclick="addToCart('Cooking Oil (1 L)',160)">Add</button>
+  </div>
+
+  <div class="product" data-product="Sugar (1 Kg)">
+    <img src="https://via.placeholder.com/70">
+    <div>
+      <h4>Sugar (1 Kg)</h4>
+      <p id="price-sugar">₹45</p>
+    </div>
+    <div class="admin-controls">
+      <button onclick="toggleStock('Sugar (1 Kg)')">Toggle Stock</button>
+    </div>
+    <button class="add-btn" onclick="addToCart('Sugar (1 Kg)',45)">Add</button>
+  </div>
+
+  <!-- Cart -->
+  <div class="form">
+    <h4>🛒 Cart</h4>
+    <ul id="cartList"></ul>
+    <p><strong>Total: ₹<span id="total">0</span></strong></p>
+  </div>
+
+  <!-- Customer Form -->
+  <div class="form">
+    <input type="text" id="name" placeholder="Your Name">
+    <input type="tel" id="mobile" placeholder="Mobile Number">
+    <textarea id="address" placeholder="Delivery Address"></textarea>
+  </div>
+
+</div>
+
+<div class="cart-bar">
+  <button onclick="placeOrder()">Place Order (Cash on Delivery)</button>
+</div>
+
+<script>
+let cart = {};
+let total = 0;
+const phone = "91XXXXXXXXXX"; // Replace with your WhatsApp number
+const ADMIN_PASSWORD = "admin123"; // Change this password
+
+// STOCK STATUS
+let stockStatus = {
+  'Rice (1 Kg)': true,
+  'Cooking Oil (1 L)': true,
+  'Sugar (1 Kg)': true
+};
+
+let isAdminMode = false;
+
+function showAdminLogin() {
+  document.getElementById('loginPanel').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+
+function checkAdminLogin() {
+  const password = document.getElementById('adminPassword').value;
+  if (password === ADMIN_PASSWORD) {
+    document.getElementById('loginPanel').style.display = 'none';
+    document.body.style.overflow = 'auto';
+    toggleAdminMode();
+  } else {
+    alert('❌ Wrong Password!');
+    document.getElementById('adminPassword').value = '';
+  }
+}
+
+// Close login on outside click
+document.getElementById('loginPanel').onclick = (e) => e.stopPropagation();
+document.body.onclick = function(e) {
+  if (e.target === document.getElementById('loginPanel')) {
+    document.getElementById('loginPanel').style.display = 'none';
+    document.body.style.overflow = 'auto';
+  }
+};
+
+function toggleAdminMode() {
+  isAdminMode = !isAdminMode;
+  document.body.classList.toggle('admin-mode', isAdminMode);
+  
+  const adminPanel = document.getElementById('adminPanel');
+  const toggleBtn = document.getElementById('toggleAdmin');
+  const header = document.querySelector('header');
+  
+  if (isAdminMode) {
+    adminPanel.style.display = 'block';
+    toggleBtn.textContent = 'Exit Admin';
+    header.classList.add('admin-active');
+  } else {
+    adminPanel.style.display = 'none';
+    toggleBtn.textContent = 'Enter Admin';
+    header.classList.remove('admin-active');
+  }
+  updateProductButtons();
+}
+
+function toggleStock(item) {
+  if (!isAdminMode) return;
+  stockStatus[item] = !stockStatus[item];
+  updateProductButtons();
+  console.log(`${item}: ${stockStatus[item] ? 'In Stock' : 'Out of Stock'}`);
+}
+
+function markAllOutOfStock() {
+  Object.keys(stockStatus).forEach(item => stockStatus[item] = false);
+  updateProductButtons();
+}
+
+function restockAll() {
+  Object.keys(stockStatus).forEach(item => stockStatus[item] = true);
+  updateProductButtons();
+}
+
+function addToCart(item, price) {
+  if (!stockStatus[item]) {
+    alert(`${item} is out of stock!`);
+    return;
+  }
+  
+  if (cart[item]) {
+    cart[item].qty += 1;
+  } else {
+    cart[item] = { price: price, qty: 1 };
+  }
+  updateCartUI();
+}
+
+function updateProductButtons() {
+  document.querySelectorAll('.add-btn').forEach(btn => {
+    const product = btn.closest('.product').dataset.product;
+    if (!stockStatus[product]) {
+      btn.textContent = 'Out of Stock';
+      btn.disabled = true;
+      btn.style.background = '#ccc';
+      const priceId = `price-${product.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+      const priceEl = document.getElementById(priceId);
+      if (priceEl) {
+        priceEl.innerHTML = priceEl.innerHTML.replace(/<span[^>]*>.*<\/span>$/, '') + ' <span style="color:#f44336;">(Out of Stock)</span>';
+      }
+    } else {
+      btn.textContent = 'Add';
+      btn.disabled = false;
+      btn.style.background = '#ff5722';
+      const priceId = `price-${product.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
+      const priceEl = document.getElementById(priceId);
+      if (priceEl) {
+        priceEl.innerHTML = priceEl.innerHTML.replace(/<span[^>]*>.*<\/span>$/, '');
+      }
+    }
+  });
+}
+
+function updateCartUI() {
+  const cartList = document.getElementById("cartList");
+  const totalEl = document.getElementById("total");
+
+  cartList.innerHTML = "";
+  total = 0;
+
+  for (let item in cart) {
+    const li = document.createElement("li");
+    li.textContent = `${item} × ${cart[item].qty} — ₹${cart[item].price * cart[item].qty}`;
+    cartList.appendChild(li);
+    total += cart[item].price * cart[item].qty;
+  }
+  totalEl.textContent = total;
+}
+
+function placeOrder() {
+  const name = document.getElementById("name").value.trim();
+  const mobile = document.getElementById("mobile").value.trim();
+  const address = document.getElementById("address").value.trim();
+
+  if (!name || !mobile || !address || Object.keys(cart).length === 0) {
+    alert("Please fill all details and add items");
+    return;
+  }
+
+  let itemsText = "";
+  for (let item in cart) {
+    itemsText += `${item} × ${cart[item].qty} — ₹${cart[item].price * cart[item].qty}\n`;
+  }
+
+  let message =
+    "🛒 *New Grocery Order*\n\n" +
+    "👤 Name: " + name + "\n" +
+    "📞 Mobile: " + mobile + "\n" +
+    "🏠 Address: " + address + "\n\n" +
+    "📦 Items:\n" +
+    itemsText +
+    "\n💰 Total: ₹" + total +
+    "\n🚚 Payment: Cash on Delivery";
+
+  window.open(
+    "https://wa.me/" + phone + "?text=" + encodeURIComponent(message),
+    "_blank"
+  );
+
+  cart = {};
+  total = 0;
+  updateCartUI();
+}
+
+// Initialize
+updateProductButtons();
+</script>
+
+</body>
+</html>
