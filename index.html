@@ -20,15 +20,10 @@ header {
   padding:14px 16px;
   text-align:left;
   font-size:18px;
-  cursor:pointer;
   display:flex;
   align-items:center;
   justify-content:space-between;
   box-shadow:0 2px 6px rgba(0,0,0,0.15);
-}
-header span.subtitle {
-  font-size:12px;
-  opacity:0.9;
 }
 header.admin-active {
   background:#1976D2 !important;
@@ -80,27 +75,6 @@ header.admin-active {
   margin:5px 0;
   color:#2e7d32;
   font-weight:bold;
-}
-
-.product button {
-  margin-left:auto;
-  background:#ff7043;
-  color:#fff;
-  border:none;
-  padding:8px 13px;
-  border-radius:20px;
-  cursor:pointer;
-  font-size:13px;
-}
-
-.product button:disabled {
-  background:#cfd8dc !important;
-  cursor:not-allowed !important;
-}
-
-.product .admin-controls {
-  display:none;
-  margin-left:10px;
 }
 
 /* FORM / CARD */
@@ -181,6 +155,25 @@ header.admin-active {
   cursor:pointer;
 }
 
+/* FLOATING CART BUTTON (TOP-RIGHT) */
+#floatingCart {
+  position:fixed;
+  top:70px;
+  right:16px;
+  width:46px;
+  height:46px;
+  border-radius:50%;
+  background:#2e7d32;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.25);
+  cursor:pointer;
+  z-index:1500;
+}
+
 /* ADMIN PANELS */
 #adminPanel {
   position:fixed;
@@ -190,7 +183,7 @@ header.admin-active {
   padding:15px;
   border-radius:8px;
   box-shadow:0 4px 12px rgba(0,0,0,0.3);
-  z-index:1000;
+  z-index:1600;
   display:none;
   min-width:200px;
 }
@@ -243,8 +236,57 @@ header.admin-active {
 #outOfStock.btn-admin { background:#f44336; }
 #inStock.btn-admin { background:#4CAF50; }
 
-.admin-mode .admin-controls { display:inline-block !important; }
-.admin-mode .product button { margin-left:5px !important; }
+/* admin controls hidden by default, visible in admin-mode */
+.admin-controls {
+  display:none;
+  margin-left:10px;
+}
+.admin-mode .admin-controls {
+  display:inline-block !important;
+}
+
+/* QTY PILL */
+.qty-area {
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+}
+.add-btn,
+.qty-pill {
+  border-radius:999px;
+  padding:6px 14px;
+  border:1px solid #cfd8dc;
+  font-size:13px;
+  cursor:pointer;
+  background:#fff;
+}
+.add-btn {
+  color:#2e7d32;
+  font-weight:bold;
+}
+.qty-pill {
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.qty-pill button {
+  width:22px;
+  height:22px;
+  border-radius:50%;
+  border:none;
+  cursor:pointer;
+  font-size:16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+.qty-minus {
+  background:#eeeeee;
+}
+.qty-plus {
+  background:#2e7d32;
+  color:#fff;
+}
 </style>
 </head>
 
@@ -265,55 +307,29 @@ header.admin-active {
   <button id="inStock" class="btn-admin" onclick="restockAll()">Restock All</button>
 </div>
 
-<header onclick="showAdminLogin()">
-  <div>Village Grocery – Home Delivery</div>
-  <span class="subtitle">Tap here for admin login</span>
+<header>
+  <div onclick="showAdminLogin()">Village Grocery – Home Delivery</div>
+  <div style="font-size:13px;display:flex;align-items:center;gap:4px;">
+    🛒 <span id="headerCartCount">0</span>
+  </div>
 </header>
+
+<!-- Floating cart button -->
+<div id="floatingCart" onclick="scrollToCart()">🛒</div>
 
 <div class="container">
 
-  <!-- Products -->
-  <div class="product" data-product="Rice (1 Kg)">
-    <span class="tag">Staple</span>
-    <img src="https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Rice">
-    <div>
-      <h4>Rice (1 Kg)</h4>
-      <p id="price-rice">₹55</p>
-    </div>
-    <div class="admin-controls">
-      <button onclick="toggleStock('Rice (1 Kg)')">Toggle Stock</button>
-    </div>
-    <button class="add-btn" onclick="addToCart('Rice (1 Kg)',55)">Add</button>
+  <!-- Search -->
+  <div class="form">
+    <h4>🔍 Search Products</h4>
+    <input type="text" id="searchInput" placeholder="Type rice, oil, sugar...">
   </div>
 
-  <div class="product" data-product="Cooking Oil (1 L)">
-    <span class="tag">Daily Use</span>
-    <img src="https://images.pexels.com/photos/1459343/pexels-photo-1459343.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Cooking Oil">
-    <div>
-      <h4>Cooking Oil (1 L)</h4>
-      <p id="price-oil">₹160</p>
-    </div>
-    <div class="admin-controls">
-      <button onclick="toggleStock('Cooking Oil (1 L)')">Toggle Stock</button>
-    </div>
-    <button class="add-btn" onclick="addToCart('Cooking Oil (1 L)',160)">Add</button>
-  </div>
-
-  <div class="product" data-product="Sugar (1 Kg)">
-    <span class="tag">Popular</span>
-    <img src="https://images.pexels.com/photos/1854664/pexels-photo-1854664.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Sugar">
-    <div>
-      <h4>Sugar (1 Kg)</h4>
-      <p id="price-sugar">₹45</p>
-    </div>
-    <div class="admin-controls">
-      <button onclick="toggleStock('Sugar (1 Kg)')">Toggle Stock</button>
-    </div>
-    <button class="add-btn" onclick="addToCart('Sugar (1 Kg)',45)">Add</button>
-  </div>
+  <!-- Products will be rendered here -->
+  <div id="productsContainer"></div>
 
   <!-- Cart -->
-  <div class="form">
+  <div class="form" id="cartSection">
     <h4>🛒 Cart</h4>
     <ul id="cartList"></ul>
     <p><strong>Total: ₹<span id="total">0</span></strong></p>
@@ -350,26 +366,87 @@ header.admin-active {
 <script>
 let cart = {};
 let total = 0;
-const phone = "916380176168"; // Your WhatsApp number (country code + number, no '+')
-const ADMIN_PASSWORD = "admin123"; // Change this password
-
-
-// STOCK STATUS
-let stockStatus = {
-  'Rice (1 Kg)': true,
-  'Cooking Oil (1 L)': true,
-  'Sugar (1 Kg)': true
-};
-
+const phone = "916380176168";
+const ADMIN_PASSWORD = "admin123";
 let isAdminMode = false;
-let customerLocation = null; // {lat, lng}
+let customerLocation = null;
 
-// ADMIN LOGIN
+/* 50 PRODUCTS */
+const products = [
+  {name:'Rice (1 Kg)',price:55,tag:'Staple',img:'https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Rice (5 Kg)',price:260,tag:'Staple',img:'https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Idli Rice (1 Kg)',price:60,tag:'Staple',img:'https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Wheat Flour (1 Kg)',price:48,tag:'Staple',img:'https://images.pexels.com/photos/3738106/pexels-photo-3738106.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Maida (1 Kg)',price:42,tag:'Staple',img:'https://images.pexels.com/photos/3738106/pexels-photo-3738106.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Ragi Flour (1 Kg)',price:55,tag:'Healthy',img:'https://images.pexels.com/photos/3738106/pexels-photo-3738106.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Sugar (1 Kg)',price:45,tag:'Popular',img:'https://images.pexels.com/photos/1854664/pexels-photo-1854664.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Jaggery (1 Kg)',price:70,tag:'Healthy',img:'https://images.pexels.com/photos/3738024/pexels-photo-3738024.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Salt (1 Kg)',price:20,tag:'Daily Use',img:'https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Rock Salt (500 g)',price:35,tag:'Healthy',img:'https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg?auto=compress&cs=tinysrgb&w=800'},
+
+  {name:'Cooking Oil (1 L)',price:160,tag:'Daily Use',img:'https://images.pexels.com/photos/1459343/pexels-photo-1459343.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Groundnut Oil (1 L)',price:190,tag:'Cold Pressed',img:'https://images.pexels.com/photos/1459343/pexels-photo-1459343.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Sunflower Oil (1 L)',price:165,tag:'Daily Use',img:'https://images.pexels.com/photos/1459343/pexels-photo-1459343.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Gingelly Oil (500 ml)',price:140,tag:'Special',img:'https://images.pexels.com/photos/1459343/pexels-photo-1459343.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Ghee (500 ml)',price:260,tag:'Premium',img:'https://images.pexels.com/photos/1459343/pexels-photo-1459343.jpeg?auto=compress&cs=tinysrgb&w=800'},
+
+  {name:'Toor Dal (1 Kg)',price:130,tag:'Dal',img:'https://images.pexels.com/photos/4198020/pexels-photo-4198020.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Urid Dal (1 Kg)',price:120,tag:'Dal',img:'https://images.pexels.com/photos/4198020/pexels-photo-4198020.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Chana Dal (1 Kg)',price:95,tag:'Dal',img:'https://images.pexels.com/photos/4198020/pexels-photo-4198020.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Moong Dal (1 Kg)',price:110,tag:'Dal',img:'https://images.pexels.com/photos/4198020/pexels-photo-4198020.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Masoor Dal (1 Kg)',price:100,tag:'Dal',img:'https://images.pexels.com/photos/4198020/pexels-photo-4198020.jpeg?auto=compress&cs=tinysrgb&w=800'},
+
+  {name:'Chana (1 Kg)',price:85,tag:'Pulses',img:'https://images.pexels.com/photos/4198020/pexels-photo-4198020.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Rajma (1 Kg)',price:120,tag:'Pulses',img:'https://images.pexels.com/photos/4198020/pexels-photo-4198020.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Green Peas Dry (1 Kg)',price:95,tag:'Pulses',img:'https://images.pexels.com/photos/4198020/pexels-photo-4198020.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Horse Gram (1 Kg)',price:70,tag:'Healthy',img:'https://images.pexels.com/photos/4198020/pexels-photo-4198020.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Black Chana (1 Kg)',price:90,tag:'Pulses',img:'https://images.pexels.com/photos/4198020/pexels-photo-4198020.jpeg?auto=compress&cs=tinysrgb&w=800'},
+
+  {name:'Tea Powder (250 g)',price:95,tag:'Beverage',img:'https://images.pexels.com/photos/1417945/pexels-photo-1417945.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Coffee Powder (200 g)',price:120,tag:'Beverage',img:'https://images.pexels.com/photos/585750/pexels-photo-585750.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Sugar-free Sweetener',price:180,tag:'Health',img:'https://images.pexels.com/photos/1854664/pexels-photo-1854664.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Boost (500 g)',price:230,tag:'Health Drink',img:'https://images.pexels.com/photos/4109992/pexels-photo-4109992.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Horlicks (500 g)',price:220,tag:'Health Drink',img:'https://images.pexels.com/photos/4109992/pexels-photo-4109992.jpeg?auto=compress&cs=tinysrgb&w=800'},
+
+  {name:'Bath Soap (Lux)',price:30,tag:'Toiletries',img:'https://images.pexels.com/photos/1029041/pexels-photo-1029041.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Bath Soap (Hamam)',price:28,tag:'Toiletries',img:'https://images.pexels.com/photos/1029041/pexels-photo-1029041.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Shampoo Sachets (10 pcs)',price:40,tag:'Toiletries',img:'https://images.pexels.com/photos/3738364/pexels-photo-3738364.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Toothpaste (Colgate 100 g)',price:55,tag:'Toiletries',img:'https://images.pexels.com/photos/4198202/pexels-photo-4198202.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Toothbrush (1 pc)',price:25,tag:'Toiletries',img:'https://images.pexels.com/photos/4198202/pexels-photo-4198202.jpeg?auto=compress&cs=tinysrgb&w=800'},
+
+  {name:'Washing Powder (1 Kg)',price:75,tag:'Home Care',img:'https://images.pexels.com/photos/3965558/pexels-photo-3965558.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Dishwash Bar (3 pcs)',price:40,tag:'Home Care',img:'https://images.pexels.com/photos/4108710/pexels-photo-4108710.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Floor Cleaner (500 ml)',price:85,tag:'Home Care',img:'https://images.pexels.com/photos/4108710/pexels-photo-4108710.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Phenyl (1 L)',price:70,tag:'Home Care',img:'https://images.pexels.com/photos/4108710/pexels-photo-4108710.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Garbage Bags (Small, 30 pcs)',price:65,tag:'Home Care',img:'https://images.pexels.com/photos/3738102/pexels-photo-3738102.jpeg?auto=compress&cs=tinysrgb&w=800'},
+
+  {name:'Biscuits (Marie 200 g)',price:30,tag:'Snacks',img:'https://images.pexels.com/photos/1028716/pexels-photo-1028716.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Biscuits (Good Day 200 g)',price:35,tag:'Snacks',img:'https://images.pexels.com/photos/1028716/pexels-photo-1028716.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Rusk (200 g)',price:40,tag:'Snacks',img:'https://images.pexels.com/photos/4109992/pexels-photo-4109992.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Noodles (Masala, 4 pcs)',price:55,tag:'Snacks',img:'https://images.pexels.com/photos/4198028/pexels-photo-4198028.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Vermicelli (500 g)',price:40,tag:'Snacks',img:'https://images.pexels.com/photos/4198028/pexels-photo-4198028.jpeg?auto=compress&cs=tinysrgb&w=800'},
+
+  {name:'Onion (1 Kg)',price:40,tag:'Veg',img:'https://images.pexels.com/photos/143133/pexels-photo-143133.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Potato (1 Kg)',price:35,tag:'Veg',img:'https://images.pexels.com/photos/143133/pexels-photo-143133.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Tomato (1 Kg)',price:30,tag:'Veg',img:'https://images.pexels.com/photos/143133/pexels-photo-143133.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Green Chilli (100 g)',price:15,tag:'Veg',img:'https://images.pexels.com/photos/4198020/pexels-photo-4198020.jpeg?auto=compress&cs=tinysrgb&w=800'},
+  {name:'Coriander Leaves (1 bunch)',price:10,tag:'Veg',img:'https://images.pexels.com/photos/4198020/pexels-photo-4198020.jpeg?auto=compress&cs=tinysrgb&w=800'}
+];
+
+/* STOCK STATUS */
+let stockStatus = {};
+products.forEach(p => { stockStatus[p.name] = true; });
+
+function scrollToCart() {
+  const cartSection = document.getElementById('cartSection');
+  if (cartSection) cartSection.scrollIntoView({ behavior:'smooth' });
+}
+
+/* ADMIN (same as earlier) */
 function showAdminLogin() {
   document.getElementById('loginPanel').style.display = 'block';
   document.body.style.overflow = 'hidden';
 }
-
 function checkAdminLogin() {
   const password = document.getElementById('adminPassword').value;
   if (password === ADMIN_PASSWORD) {
@@ -381,227 +458,226 @@ function checkAdminLogin() {
     document.getElementById('adminPassword').value = '';
   }
 }
-
-// Close login on outside click
-document.getElementById('loginPanel').onclick = (e) => e.stopPropagation();
-document.body.onclick = function(e) {
+document.getElementById('loginPanel').onclick = e => e.stopPropagation();
+document.body.onclick = function(e){
   if (e.target === document.getElementById('loginPanel')) {
-    document.getElementById('loginPanel').style.display = 'none';
-    document.body.style.overflow = 'auto';
+    document.getElementById('loginPanel').style.display='none';
+    document.body.style.overflow='auto';
   }
 };
-
 function toggleAdminMode() {
   isAdminMode = !isAdminMode;
   document.body.classList.toggle('admin-mode', isAdminMode);
-  
   const adminPanel = document.getElementById('adminPanel');
   const toggleBtn = document.getElementById('toggleAdmin');
   const header = document.querySelector('header');
-  
   if (isAdminMode) {
-    adminPanel.style.display = 'block';
-    toggleBtn.textContent = 'Exit Admin';
+    adminPanel.style.display='block';
+    toggleBtn.textContent='Exit Admin';
     header.classList.add('admin-active');
   } else {
-    adminPanel.style.display = 'none';
-    toggleBtn.textContent = 'Enter Admin';
+    adminPanel.style.display='none';
+    toggleBtn.textContent='Enter Admin';
     header.classList.remove('admin-active');
   }
   updateProductButtons();
 }
+function toggleStock(item){ if(isAdminMode){ stockStatus[item]=!stockStatus[item]; updateProductButtons(); } }
+function markAllOutOfStock(){ Object.keys(stockStatus).forEach(i=>stockStatus[i]=false); updateProductButtons(); }
+function restockAll(){ Object.keys(stockStatus).forEach(i=>stockStatus[i]=true); updateProductButtons(); }
 
-function toggleStock(item) {
-  if (!isAdminMode) return;
-  stockStatus[item] = !stockStatus[item];
+/* RENDER & CART */
+function renderProducts(filterText='') {
+  const container = document.getElementById('productsContainer');
+  container.innerHTML = '';
+  const text = filterText.toLowerCase();
+
+  products
+    .filter(p => p.name.toLowerCase().includes(text))
+    .forEach(p => {
+      const div = document.createElement('div');
+      div.className='product';
+      div.dataset.product=p.name;
+      const priceId='price-'+p.name.toLowerCase().replace(/[^a-z0-9]/g,'-');
+
+      div.innerHTML = `
+        <span class="tag">${p.tag || ''}</span>
+        <img src="${p.img}" alt="${p.name}">
+        <div>
+          <h4>${p.name}</h4>
+          <p id="${priceId}">₹${p.price}</p>
+        </div>
+        <div class="admin-controls">
+          <button onclick="toggleStock('${p.name}')">Toggle Stock</button>
+        </div>
+        <div class="qty-area" data-item="${p.name}">
+          <button class="add-btn" onclick="addToCart('${p.name}',${p.price})">Add</button>
+          <div class="qty-pill" style="display:none;">
+            <button class="qty-minus" onclick="changeQty('${p.name}',-1)">−</button>
+            <span class="qty-value">1</span>
+            <button class="qty-plus" onclick="changeQty('${p.name}',1)">+</button>
+          </div>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+
   updateProductButtons();
 }
+document.getElementById('searchInput').addEventListener('input',function(){
+  renderProducts(this.value);
+});
 
-function markAllOutOfStock() {
-  Object.keys(stockStatus).forEach(item => {
-    stockStatus[item] = false;
-  });
-  updateProductButtons();
-}
-
-function restockAll() {
-  Object.keys(stockStatus).forEach(item => {
-    stockStatus[item] = true;
-  });
-  updateProductButtons();
-}
-
-// CART
 function addToCart(item, price) {
-  if (!stockStatus[item]) {
-    alert(`${item} is out of stock!`);
-    return;
-  }
-  
-  if (cart[item]) {
-    cart[item].qty += 1;
-  } else {
-    cart[item] = { price: price, qty: 1 };
-  }
+  if (!stockStatus[item]) { alert(`${item} is out of stock!`); return; }
+  if (!cart[item]) cart[item]={price,qty:1}; else cart[item].qty+=1;
+  updateQtyUI(item);
   updateCartUI();
 }
-
+function changeQty(item, delta) {
+  if (!cart[item]) return;
+  cart[item].qty += delta;
+  if (cart[item].qty <= 0) delete cart[item];
+  updateQtyUI(item);
+  updateCartUI();
+}
+function updateQtyUI(item) {
+  const sel = `.qty-area[data-item="${CSS.escape(item)}"]`;
+  const area = document.querySelector(sel);
+  if (!area) return;
+  const addBtn = area.querySelector('.add-btn');
+  const pill   = area.querySelector('.qty-pill');
+  const span   = area.querySelector('.qty-value');
+  if (cart[item]) {
+    addBtn.style.display='none';
+    pill.style.display='flex';
+    span.textContent = cart[item].qty;
+  } else {
+    addBtn.style.display='inline-block';
+    pill.style.display='none';
+  }
+}
 function updateProductButtons() {
-  document.querySelectorAll('.add-btn').forEach(btn => {
+  document.querySelectorAll('.add-btn').forEach(btn=>{
     const product = btn.closest('.product').dataset.product;
+    const priceId = `price-${product.toLowerCase().replace(/[^a-z0-9]/g,'-')}`;
+    const priceEl = document.getElementById(priceId);
     if (!stockStatus[product]) {
-      btn.textContent = 'Out of Stock';
       btn.disabled = true;
-      btn.style.background = '#cfd8dc';
-      const priceId = `price-${product.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
-      const priceEl = document.getElementById(priceId);
+      btn.textContent = 'Out';
+      btn.style.background='#cfd8dc';
+      btn.style.color='#555';
       if (priceEl) {
-        priceEl.innerHTML = priceEl.innerHTML.replace(/<span[^>]*>.*<\/span>$/, '') +
+        priceEl.innerHTML = priceEl.innerHTML.replace(/<span[^>]*>.*<\/span>$/,'') +
           ' <span style="color:#f44336;">(Out of Stock)</span>';
       }
     } else {
-      btn.textContent = 'Add';
       btn.disabled = false;
-      btn.style.background = '#ff7043';
-      const priceId = `price-${product.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
-      const priceEl = document.getElementById(priceId);
+      btn.textContent = 'Add';
+      btn.style.background='#fff';
+      btn.style.color='#2e7d32';
       if (priceEl) {
-        priceEl.innerHTML = priceEl.innerHTML.replace(/<span[^>]*>.*<\/span>$/, '');
+        priceEl.innerHTML = priceEl.innerHTML.replace(/<span[^>]*>.*<\/span>$/,'');
       }
     }
   });
 }
-
 function updateCartUI() {
   const cartList = document.getElementById("cartList");
   const totalEl = document.getElementById("total");
+  const headerCartCount = document.getElementById("headerCartCount");
+  const floatingCart = document.getElementById("floatingCart");
 
-  cartList.innerHTML = "";
-  total = 0;
-
-  for (let item in cart) {
-    const li = document.createElement("li");
-    li.textContent = `${item} × ${cart[item].qty} — ₹${cart[item].price * cart[item].qty}`;
+  cartList.innerHTML='';
+  total=0;
+  let itemCount=0;
+  for (let item in cart){
+    const li=document.createElement('li');
+    li.textContent = `${item} × ${cart[item].qty} — ₹${cart[item].price*cart[item].qty}`;
     cartList.appendChild(li);
-    total += cart[item].price * cart[item].qty;
+    total += cart[item].price*cart[item].qty;
+    itemCount += cart[item].qty;
   }
   totalEl.textContent = total;
+  headerCartCount.textContent = itemCount;
+  floatingCart.textContent = itemCount>0 ? itemCount : '🛒';
 }
 
-// MOBILE VALIDATION
-function validateMobile(mobile) {
-  const onlyDigits = mobile.replace(/\D/g, '');
-  return onlyDigits.length === 10;
-}
-
-document.getElementById('mobile').addEventListener('blur', function () {
-  const mobileErrorEl = document.getElementById("mobileError");
-  const mobile = this.value.trim();
-  if (!validateMobile(mobile) && mobile !== "") {
-    mobileErrorEl.style.display = "block";
-  } else {
-    mobileErrorEl.style.display = "none";
-  }
+/* validation */
+function validateMobile(mobile){ return mobile.replace(/\D/g,'').length===10; }
+document.getElementById('mobile').addEventListener('blur',function(){
+  const el=document.getElementById('mobileError');
+  const v=this.value.trim();
+  el.style.display = (!validateMobile(v) && v!=="") ? 'block':'none';
 });
 
-// LOCATION BUTTON
-document.getElementById('locBtn').addEventListener('click', function () {
-  const info = document.getElementById('locInfo');
-
-  if (!('geolocation' in navigator)) {
-    info.textContent = 'Location not supported on this device.';
+/* location */
+document.getElementById('locBtn').addEventListener('click',function(){
+  const info=document.getElementById('locInfo');
+  if(!('geolocation' in navigator)){
+    info.textContent='Location not supported on this device.';
     return;
   }
-
-  info.textContent = 'Getting location…';
-
+  info.textContent='Getting location…';
   navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      const lat = pos.coords.latitude.toFixed(6);
-      const lng = pos.coords.longitude.toFixed(6);
-      customerLocation = { lat, lng };
-      info.textContent = `Location captured: ${lat}, ${lng}`;
+    pos=>{
+      const lat=pos.coords.latitude.toFixed(6);
+      const lng=pos.coords.longitude.toFixed(6);
+      customerLocation={lat,lng};
+      info.textContent=`Location captured: ${lat}, ${lng}`;
     },
-    (err) => {
-      info.textContent = 'Could not get location (permission denied or error).';
+    err=>{
+      info.textContent='Could not get location (permission denied or error).';
       console.error(err);
     },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    {enableHighAccuracy:true,timeout:10000,maximumAge:0}
   );
 });
 
-// PLACE ORDER
-function placeOrder() {
-  const name = document.getElementById("name").value.trim();
-  const mobile = document.getElementById("mobile").value.trim();
-  const address = document.getElementById("address").value.trim();
+/* place order */
+function placeOrder(){
+  const name=document.getElementById('name').value.trim();
+  const mobile=document.getElementById('mobile').value.trim();
+  const address=document.getElementById('address').value.trim();
+  const mobileErr=document.getElementById('mobileError');
+  const addressErr=document.getElementById('addressError');
+  let hasError=false;
 
-  const mobileErrorEl = document.getElementById("mobileError");
-  const addressErrorEl = document.getElementById("addressError");
+  if(!name){ alert('Please enter your name.'); hasError=true; }
+  if(!validateMobile(mobile)){ mobileErr.style.display='block'; hasError=true; } else mobileErr.style.display='none';
+  if(!address){ addressErr.style.display='block'; hasError=true; } else addressErr.style.display='none';
+  if(Object.keys(cart).length===0){ alert('Please add at least one item to the cart.'); hasError=true; }
+  if(hasError) return;
 
-  let hasError = false;
-
-  if (!name) {
-    alert("Please enter your name.");
-    hasError = true;
+  let itemsText=''; for(let item in cart){
+    itemsText += `${item} × ${cart[item].qty} — ₹${cart[item].price*cart[item].qty}\n`;
   }
-
-  if (!validateMobile(mobile)) {
-    mobileErrorEl.style.display = "block";
-    hasError = true;
-  } else {
-    mobileErrorEl.style.display = "none";
-  }
-
-  if (!address) {
-    addressErrorEl.style.display = "block";
-    hasError = true;
-  } else {
-    addressErrorEl.style.display = "none";
-  }
-
-  if (Object.keys(cart).length === 0) {
-    alert("Please add at least one item to the cart.");
-    hasError = true;
-  }
-
-  if (hasError) return;
-
-  let itemsText = "";
-  for (let item in cart) {
-    itemsText += `${item} × ${cart[item].qty} — ₹${cart[item].price * cart[item].qty}\n`;
-  }
-
-  let locationText = "";
-  if (customerLocation) {
+  let locationText='';
+  if(customerLocation){
     locationText =
-      "\n📍 Location: " + customerLocation.lat + ", " + customerLocation.lng +
-      "\n🔗 Map: https://www.google.com/maps?q=" + customerLocation.lat + "," + customerLocation.lng + "\n";
+      "\n📍 Location: "+customerLocation.lat+", "+customerLocation.lng+
+      "\n🔗 Map: https://www.google.com/maps?q="+customerLocation.lat+","+customerLocation.lng+"\n";
   }
-
   let message =
-    "🛒 *New Grocery Order*\n\n" +
-    "👤 Name: " + name + "\n" +
-    "📞 Mobile: " + mobile + "\n" +
-    "🏠 Address: " + address + "\n" +
-    locationText +
-    "\n📦 Items:\n" +
-    itemsText +
-    "\n💰 Total: ₹" + total +
+    "🛒 *New Grocery Order*\n\n"+
+    "👤 Name: "+name+"\n"+
+    "📞 Mobile: "+mobile+"\n"+
+    "🏠 Address: "+address+"\n"+
+    locationText+
+    "\n📦 Items:\n"+itemsText+
+    "\n💰 Total: ₹"+total+
     "\n🚚 Payment: Cash on Delivery";
 
-  window.open(
-    "https://wa.me/" + phone + "?text=" + encodeURIComponent(message),
-    "_blank"
-  );
+  window.open("https://wa.me/"+phone+"?text="+encodeURIComponent(message),"_blank");
 
-  cart = {};
-  total = 0;
+  cart={};
+  total=0;
+  products.forEach(p=>updateQtyUI(p.name));
   updateCartUI();
 }
 
-// Initialize
-updateProductButtons();
+/* init */
+renderProducts();
 </script>
 
 </body>
