@@ -24,22 +24,27 @@ header {
 
 .container {
   padding:10px;
+  max-width:480px;
+  margin:0 auto;
 }
 
+/* PRODUCT CARD */
 .product {
   background:#fff;
   display:flex;
   align-items:center;
   padding:10px;
   margin-bottom:10px;
-  border-radius:8px;
+  border-radius:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
 }
 
 .product img {
   width:70px;
   height:70px;
-  border-radius:6px;
+  border-radius:8px;
   margin-right:10px;
+  object-fit:cover;
 }
 
 .product h4 {
@@ -49,7 +54,7 @@ header {
 
 .product p {
   margin:5px 0;
-  color:green;
+  color:#2e7d32;
   font-weight:bold;
 }
 
@@ -61,6 +66,7 @@ header {
   padding:8px 12px;
   border-radius:5px;
   cursor:pointer;
+  font-size:14px;
 }
 
 .product button:disabled {
@@ -73,26 +79,63 @@ header {
   margin-left:10px;
 }
 
+/* FORM / CARD */
 .form {
   background:#fff;
-  padding:10px;
-  border-radius:8px;
+  padding:12px 14px;
+  border-radius:10px;
   margin-top:15px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.08);
+}
+
+.form h4 {
+  margin:0 0 8px 0;
+}
+
+.form label {
+  font-size:13px;
+  font-weight:bold;
+  display:block;
+  margin-bottom:4px;
 }
 
 .form input,
 .form textarea {
   width:100%;
-  padding:10px;
+  padding:9px;
   margin-bottom:10px;
-  border-radius:5px;
+  border-radius:6px;
   border:1px solid #ccc;
+  font-size:14px;
 }
 
-.form ul {
-  padding-left:18px;
+.form input:focus,
+.form textarea:focus {
+  outline:none;
+  border-color:#2e7d32;
+  box-shadow:0 0 0 1px rgba(46,125,50,0.2);
 }
 
+.required {
+  color:#e53935;
+  margin-left:2px;
+  font-size:13px;
+}
+
+.hint {
+  font-size:11px;
+  color:#777;
+  margin-top:-6px;
+  margin-bottom:8px;
+}
+
+.error {
+  font-size:12px;
+  color:#e53935;
+  display:none;
+}
+
+/* CART BAR */
 .cart-bar {
   position:fixed;
   bottom:0;
@@ -113,6 +156,7 @@ header {
   cursor:pointer;
 }
 
+/* ADMIN */
 #adminPanel {
   position:fixed;
   top:20px;
@@ -206,7 +250,7 @@ header.admin-active {
 
   <!-- Products -->
   <div class="product" data-product="Rice (1 Kg)">
-    <img src="https://via.placeholder.com/70">
+    <img src="https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Rice">
     <div>
       <h4>Rice (1 Kg)</h4>
       <p id="price-rice">₹55</p>
@@ -218,7 +262,7 @@ header.admin-active {
   </div>
 
   <div class="product" data-product="Cooking Oil (1 L)">
-    <img src="https://via.placeholder.com/70">
+    <img src="https://images.pexels.com/photos/1459343/pexels-photo-1459343.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Cooking Oil">
     <div>
       <h4>Cooking Oil (1 L)</h4>
       <p id="price-oil">₹160</p>
@@ -230,7 +274,7 @@ header.admin-active {
   </div>
 
   <div class="product" data-product="Sugar (1 Kg)">
-    <img src="https://via.placeholder.com/70">
+    <img src="https://images.pexels.com/photos/1854664/pexels-photo-1854664.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Sugar">
     <div>
       <h4>Sugar (1 Kg)</h4>
       <p id="price-sugar">₹45</p>
@@ -250,9 +294,19 @@ header.admin-active {
 
   <!-- Customer Form -->
   <div class="form">
+    <h4>📦 Delivery Details</h4>
+
+    <label for="name">Name<span class="required">*</span></label>
     <input type="text" id="name" placeholder="Your Name">
-    <input type="tel" id="mobile" placeholder="Mobile Number">
-    <textarea id="address" placeholder="Delivery Address"></textarea>
+
+    <label for="mobile">Mobile Number<span class="required">*</span></label>
+    <input type="tel" id="mobile" placeholder="10-digit mobile">
+    <div class="hint">Only 10 digits, without country code. Example: 9876543210</div>
+    <div id="mobileError" class="error">Enter a valid 10‑digit mobile number.</div>
+
+    <label for="address">Delivery Address<span class="required">*</span></label>
+    <textarea id="address" rows="3" placeholder="House / Street / Village / Pincode"></textarea>
+    <div id="addressError" class="error">Address is required.</div>
   </div>
 
 </div>
@@ -264,7 +318,7 @@ header.admin-active {
 <script>
 let cart = {};
 let total = 0;
-const phone = "916380176168"; // Replace with your WhatsApp number
+const phone = "916380176168"; // Your WhatsApp number (country code + number, no +)
 const ADMIN_PASSWORD = "admin123"; // Change this password
 
 // STOCK STATUS
@@ -326,7 +380,6 @@ function toggleStock(item) {
   if (!isAdminMode) return;
   stockStatus[item] = !stockStatus[item];
   updateProductButtons();
-  console.log(`${item}: ${stockStatus[item] ? 'In Stock' : 'Out of Stock'}`);
 }
 
 function markAllOutOfStock() {
@@ -335,7 +388,7 @@ function markAllOutOfStock() {
 }
 
 function restockAll() {
-  Object.keys(stockStatus).forEach(item => stockStatus[item] = true);
+  Object.keys(stockStatus).forEach item => stockStatus[item] = true);
   updateProductButtons();
 }
 
@@ -363,7 +416,8 @@ function updateProductButtons() {
       const priceId = `price-${product.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
       const priceEl = document.getElementById(priceId);
       if (priceEl) {
-        priceEl.innerHTML = priceEl.innerHTML.replace(/<span[^>]*>.*<\/span>$/, '') + ' <span style="color:#f44336;">(Out of Stock)</span>';
+        priceEl.innerHTML = priceEl.innerHTML.replace(/<span[^>]*>.*<\/span>$/, '') +
+          ' <span style="color:#f44336;">(Out of Stock)</span>';
       }
     } else {
       btn.textContent = 'Add';
@@ -394,15 +448,49 @@ function updateCartUI() {
   totalEl.textContent = total;
 }
 
+function validateMobile(mobile) {
+  const onlyDigits = mobile.replace(/\D/g, '');
+  return onlyDigits.length === 10;
+}
+
 function placeOrder() {
   const name = document.getElementById("name").value.trim();
   const mobile = document.getElementById("mobile").value.trim();
   const address = document.getElementById("address").value.trim();
 
-  if (!name || !mobile || !address || Object.keys(cart).length === 0) {
-    alert("Please fill all details and add items");
-    return;
+  const mobileErrorEl = document.getElementById("mobileError");
+  const addressErrorEl = document.getElementById("addressError");
+
+  let hasError = false;
+
+  // Name simple check
+  if (!name) {
+    alert("Please enter your name.");
+    hasError = true;
   }
+
+  // Mobile validation: 10 digits
+  if (!validateMobile(mobile)) {
+    mobileErrorEl.style.display = "block";
+    hasError = true;
+  } else {
+    mobileErrorEl.style.display = "none";
+  }
+
+  // Address mandatory
+  if (!address) {
+    addressErrorEl.style.display = "block";
+    hasError = true;
+  } else {
+    addressErrorEl.style.display = "none";
+  }
+
+  if (Object.keys(cart).length === 0) {
+    alert("Please add at least one item to the cart.");
+    hasError = true;
+  }
+
+  if (hasError) return;
 
   let itemsText = "";
   for (let item in cart) {
