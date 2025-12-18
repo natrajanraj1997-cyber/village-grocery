@@ -180,26 +180,35 @@ let currentLat = null;
 let currentLng = null;
 
 // realtime listener on "products" collection
+// collection name must be exactly "products"
 const productsRef = collection(db, "products");
+
 onSnapshot(productsRef, (snapshot) => {
+  console.log("Products docs count:", snapshot.docs.length);
   data = snapshot.docs.map(doc => {
     const d = doc.data();
+    console.log("Product doc:", doc.id, d);
+
     return {
-      id: doc.id,          // e.g. "rice"
-      name: d.Name,        // Firestore: Name (string)
-      price: d.price,      // Firestore: price (number)
-      cat: d.cat || "Grocery", // Firestore: cat (string)
-      img: d.img,          // Firestore: img (string URL)
-      inStock: d.stock,    // Firestore: stock (boolean)
-      unit: d.unit         // Firestore: unit (string)
+      id: doc.id,                    // e.g. "rice"
+      // adjust these to match your actual fields in Firestore:
+      name: d.name || d.Name || "",  // supports "name" or "Name"
+      price: d.price || 0,
+      cat: d.cat || "Grocery",
+      img: d.img || "https://via.placeholder.com/64",
+      inStock: d.stock === undefined ? true : d.stock,
+      unit: d.unit || ""
     };
   });
   render();
+}, (error) => {
+  console.error("onSnapshot error:", error);
 });
 
 function render(){
   list.innerHTML = '';
-  const txt = search.value.toLowerCase();
+  const txt = (search.value || "").toLowerCase();
+
   data
     .filter(p =>
       p.name.toLowerCase().includes(txt) &&
@@ -222,6 +231,10 @@ function render(){
         ${p.inStock ? `<button class="add" onclick="add('${p.id}')">Add</button>` : ''}
       </div>`;
     });
+
+  if (data.length === 0) {
+    list.innerHTML = '<p>No products found in Firestore "products" collection.</p>';
+  }
 }
 
 window.setCat = c => {
