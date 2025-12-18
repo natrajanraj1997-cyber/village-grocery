@@ -8,63 +8,73 @@
 <style>
 body{
   font-family:Arial,sans-serif;
-  background:linear-gradient(135deg,#f4f4f4,#e8f5e9);
+  background:#f4f6f8;
   margin:0;padding-bottom:90px;
 }
 header{
   background:#2e7d32;color:#fff;
   padding:14px 16px;
-  display:flex;justify-content:space-between;align-items:center;
+  display:flex;justify-content:space-between;
 }
-.container{max-width:480px;margin:auto;padding:12px;}
+.container{max-width:480px;margin:auto;padding:12px}
 
-.form{
-  background:#fff;padding:12px;margin-bottom:15px;
-  border-radius:14px;
-  box-shadow:0 4px 12px rgba(0,0,0,.08);
-}
-
-.form input,.form textarea{
-  width:100%;padding:9px;margin-bottom:8px;
-  border-radius:8px;border:1px solid #cfd8dc;
+.search, .cats{
+  background:#fff;padding:10px;
+  margin-bottom:10px;border-radius:10px;
 }
 
-.error{color:#e53935;font-size:12px;display:none}
+.search input{
+  width:100%;padding:8px;border-radius:6px;
+  border:1px solid #ccc;
+}
+
+.cats button{
+  padding:6px 14px;border-radius:20px;
+  border:1px solid #ccc;background:#fff;
+  margin:4px;cursor:pointer;
+}
+.cats .active{background:#2e7d32;color:#fff}
 
 .product{
   background:#fff;display:flex;align-items:center;
-  padding:12px;margin-bottom:12px;border-radius:14px;
-  box-shadow:0 4px 12px rgba(0,0,0,.08);
+  padding:10px;margin-bottom:10px;
+  border-radius:12px;
 }
 .product img{
-  width:72px;height:72px;border-radius:12px;
-  margin-right:12px;object-fit:cover;
+  width:64px;height:64px;border-radius:10px;
+  margin-right:10px;object-fit:cover;
 }
-.product h4{margin:0;font-size:16px}
-.product p{margin:5px 0;color:#2e7d32;font-weight:bold}
+.product h4{margin:0;font-size:15px}
+.product p{margin:4px 0;color:#2e7d32;font-weight:bold}
 
-.qty-area{margin-left:auto;display:flex;align-items:center}
-.add-btn,.qty-pill{
-  border-radius:999px;padding:6px 14px;
-  border:1px solid #cfd8dc;background:#fff;cursor:pointer;
+.qty{
+  margin-left:auto;text-align:right;
 }
-.qty-pill{display:none;gap:10px;align-items:center}
-.qty-pill button{
-  width:22px;height:22px;border-radius:50%;
-  border:none;font-size:16px;cursor:pointer;
+.add, .qty button{
+  padding:6px 12px;border-radius:20px;
+  border:1px solid #ccc;background:#fff;
+  cursor:pointer;
 }
-.qty-plus{background:#2e7d32;color:#fff}
-.qty-minus{background:#eee}
+.qty{display:none}
+.qty span{margin:0 8px}
+.out{
+  color:red;font-size:12px;font-weight:bold;
+}
+
+.cart{
+  background:#fff;padding:10px;border-radius:10px;
+}
+.cart ul{padding-left:18px}
 
 .cart-bar{
   position:fixed;bottom:0;width:100%;
-  background:#fff;padding:8px;
-  box-shadow:0 -3px 10px rgba(0,0,0,.25);
+  background:#fff;padding:10px;
+  box-shadow:0 -3px 10px rgba(0,0,0,.2);
 }
 .cart-bar button{
-  width:100%;padding:12px;border:none;border-radius:30px;
-  background:linear-gradient(90deg,#2e7d32,#43a047);
-  color:#fff;font-size:16px;
+  width:100%;padding:12px;
+  border:none;border-radius:30px;
+  background:#2e7d32;color:#fff;font-size:16px;
 }
 </style>
 </head>
@@ -73,26 +83,34 @@ header{
 
 <header>
   <div>Village Grocery</div>
-  <div>🛒 <span id="cartCount">0</span></div>
+  <div>🛒 <span id="count">0</span></div>
 </header>
 
 <div class="container">
 
-<div id="products"></div>
-
-<div class="form">
-  <h4>🛒 Cart</h4>
-  <ul id="cartList"></ul>
-  <strong>Total ₹<span id="total">0</span></strong>
+<div class="search">
+  <input id="search" placeholder="Search products">
 </div>
 
-<div class="form">
+<div class="cats">
+  <button class="active" onclick="setCat('All')">All</button>
+  <button onclick="setCat('Grocery')">Grocery</button>
+  <button onclick="setCat('Bathroom')">Bathroom</button>
+</div>
+
+<div id="products"></div>
+
+<div class="cart">
+  <h4>🛒 Cart</h4>
+  <ul id="cartList"></ul>
+  <b>Total ₹<span id="total">0</span></b>
+</div>
+
+<div class="cart">
   <h4>📦 Delivery</h4>
   <input id="name" placeholder="Name *">
   <input id="mobile" placeholder="Mobile *">
   <textarea id="address" placeholder="Address *"></textarea>
-  <button onclick="getLocation()">📍 Use My Location</button>
-  <div id="locInfo" style="font-size:12px"></div>
 </div>
 
 </div>
@@ -119,75 +137,89 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// PRODUCTS
-const productsData=[
- {name:'Rice (1kg)',price:55,img:'https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg'},
- {name:'Oil (1L)',price:160,img:'https://images.pexels.com/photos/1459343/pexels-photo-1459343.jpeg'},
- {name:'Soap',price:30,img:'https://images.pexels.com/photos/1029041/pexels-photo-1029041.jpeg'}
+/* PRODUCTS */
+const data=[
+ {id:'rice',name:'Rice (1kg)',price:55,cat:'Grocery',img:'https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg',inStock:false},
+ {id:'oil',name:'Oil (1L)',price:160,cat:'Grocery',img:'https://images.pexels.com/photos/1459343/pexels-photo-1459343.jpeg',inStock:true},
+ {id:'soap',name:'Bath Soap',price:30,cat:'Bathroom',img:'https://images.pexels.com/photos/1029041/pexels-photo-1029041.jpeg',inStock:true}
 ];
 
-let cart={},location=null;
+let cart={},cat='All';
 
-const products=document.getElementById("products");
+const list=document.getElementById("products");
 
-productsData.forEach(p=>{
- products.innerHTML+=`
- <div class="product">
-  <img src="${p.img}">
-  <div>
-    <h4>${p.name}</h4>
-    <p>₹${p.price}</p>
-  </div>
-  <div class="qty-area">
-    <button class="add-btn" onclick="add('${p.name}',${p.price})">Add</button>
-  </div>
- </div>`;
-});
+function render(){
+ list.innerHTML='';
+ const txt=search.value.toLowerCase();
+ data.filter(p=>
+  p.name.toLowerCase().includes(txt) &&
+  (cat==='All'||p.cat===cat)
+ ).forEach(p=>{
+  list.innerHTML+=`
+  <div class="product">
+    <img src="${p.img}">
+    <div>
+      <h4>${p.name}</h4>
+      <p>₹${p.price}</p>
+      ${p.inStock?'':'<div class="out">OUT OF STOCK</div>'}
+    </div>
+    <div class="qty">
+      <button onclick="chg('${p.id}',-1)">−</button>
+      <span>${cart[p.id]?.qty||0}</span>
+      <button onclick="chg('${p.id}',1)">+</button>
+    </div>
+    ${p.inStock?`<button class="add" onclick="add('${p.id}')">Add</button>`:''}
+  </div>`;
+ });
+}
 
-window.add=(name,price)=>{
- cart[name]=cart[name]?{price,qty:cart[name].qty+1}:{price,qty:1};
- renderCart();
+window.setCat=c=>{
+ cat=c;
+ document.querySelectorAll('.cats button')
+ .forEach(b=>b.classList.toggle('active',b.textContent===c));
+ render();
+};
+
+window.add=id=>{
+ cart[id]={qty:1,price:data.find(p=>p.id===id).price};
+ renderCart();render();
+};
+
+window.chg=(id,d)=>{
+ cart[id].qty+=d;
+ if(cart[id].qty<=0) delete cart[id];
+ renderCart();render();
 };
 
 function renderCart(){
- cartList.innerHTML="";let total=0,count=0;
+ cartList.innerHTML='';let t=0,c=0;
  for(let i in cart){
-  total+=cart[i].price*cart[i].qty;
-  count+=cart[i].qty;
+  t+=cart[i].qty*cart[i].price;
+  c+=cart[i].qty;
   cartList.innerHTML+=`<li>${i} × ${cart[i].qty}</li>`;
  }
- document.getElementById("total").textContent=total;
- document.getElementById("cartCount").textContent=count;
+ total.textContent=t;
+ count.textContent=c;
 }
 
-window.getLocation=()=>{
- navigator.geolocation.getCurrentPosition(p=>{
-  location={lat:p.coords.latitude,lng:p.coords.longitude};
-  locInfo.textContent=`Location saved`;
- });
-};
-
-window.placeOrder=async ()=>{
- const name=document.getElementById("name").value.trim();
- const mobile=document.getElementById("mobile").value.trim();
- const address=document.getElementById("address").value.trim();
-
- if(!name||!mobile||!address||!location||Object.keys(cart).length===0){
-  alert("Fill all details");
-  return;
+window.placeOrder=async()=>{
+ if(!name.value||!mobile.value||!address.value||!Object.keys(cart).length){
+  alert("Fill all details");return;
  }
-
  await addDoc(collection(db,"orders"),{
-  name,mobile,address,
-  location,
+  name:name.value,
+  mobile:mobile.value,
+  address:address.value,
   items:cart,
   status:"NEW",
   createdAt:serverTimestamp()
  });
-
- alert("✅ Order placed successfully!");
- cart={};renderCart();
+ alert("✅ Order placed");
+ cart={};renderCart();render();
 };
+
+search.oninput=render;
+render();
 </script>
 
 </body>
