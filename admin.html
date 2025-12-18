@@ -113,7 +113,7 @@ const logoutBtn = document.getElementById("logoutBtn");
 
 let unsub = null;
 
-// Only allow specific admin email(s) – CHANGE THIS to your exact Gmail
+// Only allow specific admin email(s)
 const ALLOWED_EMAILS = [
   "natrajanraj1997@gmail.com"
 ];
@@ -166,6 +166,8 @@ function subscribeOrders(){
   const ordersRef = collection(db, "orders");
   const q = query(ordersRef, orderBy("createdAt","desc"));
   unsub = onSnapshot(q, (snapshot) => {
+    console.log("Orders docs count:", snapshot.size);
+
     if (snapshot.empty) {
       ordersList.innerHTML = "<p>No orders yet.</p>";
       return;
@@ -177,7 +179,9 @@ function subscribeOrders(){
       let itemsHtml = "";
       for (let id in items){
         const it = items[id];
-        itemsHtml += `<li>${id} × ${it.qty} (₹${it.price})</li>`;
+        // item name from nested object, fallback to id
+        const itemName = it.name || id;
+        itemsHtml += `<li>${itemName} × ${it.qty} (₹${it.price})</li>`;
       }
       const created = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString() : "";
       html += `
@@ -200,6 +204,9 @@ function subscribeOrders(){
       `;
     });
     ordersList.innerHTML = html;
+  }, (err) => {
+    console.error("Orders onSnapshot error:", err);
+    ordersList.innerHTML = "<p>Error loading orders (see console).</p>";
   });
 }
 </script>
