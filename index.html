@@ -180,7 +180,6 @@ let currentLat = null;
 let currentLng = null;
 
 // realtime listener on "products" collection
-// collection name must be exactly "products"
 const productsRef = collection(db, "products");
 
 onSnapshot(productsRef, (snapshot) => {
@@ -188,16 +187,14 @@ onSnapshot(productsRef, (snapshot) => {
   data = snapshot.docs.map(doc => {
     const d = doc.data();
     console.log("Product doc:", doc.id, d);
-
     return {
-      id: doc.id,                    // e.g. "rice"
-      // adjust these to match your actual fields in Firestore:
-      name: d.name || d.Name || "",  // supports "name" or "Name"
-      price: d.price || 0,
-      cat: d.cat || "Grocery",
-      img: d.img || "https://via.placeholder.com/64",
-      inStock: d.stock === undefined ? true : d.stock,
-      unit: d.unit || ""
+      id: doc.id,
+      name: d.Name,        // Firestore field "Name"
+      price: d.price,
+      cat: d.cat,
+      img: d.img,
+      inStock: d.stock,
+      unit: d.unit
     };
   });
   render();
