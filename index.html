@@ -76,6 +76,23 @@ header{
   border:none;border-radius:30px;
   background:#2e7d32;color:#fff;font-size:16px;
 }
+.cart input, .cart textarea, .cart select{
+  width:100%;
+  box-sizing:border-box;
+  padding:8px;
+  margin:4px 0;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+.cart textarea{
+  min-height:60px;
+  resize:vertical;
+}
+#locStatus{
+  font-size:12px;
+  color:#555;
+  margin-top:4px;
+}
 </style>
 </head>
 
@@ -110,7 +127,12 @@ header{
   <h4>📦 Delivery</h4>
   <input id="name" placeholder="Name *">
   <input id="mobile" placeholder="Mobile *">
-  <textarea id="address" placeholder="Address *"></textarea>
+
+  <!-- Share live location -->
+  <button type="button" onclick="getLocation()">📍 Share live location</button>
+  <div id="locStatus"></div>
+
+  <textarea id="address" placeholder="Address * (house / street / landmark)"></textarea>
 </div>
 
 </div>
@@ -122,8 +144,9 @@ header{
 <!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc, serverTimestamp }
-from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { 
+  getFirestore, collection, addDoc, serverTimestamp, onSnapshot 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCYDLsQLFvuTV1N0mXtZFVYcSQqOkGfCrE",
@@ -137,89 +160,162 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* PRODUCTS */
-const data=[
- {id:'rice',name:'Rice (1kg)',price:55,cat:'Grocery',img:'https://images.pexels.com/photos/4110251/pexels-photo-4110251.jpeg',inStock:false},
- {id:'oil',name:'Oil (1L)',price:160,cat:'Grocery',img:'https://images.pexels.com/photos/1459343/pexels-photo-1459343.jpeg',inStock:true},
- {id:'soap',name:'Bath Soap',price:30,cat:'Bathroom',img:'https://images.pexels.com/photos/1029041/pexels-photo-1029041.jpeg',inStock:true}
-];
+// PRODUCTS FROM FIRESTORE
+let data = [];           // products
+let cart = {};
+let cat = 'All';
 
-let cart={},cat='All';
+const list = document.getElementById("products");
+const search = document.getElementById("search");
+const cartList = document.getElementById("cartList");
+const total = document.getElementById("total");
+const count = document.getElementById("count");
+const nameEl = document.getElementById("name");
+const mobileEl = document.getElementById("mobile");
+const addressEl = document.getElementById("address");
+const locStatus = document.getElementById("locStatus");
 
-const list=document.getElementById("products");
+// geolocation variables
+let currentLat = null;
+let currentLng = null;
+
+// realtime listener on "products" collection
+const productsRef = collection(db, "products");
+onSnapshot(productsRef, (snapshot) => {
+  data = snapshot.docs.map(doc => {
+    const d = doc.data();
+    return {
+      id: doc.id,          // e.g. "rice"
+      name: d.Name,        // Firestore: Name (string)
+      price: d.price,      // Firestore: price (number)
+      cat: d.cat || "Grocery", // Firestore: cat (string)
+      img: d.img,          // Firestore: img (string URL)
+      inStock: d.stock,    // Firestore: stock (boolean)
+      unit: d.unit         // Firestore: unit (string)
+    };
+  });
+  render();
+});
 
 function render(){
- list.innerHTML='';
- const txt=search.value.toLowerCase();
- data.filter(p=>
-  p.name.toLowerCase().includes(txt) &&
-  (cat==='All'||p.cat===cat)
- ).forEach(p=>{
-  list.innerHTML+=`
-  <div class="product">
-    <img src="${p.img}">
-    <div>
-      <h4>${p.name}</h4>
-      <p>₹${p.price}</p>
-      ${p.inStock?'':'<div class="out">OUT OF STOCK</div>'}
-    </div>
-    <div class="qty">
-      <button onclick="chg('${p.id}',-1)">−</button>
-      <span>${cart[p.id]?.qty||0}</span>
-      <button onclick="chg('${p.id}',1)">+</button>
-    </div>
-    ${p.inStock?`<button class="add" onclick="add('${p.id}')">Add</button>`:''}
-  </div>`;
- });
+  list.innerHTML = '';
+  const txt = search.value.toLowerCase();
+  data
+    .filter(p =>
+      p.name.toLowerCase().includes(txt) &&
+      (cat === 'All' || p.cat === cat)
+    )
+    .forEach(p => {
+      list.innerHTML += `
+      <div class="product">
+        <img src="${p.img}">
+        <div>
+          <h4>${p.name} ${p.unit ? '('+p.unit+')' : ''}</h4>
+          <p>₹${p.price}</p>
+          ${p.inStock ? '' : '<div class="out">OUT OF STOCK</div>'}
+        </div>
+        <div class="qty">
+          <button onclick="chg('${p.id}',-1)">−</button>
+          <span>${cart[p.id]?.qty || 0}</span>
+          <button onclick="chg('${p.id}',1)">+</button>
+        </div>
+        ${p.inStock ? `<button class="add" onclick="add('${p.id}')">Add</button>` : ''}
+      </div>`;
+    });
 }
 
-window.setCat=c=>{
- cat=c;
- document.querySelectorAll('.cats button')
- .forEach(b=>b.classList.toggle('active',b.textContent===c));
- render();
+window.setCat = c => {
+  cat = c;
+  document.querySelectorAll('.cats button')
+    .forEach(b => b.classList.toggle('active', b.textContent === c));
+  render();
 };
 
-window.add=id=>{
- cart[id]={qty:1,price:data.find(p=>p.id===id).price};
- renderCart();render();
+window.add = id => {
+  const product = data.find(p => p.id === id);
+  if (!product) return;
+  if (!cart[id]) {
+    cart[id] = { qty: 1, price: product.price, name: product.name };
+  } else {
+    cart[id].qty += 1;
+  }
+  renderCart();
+  render();
 };
 
-window.chg=(id,d)=>{
- cart[id].qty+=d;
- if(cart[id].qty<=0) delete cart[id];
- renderCart();render();
+window.chg = (id, d) => {
+  if (!cart[id]) return;
+  cart[id].qty += d;
+  if (cart[id].qty <= 0) delete cart[id];
+  renderCart();
+  render();
 };
 
 function renderCart(){
- cartList.innerHTML='';let t=0,c=0;
- for(let i in cart){
-  t+=cart[i].qty*cart[i].price;
-  c+=cart[i].qty;
-  cartList.innerHTML+=`<li>${i} × ${cart[i].qty}</li>`;
- }
- total.textContent=t;
- count.textContent=c;
+  cartList.innerHTML=''; 
+  let t = 0, c = 0;
+  for(let i in cart){
+    t += cart[i].qty * cart[i].price;
+    c += cart[i].qty;
+    cartList.innerHTML += `<li>${cart[i].name} × ${cart[i].qty}</li>`;
+  }
+  total.textContent = t;
+  count.textContent = c;
 }
 
-window.placeOrder=async()=>{
- if(!name.value||!mobile.value||!address.value||!Object.keys(cart).length){
-  alert("Fill all details");return;
- }
- await addDoc(collection(db,"orders"),{
-  name:name.value,
-  mobile:mobile.value,
-  address:address.value,
-  items:cart,
-  status:"NEW",
-  createdAt:serverTimestamp()
- });
- alert("✅ Order placed");
- cart={};renderCart();render();
+// get current location
+window.getLocation = () => {
+  if (!navigator.geolocation) {
+    locStatus.textContent = "Geolocation not supported in this browser.";
+    return;
+  }
+  locStatus.textContent = "Getting location...";
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      currentLat = position.coords.latitude;
+      currentLng = position.coords.longitude;
+      locStatus.textContent = `Location captured ✅ (${currentLat.toFixed(5)}, ${currentLng.toFixed(5)})`;
+    },
+    (error) => {
+      locStatus.textContent = "Unable to get location. Please allow location permission.";
+      console.warn(error);
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
 };
 
-search.oninput=render;
-render();
+window.placeOrder = async () => {
+  if(!nameEl.value || !mobileEl.value || !addressEl.value || !Object.keys(cart).length){
+    alert("Fill all details");
+    return;
+  }
+
+  await addDoc(collection(db,"orders"),{
+    name: nameEl.value,
+    mobile: mobileEl.value,
+    address: addressEl.value,
+    items: cart,
+    status:"NEW",
+    createdAt: serverTimestamp(),
+    location: (currentLat !== null && currentLng !== null) ? {
+      lat: currentLat,
+      lng: currentLng
+    } : null
+  });
+
+  alert("✅ Order placed");
+  cart = {};
+  renderCart();
+  render();
+  nameEl.value = '';
+  mobileEl.value = '';
+  addressEl.value = '';
+  locStatus.textContent = '';
+  currentLat = null;
+  currentLng = null;
+};
+
+search.oninput = render;
 </script>
 
 </body>
