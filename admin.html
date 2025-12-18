@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin - Village Grocery</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{
+  font-family:Arial,sans-serif;
+  background:#f4f6f8;
+  margin:0;
+}
+header{
+  background:#2e7d32;color:#fff;
+  padding:14px 16px;
+}
+.container{max-width:800px;margin:20px auto;padding:12px}
+.card{
+  background:#fff;padding:16px;border-radius:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,.1);
+  margin-bottom:12px;
+}
+.small{font-size:12px;color:#555}
+
+/* login */
+#loginBox{
+  max-width:320px;margin:80px auto;
+}
+#loginBox input{
+  width:100%;padding:8px;margin:6px 0;
+  border-radius:6px;border:1px solid #ccc;
+}
+#loginBox button{
+  width:100%;padding:10px;margin-top:8px;
+  border:none;border-radius:20px;
+  background:#2e7d32;color:#fff;cursor:pointer;
+}
+
+/* admin content */
+#adminContent{display:none;}
+.order-header{
+  display:flex;justify-content:space-between;align-items:center;
+}
+.order-items{margin-top:6px;padding-left:18px;}
+.badge{
+  display:inline-block;padding:2px 8px;border-radius:10px;
+  font-size:11px;background:#eee;
+}
+.badge.new{background:#ffd54f;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>Village Grocery – Admin</div>
+</header>
+
+<!-- simple password login -->
+<div id="loginBox" class="card">
+  <h3>Admin Login</h3>
+  <input type="password" id="adminPass" placeholder="Password">
+  <button onclick="checkAdminPassword()">Login</button>
+  <p class="small">For now this is a simple front‑end password, not full security.</p>
+</div>
+
+<!-- admin content: orders list -->
+<div id="adminContent" class="container">
+  <div class="card">
+    <h3>Orders</h3>
+    <div id="ordersList">Loading orders…</div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { 
+  getFirestore, collection, onSnapshot, orderBy, query 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// SAME CONFIG AS CUSTOMER PAGE
+const firebaseConfig = {
+  apiKey: "AIzaSyCYDLsQLFvuTV1N0mXtZFVYcSQqOkGfCrE",
+  authDomain: "grocery-orders-3ce26.firebaseapp.com",
+  projectId: "grocery-orders-3ce26",
+  storageBucket: "grocery-orders-3ce26.appspot.com",
+  messagingSenderId: "786501136156",
+  appId: "1:786501136156:web:9277a2f7ef937deff1d4d9"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// very simple password (change this)
+const ADMIN_PASSWORD = "village123";
+
+const loginBox = document.getElementById("loginBox");
+const adminContent = document.getElementById("adminContent");
+const adminPass = document.getElementById("adminPass");
+const ordersList = document.getElementById("ordersList");
+
+// password check
+window.checkAdminPassword = () => {
+  if (adminPass.value === ADMIN_PASSWORD) {
+    loginBox.style.display = "none";
+    adminContent.style.display = "block";
+    subscribeOrders();
+  } else {
+    alert("Wrong password");
+  }
+};
+
+// subscribe to orders
+let unsub = null;
+function subscribeOrders(){
+  const ordersRef = collection(db, "orders");
+  const q = query(ordersRef, orderBy("createdAt","desc"));
+  unsub = onSnapshot(q, (snapshot) => {
+    if (snapshot.empty) {
+      ordersList.innerHTML = "<p>No orders yet.</p>";
+      return;
+    }
+    let html = "";
+    snapshot.forEach(doc => {
+      const o = doc.data();
+      const items = o.items || {};
+      let itemsHtml = "";
+      for (let id in items){
+        const it = items[id];
+        itemsHtml += `<li>${id} × ${it.qty} (₹${it.price})</li>`;
+      }
+      const created = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString() : "";
+      html += `
+        <div class="card">
+          <div class="order-header">
+            <div>
+              <b>${o.name}</b> – ${o.mobile}<br>
+              <span class="small">${o.address}</span><br>
+              ${o.location ? `<span class="small">📍 ${o.location.lat.toFixed(5)}, ${o.location.lng.toFixed(5)}</span>` : ""}
+            </div>
+            <div>
+              <span class="badge new">${o.status || "NEW"}</span><br>
+              <span class="small">${created}</span>
+            </div>
+          </div>
+          <ul class="order-items">
+            ${itemsHtml}
+          </ul>
+        </div>
+      `;
+    });
+    ordersList.innerHTML = html;
+  });
+}
+</script>
+</body>
+</html>
