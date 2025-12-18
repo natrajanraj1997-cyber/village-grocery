@@ -24,17 +24,16 @@ header{
 
 /* login */
 #loginBox{
-  max-width:320px;margin:80px auto;
-}
-#loginBox input{
-  width:100%;padding:8px;margin:6px 0;
-  border-radius:6px;border:1px solid #ccc;
+  max-width:320px;margin:80px auto;text-align:center;
 }
 #loginBox button{
   width:100%;padding:10px;margin-top:8px;
   border:none;border-radius:20px;
-  background:#2e7d32;color:#fff;cursor:pointer;
+  background:#fff;color:#444;cursor:pointer;
+  border:1px solid #ccc;display:flex;
+  align-items:center;justify-content:center;
 }
+#loginBox img{height:18px;margin-right:8px}
 
 /* admin content */
 #adminContent{display:none;}
@@ -55,18 +54,25 @@ header{
   <div>Village Grocery – Admin</div>
 </header>
 
-<!-- simple password login -->
+<!-- Google login -->
 <div id="loginBox" class="card">
   <h3>Admin Login</h3>
-  <input type="password" id="adminPass" placeholder="Password">
-  <button onclick="checkAdminPassword()">Login</button>
-  <p class="small">For now this is a simple front‑end password, not full security.</p>
+  <button id="googleBtn">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="">
+    <span>Sign in with Google</span>
+  </button>
+  <p class="small">Only your Google account will see orders. Others cannot access.</p>
 </div>
 
 <!-- admin content: orders list -->
 <div id="adminContent" class="container">
   <div class="card">
-    <h3>Orders</h3>
+    <div style="display:flex;justify-content:space-between;align-items:center;">
+      <h3>Orders</h3>
+      <button id="logoutBtn" style="padding:6px 10px;border-radius:20px;border:1px solid #ccc;background:#fff;cursor:pointer;">
+        Logout
+      </button>
+    </div>
     <div id="ordersList">Loading orders…</div>
   </div>
 </div>
@@ -76,6 +82,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { 
   getFirestore, collection, onSnapshot, orderBy, query 
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getAuth,
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 // SAME CONFIG AS CUSTOMER PAGE
 const firebaseConfig = {
@@ -89,32 +102,66 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
-// very simple password (change this)
-const ADMIN_PASSWORD = "village123";
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider(); // Google provider [web:296]
 
 const loginBox = document.getElementById("loginBox");
 const adminContent = document.getElementById("adminContent");
-const adminPass = document.getElementById("adminPass");
 const ordersList = document.getElementById("ordersList");
+const googleBtn = document.getElementById("googleBtn");
+const logoutBtn = document.getElementById("logoutBtn");
 
-// password check
-window.checkAdminPassword = () => {
-  if (adminPass.value === ADMIN_PASSWORD) {
-    loginBox.style.display = "none";
-    adminContent.style.display = "block";
-    subscribeOrders();
+let unsub = null;
+
+// Only allow specific admin email(s)
+const ALLOWED_EMAILS = [
+  "natrajan1997@gmail" // TODO: put your Google account email here
+];
+
+// auth state listener
+onAuthStateChanged(auth, (user) => {
+  if (user && ALLOWED_EMAILS.includes(user.email)) {
+    console.log("Admin signed in:", user.email);
+    showAdmin();
   } else {
-    alert("Wrong password");
+    hideAdmin();
+  }
+});
+
+// sign in with Google popup
+googleBtn.onclick = async () => {
+  try {
+    await signInWithPopup(auth, provider); // [web:296][web:306]
+  } catch (err) {
+    console.error(err);
+    alert("Google sign-in failed");
   }
 };
 
+// logout
+logoutBtn.onclick = async () => {
+  await signOut(auth); // [web:296]
+};
+
+function showAdmin(){
+  loginBox.style.display = "none";
+  adminContent.style.display = "block";
+  subscribeOrders();
+}
+
+function hideAdmin(){
+  loginBox.style.display = "block";
+  adminContent.style.display = "none";
+  if (unsub) { unsub(); unsub = null; }
+  ordersList.innerHTML = "Please sign in with Google.";
+}
+
 // subscribe to orders
-let unsub = null;
 function subscribeOrders(){
+  if (unsub) return; // already listening
   const ordersRef = collection(db, "orders");
-  const q = query(ordersRef, orderBy("createdAt","desc"));
-  unsub = onSnapshot(q, (snapshot) => {
+  const q = query(ordersRef, orderBy("createdAt","desc")); // newest first [web:269]
+  unsub = onSnapshot(q, (snapshot) => {                    // realtime updates [web:2]
     if (snapshot.empty) {
       ordersList.innerHTML = "<p>No orders yet.</p>";
       return;
