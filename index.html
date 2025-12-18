@@ -36,7 +36,10 @@ header{
 .cats .active{background:#2e7d32;color:#fff}
 
 .product{
-  background:#fff;display:flex;align-items:center;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;   /* content left, actions right */
   padding:10px;margin-bottom:10px;
   border-radius:12px;
 }
@@ -47,15 +50,24 @@ header{
 .product h4{margin:0;font-size:15px}
 .product p{margin:4px 0;color:#2e7d32;font-weight:bold}
 
+.product-info{
+  flex:1;
+  margin-right:10px;
+}
+.product-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
 .qty{
-  margin-left:auto;text-align:right;
+  text-align:right;
 }
 .add, .qty button{
   padding:6px 12px;border-radius:20px;
   border:1px solid #ccc;background:#fff;
   cursor:pointer;
 }
-.qty{display:none}
 .qty span{margin:0 8px}
 .out{
   color:red;font-size:12px;font-weight:bold;
@@ -212,20 +224,28 @@ function render(){
       (cat === 'All' || p.cat === cat)
     )
     .forEach(p => {
+      const qty = cart[p.id]?.qty || 0;
       list.innerHTML += `
       <div class="product">
         <img src="${p.img}">
-        <div>
+        <div class="product-info">
           <h4>${p.name} ${p.unit ? '('+p.unit+')' : ''}</h4>
           <p>₹${p.price}</p>
           ${p.inStock ? '' : '<div class="out">OUT OF STOCK</div>'}
         </div>
-        <div class="qty">
-          <button onclick="chg('${p.id}',-1)">−</button>
-          <span>${cart[p.id]?.qty || 0}</span>
-          <button onclick="chg('${p.id}',1)">+</button>
+
+        <div class="product-actions">
+          <div class="qty" style="display:${qty > 0 ? 'block' : 'none'}">
+            <button onclick="chg('${p.id}',-1)">−</button>
+            <span>${qty}</span>
+            <button onclick="chg('${p.id}',1)">+</button>
+          </div>
+
+          ${p.inStock && qty === 0
+            ? `<button class="add" onclick="add('${p.id}')">Add</button>`
+            : ''
+          }
         </div>
-        ${p.inStock ? `<button class="add" onclick="add('${p.id}')">Add</button>` : ''}
       </div>`;
     });
 
