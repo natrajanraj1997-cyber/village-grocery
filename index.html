@@ -133,8 +133,11 @@ h4{margin:0 0 8px 0;font-size:15px}
   <!-- LOGIN CARD (always visible) -->
   <div class="card cart">
     <h4>👤 Login to continue</h4>
+
+    <!-- BEFORE LOGIN -->
     <div id="loginBox">
-      <input id="loginMobile" placeholder="+91XXXXXXXXXX">
+      <input id="loginName" placeholder="Name">
+      <input id="loginMobile" placeholder="Phone number (with or without +91)">
       <div id="recaptcha-container"></div>
       <button class="btn-primary" type="button" onclick="sendOtp()">Send OTP</button>
 
@@ -147,8 +150,9 @@ h4{margin:0 0 8px 0;font-size:15px}
       <p class="small">After login you can see products, place orders and view your history.</p>
     </div>
 
+    <!-- AFTER LOGIN -->
     <div id="userBox" style="display:none">
-      <p class="small">Logged in as <b><span id="userInfo"></span></b></p>
+      <p class="small" id="welcomeText"></p>
       <button class="btn-ghost" type="button" onclick="logout()">Logout</button>
     </div>
   </div>
@@ -214,7 +218,7 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"; /* modular web auth [web:12][web:6] */
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"; /* web modular auth [web:12][web:6] */
 
 const firebaseConfig = {
   apiKey: "AIzaSyCYDLsQLFvuTV1N0mXtZFVYcSQqOkGfCrE",
@@ -245,11 +249,12 @@ const addressEl = document.getElementById("address");
 const locStatus = document.getElementById("locStatus");
 const placeBtn = document.getElementById("placeBtn");
 
+const loginName = document.getElementById("loginName");
 const loginMobile = document.getElementById("loginMobile");
 const otpCode = document.getElementById("otpCode");
 const loginBox = document.getElementById("loginBox");
 const userBox = document.getElementById("userBox");
-const userInfo = document.getElementById("userInfo");
+const welcomeText = document.getElementById("welcomeText");
 const orderHistoryEl = document.getElementById("orderHistory");
 const shopArea = document.getElementById("shopArea");
 
@@ -371,7 +376,6 @@ function renderCart(){
 window.sendOtp = async () => {
   let phone = loginMobile.value.trim();
   if (!phone.startsWith("+")) {
-    // assume India if user forgot +91
     phone = "+91" + phone;
   }
   if (phone.length < 12) {
@@ -418,12 +422,20 @@ window.logout = async () => {
   }
 };
 
-// auth state: show/hide shop [web:12]
+// auth state: show/hide shop and welcome text [web:12][web:78]
 onAuthStateChanged(auth, (user) => {
   if (user) {
     loginBox.style.display = "none";
     userBox.style.display = "block";
-    userInfo.textContent = user.phoneNumber || user.email || "User";
+
+    const label =
+      loginName.value.trim() ||           // name typed on page
+      user.displayName ||                 // Google name
+      user.email ||                       // email
+      user.phoneNumber ||                 // phone
+      "customer";
+
+    welcomeText.textContent = `Logged in successfully. Welcome ${label}.`;
 
     shopArea.style.display = "block";
     placeBtn.disabled = false;
@@ -431,7 +443,7 @@ onAuthStateChanged(auth, (user) => {
   } else {
     loginBox.style.display = "block";
     userBox.style.display = "none";
-    userInfo.textContent = "";
+    welcomeText.textContent = "";
 
     shopArea.style.display = "none";
     placeBtn.disabled = true;
