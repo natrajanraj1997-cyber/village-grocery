@@ -46,6 +46,18 @@ header{
   font-size:11px;background:#eee;
 }
 .badge.new{background:#ffd54f;}
+
+/* status buttons */
+.status-btn{
+  font-size:11px;
+  padding:2px 6px;
+  margin-top:3px;
+  border-radius:10px;
+  border:1px solid #ccc;
+  background:#fff;
+  cursor:pointer;
+}
+.status-btn:hover{background:#f1f1f1}
 </style>
 </head>
 <body>
@@ -80,7 +92,7 @@ header{
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { 
-  getFirestore, collection, onSnapshot, orderBy, query 
+  getFirestore, collection, onSnapshot, orderBy, query, doc, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getAuth,
@@ -120,14 +132,9 @@ const ALLOWED_EMAILS = [
 
 // auth state listener
 onAuthStateChanged(auth, (user) => {
-  console.log("Auth state changed. User:", user?.email);
-  console.log("Allowed list:", ALLOWED_EMAILS);
-
   if (user && ALLOWED_EMAILS.includes(user.email)) {
-    console.log("Admin signed in:", user.email);
     showAdmin();
   } else {
-    console.log("Not allowed or signed out");
     hideAdmin();
   }
 });
@@ -160,30 +167,45 @@ function hideAdmin(){
   ordersList.innerHTML = "Please sign in with Google.";
 }
 
+// helper to update status
+async function updateOrderStatus(orderId, newStatus){
+  try {
+    await updateDoc(doc(db, "orders", orderId), { status: newStatus });
+  } catch (e) {
+    console.error("Update status error:", e);
+    alert("Failed to update order status");
+  }
+}
+
+// make accessible from HTML
+window.setStatus = (id, status) => {
+  updateOrderStatus(id, status);
+};
+
 // subscribe to orders
 function subscribeOrders(){
   if (unsub) return; // already listening
   const ordersRef = collection(db, "orders");
   const q = query(ordersRef, orderBy("createdAt","desc"));
   unsub = onSnapshot(q, (snapshot) => {
-    console.log("Orders docs count:", snapshot.size);
-
     if (snapshot.empty) {
       ordersList.innerHTML = "<p>No orders yet.</p>";
       return;
     }
     let html = "";
-    snapshot.forEach(doc => {
-      const o = doc.data();
+    snapshot.forEach(docSnap => {
+      const o = docSnap.data();
+      const id = docSnap.id;
       const items = o.items || {};
       let itemsHtml = "";
-      for (let id in items){
-        const it = items[id];
-        // item name from nested object, fallback to id
-        const itemName = it.name || id;
+      for (let key in items){
+        const it = items[key];
+        const itemName = it.name || key;
         itemsHtml += `<li>${itemName} × ${it.qty} (₹${it.price})</li>`;
       }
       const created = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString() : "";
+      const status = o.status || "NEW";
+
       html += `
         <div class="card">
           <div class="order-header">
@@ -192,9 +214,12 @@ function subscribeOrders(){
               <span class="small">${o.address}</span><br>
               ${o.location ? `<span class="small">📍 ${o.location.lat.toFixed(5)}, ${o.location.lng.toFixed(5)}</span>` : ""}
             </div>
-            <div>
-              <span class="badge new">${o.status || "NEW"}</span><br>
-              <span class="small">${created}</span>
+            <div style="text-align:right;">
+              <span class="badge new">${status}</span><br>
+              <span class="small">${created}</span><br>
+              <button class="status-btn" onclick="setStatus('${id}','NEW')">New</button>
+              <button class="status-btn" onclick="setStatus('${id}','INPROGRESS')">In Progress</button>
+              <button class="status-btn" onclick="setStatus('${id}','DELIVERED')">Delivered</button>
             </div>
           </div>
           <ul class="order-items">
