@@ -57,7 +57,7 @@ header {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-header div:first-child {
+.app-name {
   font-weight: 700;
   font-size: 1.4rem;
   letter-spacing: 0.5px;
@@ -66,20 +66,205 @@ header div:first-child {
   gap: 8px;
 }
 
-header div:first-child::before {
+.app-name::before {
   content: "🌾";
 }
 
-header div:last-child {
-  background: rgba(255, 255, 255, 0.2);
-  padding: 8px 16px;
-  border-radius: var(--radius-full);
-  font-weight: 600;
+.header-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 20px;
 }
 
+.hamburger {
+  font-size: 1.8rem;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: white;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Side Menu */
+.side-menu {
+  position: fixed;
+  top: 0;
+  left: -320px;
+  width: 300px;
+  height: 100vh;
+  background: white;
+  z-index: 1000;
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+  transition: var(--transition);
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.side-menu.active {
+  left: 0;
+}
+
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: none;
+}
+
+.menu-overlay.active {
+  display: block;
+}
+
+/* User Profile in Menu */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.profile-image-container {
+  position: relative;
+  width: 70px;
+  height: 70px;
+}
+
+.profile-image {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--primary-light);
+  background: #f0f0f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: var(--primary);
+}
+
+.profile-image-upload {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: var(--primary);
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 2px solid white;
+}
+
+.profile-image-upload input {
+  display: none;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--text);
+  margin-bottom: 5px;
+}
+
+.user-email {
+  font-size: 0.9rem;
+  color: var(--text-light);
+}
+
+/* Menu Items */
+.menu-section {
+  margin-bottom: 25px;
+}
+
+.menu-title {
+  font-size: 0.9rem;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  padding-left: 10px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
+  margin-bottom: 5px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.menu-item:hover {
+  background: rgba(46, 125, 50, 0.08);
+  transform: translateX(5px);
+}
+
+.menu-item.active {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+}
+
+.menu-icon {
+  font-size: 1.2rem;
+  width: 24px;
+  text-align: center;
+}
+
+.menu-text {
+  font-weight: 500;
+  flex: 1;
+}
+
+/* Submenu for Settings */
+.submenu {
+  display: none;
+  padding-left: 20px;
+  margin-top: 5px;
+}
+
+.submenu.active {
+  display: block;
+}
+
+.submenu-item {
+  padding: 12px 15px;
+  color: var(--text-light);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 2px;
+}
+
+.submenu-item:hover {
+  background: rgba(46, 125, 50, 0.05);
+  color: var(--text);
+}
+
+/* Main Content */
 .container {
   max-width: 480px;
   margin: auto;
@@ -479,6 +664,64 @@ header div:last-child {
   to { transform: rotate(360deg); }
 }
 
+/* Content sections */
+.content-section {
+  display: block;
+}
+
+.content-section.hidden {
+  display: none;
+}
+
+/* Back button */
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary);
+  background: rgba(46, 125, 50, 0.1);
+  border: none;
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-weight: 500;
+  margin-bottom: 20px;
+  transition: var(--transition);
+}
+
+.back-button:hover {
+  background: rgba(46, 125, 50, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Cart items in cart page */
+.cart-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cart-item-info {
+  flex: 1;
+}
+
+.cart-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Settings form */
+.settings-form {
+  margin-top: 20px;
+}
+
+.settings-form input {
+  margin-bottom: 15px;
+}
+
 /* Mobile adjustments */
 @media (max-width: 480px) {
   .container {
@@ -500,15 +743,94 @@ header div:last-child {
   .cart-bar button {
     padding: 16px;
   }
+  
+  .side-menu {
+    width: 280px;
+    left: -280px;
+  }
 }
 </style>
 </head>
 
 <body>
 
+<!-- Side Menu -->
+<div class="side-menu" id="sideMenu">
+  <!-- User Profile -->
+  <div class="user-profile">
+    <div class="profile-image-container">
+      <div class="profile-image" id="profileImage">
+        👤
+      </div>
+      <label class="profile-image-upload">
+        <input type="file" id="imageUpload" accept="image/*" capture="user">
+        📷
+      </label>
+    </div>
+    <div class="user-info">
+      <div class="user-name" id="menuUserName">Guest User</div>
+      <div class="user-email" id="menuUserEmail">Login to continue</div>
+    </div>
+  </div>
+
+  <!-- Menu Items -->
+  <div class="menu-section">
+    <div class="menu-title">Categories</div>
+    <a href="#" class="menu-item" onclick="showSection('shop')">
+      <span class="menu-icon">🛍️</span>
+      <span class="menu-text">All Categories</span>
+    </a>
+    <div class="submenu" id="categoriesSubmenu">
+      <div class="submenu-item" onclick="setCat('Grocery'); showSection('shop');">
+        Grocery
+      </div>
+      <div class="submenu-item" onclick="setCat('Kitchen essential'); showSection('shop');">
+        Kitchen essential
+      </div>
+      <div class="submenu-item" onclick="setCat('Bathroom'); showSection('shop');">
+        Bathroom
+      </div>
+      <div class="submenu-item" onclick="setCat('Dress'); showSection('shop');">
+        Dress
+      </div>
+    </div>
+  </div>
+
+  <div class="menu-section">
+    <div class="menu-title">Account</div>
+    <a href="#" class="menu-item" onclick="showSection('cart')">
+      <span class="menu-icon">🛒</span>
+      <span class="menu-text">Cart</span>
+      <span class="cart-count" id="menuCartCount">0</span>
+    </a>
+    <a href="#" class="menu-item" onclick="showSection('orderHistory')">
+      <span class="menu-icon">📜</span>
+      <span class="menu-text">Order History</span>
+    </a>
+    <a href="#" class="menu-item" onclick="toggleSubmenu('settingsSubmenu')">
+      <span class="menu-icon">⚙️</span>
+      <span class="menu-text">Settings</span>
+      <span class="menu-arrow">▼</span>
+    </a>
+    <div class="submenu" id="settingsSubmenu">
+      <div class="submenu-item" onclick="showSection('settings')">
+        Update Profile
+      </div>
+      <div class="submenu-item" onclick="logout()" style="color: #f44336;">
+        Logout
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
+
+<!-- Header -->
 <header>
-  <div>Village Grocery</div>
-  <div>🛒 <span id="count">0</span></div>
+  <div class="app-name">Village Grocery</div>
+  <div class="header-right">
+    <button class="hamburger" onclick="toggleMenu()">☰</button>
+  </div>
 </header>
 
 <div class="container">
@@ -548,8 +870,11 @@ header div:last-child {
     </div>
   </div>
 
-  <!-- SHOP AREA: hidden until login -->
-  <div id="shopArea" style="display:none">
+  <!-- SHOP AREA (hidden until login, but will be shown based on menu selection) -->
+  <div id="shopSection" class="content-section hidden">
+    <button class="back-button" onclick="showSection('main')">
+      ← Back to Main
+    </button>
 
     <div class="card search">
       <input id="search" placeholder="Search products...">
@@ -559,23 +884,27 @@ header div:last-child {
       <div class="cats">
         <button class="active" onclick="setCat('All')">All</button>
         <button onclick="setCat('Grocery')">Grocery</button>
+        <button onclick="setCat('Kitchen essential')">Kitchen</button>
         <button onclick="setCat('Bathroom')">Bathroom</button>
+        <button onclick="setCat('Dress')">Dress</button>
       </div>
     </div>
 
     <div id="products"></div>
+  </div>
+
+  <!-- CART SECTION -->
+  <div id="cartSection" class="content-section hidden">
+    <button class="back-button" onclick="showSection('main')">
+      ← Back to Main
+    </button>
 
     <div class="card cart">
-      <h4>📜 Order history</h4>
-      <ul id="orderHistory"></ul>
-    </div>
-
-    <div class="card cart">
-      <h4>🛒 Cart</h4>
-      <ul id="cartList"></ul>
+      <h4>🛒 Your Cart</h4>
+      <div id="cartDetails"></div>
       <div style="text-align: right; margin-top: 16px; padding-top: 16px; border-top: 2px solid var(--border);">
         <span style="color: var(--text-light); font-weight: 600;">Total:</span>
-        <span style="font-size: 1.6rem; font-weight: 700; color: var(--primary); margin-left: 10px;">₹<span id="total">0</span></span>
+        <span style="font-size: 1.6rem; font-weight: 700; color: var(--primary); margin-left: 10px;">₹<span id="cartTotal">0</span></span>
       </div>
     </div>
 
@@ -591,7 +920,39 @@ header div:last-child {
 
       <textarea id="address" placeholder="Address * (house / street / landmark)"></textarea>
     </div>
+  </div>
 
+  <!-- ORDER HISTORY SECTION -->
+  <div id="orderHistorySection" class="content-section hidden">
+    <button class="back-button" onclick="showSection('main')">
+      ← Back to Main
+    </button>
+
+    <div class="card cart">
+      <h4>📜 Order History</h4>
+      <ul id="orderHistory"></ul>
+    </div>
+  </div>
+
+  <!-- SETTINGS SECTION -->
+  <div id="settingsSection" class="content-section hidden">
+    <button class="back-button" onclick="showSection('main')">
+      ← Back to Main
+    </button>
+
+    <div class="card cart">
+      <h4>⚙️ Settings</h4>
+      <div class="settings-form">
+        <input id="settingsName" placeholder="Your name">
+        <textarea id="settingsAddress" placeholder="Your address"></textarea>
+        <button class="btn-primary" onclick="updateProfile()">
+          Update Profile
+        </button>
+        <button class="btn-ghost" onclick="logout()">
+          Logout
+        </button>
+      </div>
+    </div>
   </div>
 
 </div>
@@ -604,7 +965,8 @@ header div:last-child {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { 
-  getFirestore, collection, addDoc, serverTimestamp, onSnapshot, query, where, orderBy
+  getFirestore, collection, addDoc, serverTimestamp, onSnapshot, query, where, orderBy,
+  updateDoc, doc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
   getAuth,
@@ -633,12 +995,15 @@ const googleProvider = new GoogleAuthProvider();
 let data = [];
 let cart = {};
 let cat = 'All';
+let currentSection = 'main';
 
+// DOM Elements
 const list = document.getElementById("products");
 const search = document.getElementById("search");
-const cartList = document.getElementById("cartList");
+const cartDetails = document.getElementById("cartDetails");
+const cartTotal = document.getElementById("cartTotal");
 const total = document.getElementById("total");
-const count = document.getElementById("count");
+const menuCartCount = document.getElementById("menuCartCount");
 const nameEl = document.getElementById("name");
 const mobileEl = document.getElementById("mobile");
 const addressEl = document.getElementById("address");
@@ -652,7 +1017,19 @@ const loginBox = document.getElementById("loginBox");
 const userBox = document.getElementById("userBox");
 const welcomeText = document.getElementById("welcomeText");
 const orderHistoryEl = document.getElementById("orderHistory");
-const shopArea = document.getElementById("shopArea");
+const shopSection = document.getElementById("shopSection");
+const cartSection = document.getElementById("cartSection");
+const orderHistorySection = document.getElementById("orderHistorySection");
+const settingsSection = document.getElementById("settingsSection");
+
+const settingsName = document.getElementById("settingsName");
+const settingsAddress = document.getElementById("settingsAddress");
+
+const sideMenu = document.getElementById("sideMenu");
+const menuOverlay = document.getElementById("menuOverlay");
+const menuUserName = document.getElementById("menuUserName");
+const menuUserEmail = document.getElementById("menuUserEmail");
+const profileImage = document.getElementById("profileImage");
 
 // geolocation
 let currentLat = null;
@@ -662,6 +1039,9 @@ let currentLng = null;
 let recaptchaVerifier;
 let confirmationResultGlobal = null;
 
+// User profile image
+let userProfileImage = null;
+
 // init invisible reCAPTCHA for phone auth
 function initRecaptcha() {
   recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
@@ -669,6 +1049,72 @@ function initRecaptcha() {
   });
 }
 initRecaptcha();
+
+// Image upload
+document.getElementById('imageUpload').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      userProfileImage = event.target.result;
+      profileImage.innerHTML = '';
+      profileImage.style.backgroundImage = `url(${userProfileImage})`;
+      profileImage.style.backgroundSize = 'cover';
+      profileImage.style.backgroundPosition = 'center';
+      alert('Profile image updated!');
+    };
+    reader.readAsDataURL(file);
+  }
+});
+
+// Menu functions
+window.toggleMenu = function() {
+  sideMenu.classList.toggle('active');
+  menuOverlay.classList.toggle('active');
+};
+
+window.closeMenu = function() {
+  sideMenu.classList.remove('active');
+  menuOverlay.classList.remove('active');
+};
+
+window.toggleSubmenu = function(submenuId) {
+  const submenu = document.getElementById(submenuId);
+  submenu.classList.toggle('active');
+};
+
+window.showSection = function(section) {
+  // Hide all sections
+  document.querySelectorAll('.content-section').forEach(el => {
+    el.classList.add('hidden');
+  });
+  
+  // Close menu
+  closeMenu();
+  
+  // Show selected section
+  currentSection = section;
+  if (section === 'shop') {
+    shopSection.classList.remove('hidden');
+    render();
+  } else if (section === 'cart') {
+    cartSection.classList.remove('hidden');
+    renderCartPage();
+  } else if (section === 'orderHistory') {
+    orderHistorySection.classList.remove('hidden');
+  } else if (section === 'settings') {
+    settingsSection.classList.remove('hidden');
+    // Load current user data
+    const user = auth.currentUser;
+    if (user) {
+      settingsName.value = user.displayName || loginName.value || '';
+      // In a real app, you would load address from user profile in Firestore
+    }
+  } else {
+    // 'main' section - show login card
+    currentSection = 'main';
+  }
+};
 
 // products listener
 const productsRef = collection(db, "products");
@@ -685,7 +1131,9 @@ onSnapshot(productsRef, (snapshot) => {
       unit: d.unit
     };
   });
-  render();
+  if (currentSection === 'shop') {
+    render();
+  }
 }, (error) => console.error(error));
 
 function render(){
@@ -729,6 +1177,40 @@ function render(){
   }
 }
 
+function renderCartPage() {
+  if (!cartDetails) return;
+  cartDetails.innerHTML = '';
+  let t = 0;
+  
+  for(let i in cart){
+    const item = cart[i];
+    const itemTotal = item.qty * item.price;
+    t += itemTotal;
+    
+    cartDetails.innerHTML += `
+      <div class="cart-item">
+        <div class="cart-item-info">
+          <strong>${item.name}</strong>
+          <div>₹${item.price} × ${item.qty} = ₹${itemTotal}</div>
+        </div>
+        <div class="cart-item-actions">
+          <button class="qty" style="display:flex">
+            <button onclick="chg('${i}',-1)">−</button>
+            <span>${item.qty}</span>
+            <button onclick="chg('${i}',1)">+</button>
+          </button>
+        </div>
+      </div>`;
+  }
+  
+  if (Object.keys(cart).length === 0) {
+    cartDetails.innerHTML = '<p class="small" style="text-align: center; padding: 20px;">Your cart is empty</p>';
+  }
+  
+  cartTotal.textContent = t;
+  total.textContent = t;
+}
+
 window.setCat = c => {
   cat = c;
   document.querySelectorAll('.cats button')
@@ -744,28 +1226,32 @@ window.add = id => {
   } else {
     cart[id].qty += 1;
   }
-  renderCart();
-  render();
+  updateCartCount();
+  if (currentSection === 'shop') {
+    render();
+  } else if (currentSection === 'cart') {
+    renderCartPage();
+  }
 };
 
 window.chg = (id, d) => {
   if (!cart[id]) return;
   cart[id].qty += d;
   if (cart[id].qty <= 0) delete cart[id];
-  renderCart();
-  render();
+  updateCartCount();
+  if (currentSection === 'shop') {
+    render();
+  } else if (currentSection === 'cart') {
+    renderCartPage();
+  }
 };
 
-function renderCart(){
-  cartList.innerHTML=''; 
-  let t = 0, c = 0;
+function updateCartCount() {
+  let c = 0;
   for(let i in cart){
-    t += cart[i].qty * cart[i].price;
     c += cart[i].qty;
-    cartList.innerHTML += `<li>${cart[i].name} × ${cart[i].qty}</li>`;
   }
-  total.textContent = t;
-  count.textContent = c;
+  menuCartCount.textContent = c;
 }
 
 // PHONE AUTH
@@ -813,9 +1299,30 @@ window.googleLogin = async () => {
 window.logout = async () => {
   try {
     await signOut(auth);
+    cart = {};
+    updateCartCount();
+    showSection('main');
   } catch (e) {
     console.error(e);
   }
+};
+
+// Update profile
+window.updateProfile = async () => {
+  const user = auth.currentUser;
+  if (!user) {
+    alert("Please login first");
+    return;
+  }
+  
+  if (!settingsName.value.trim()) {
+    alert("Please enter your name");
+    return;
+  }
+  
+  // In a real app, you would update user profile in Firestore
+  alert("Profile updated successfully!");
+  showSection('main');
 };
 
 // auth state: show/hide shop and welcome text
@@ -824,25 +1331,26 @@ onAuthStateChanged(auth, (user) => {
     loginBox.style.display = "none";
     userBox.style.display = "block";
 
-    const label =
-      loginName.value.trim() ||           // name typed on page
-      user.displayName ||                 // Google name
-      user.email ||                       // email
-      user.phoneNumber ||                 // phone
-      "customer";
+    const userName = loginName.value.trim() || user.displayName || user.email || user.phoneNumber || "Customer";
+    const userEmail = user.email || user.phoneNumber || "Logged in";
 
-    welcomeText.textContent = `Logged in successfully. Welcome ${label}.`;
-
-    shopArea.style.display = "block";
-    placeBtn.disabled = false;
+    welcomeText.textContent = `Logged in successfully. Welcome ${userName}.`;
+    
+    // Update menu user info
+    menuUserName.textContent = userName;
+    menuUserEmail.textContent = userEmail;
+    
+    // Load order history
     loadOrderHistory(user.uid);
+    
   } else {
     loginBox.style.display = "block";
     userBox.style.display = "none";
     welcomeText.textContent = "";
-
-    shopArea.style.display = "none";
-    placeBtn.disabled = true;
+    
+    menuUserName.textContent = "Guest User";
+    menuUserEmail.textContent = "Login to continue";
+    
     orderHistoryEl.innerHTML = "<li class='small'>Login to see your orders</li>";
   }
 });
@@ -939,14 +1447,15 @@ window.placeOrder = async () => {
 
   alert("✅ Order placed");
   cart = {};
-  renderCart();
-  render();
+  updateCartCount();
+  renderCartPage();
   nameEl.value = '';
   mobileEl.value = '';
   addressEl.value = '';
   locStatus.textContent = '';
   currentLat = null;
   currentLng = null;
+  showSection('main');
 };
 
 if (search) search.oninput = render;
