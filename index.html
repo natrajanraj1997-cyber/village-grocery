@@ -88,6 +88,31 @@ header {
   justify-content: center;
 }
 
+/* Cart icon in header */
+.cart-icon-header {
+  position: relative;
+  cursor: pointer;
+  font-size: 1.5rem;
+  padding: 5px;
+}
+
+.cart-count-badge-header {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--secondary);
+  color: white;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
 /* Side Menu */
 .side-menu {
   position: fixed;
@@ -895,6 +920,11 @@ header {
 <header>
   <div class="app-name">Village Grocery</div>
   <div class="header-right">
+    <!-- Cart icon in header with count -->
+    <div class="cart-icon-header" onclick="showSection('cart')">
+      🛒
+      <span class="cart-count-badge-header" id="headerCartCount">0</span>
+    </div>
     <button class="hamburger" id="hamburgerBtn" style="display:none;" onclick="toggleMenu()">☰</button>
   </div>
 </header>
@@ -934,7 +964,8 @@ header {
 
   <!-- SHOP AREA (hidden until login, but will be shown based on menu selection) -->
   <div id="shopSection" class="content-section hidden">
-    <button class="back-button" onclick="showSection('main')">
+    <!-- Back button only shows when NOT in All tab -->
+    <button class="back-button" id="shopBackButton" onclick="goBackFromShop()">
       ← Back
     </button>
 
@@ -957,7 +988,7 @@ header {
 
   <!-- CART SECTION -->
   <div id="cartSection" class="content-section hidden">
-    <button class="back-button" onclick="showSection('main')">
+    <button class="back-button" onclick="goBackToAllTab()">
       ← Back
     </button>
 
@@ -986,7 +1017,7 @@ header {
 
   <!-- ORDER HISTORY SECTION -->
   <div id="orderHistorySection" class="content-section hidden">
-    <button class="back-button" onclick="showSection('main')">
+    <button class="back-button" onclick="goBackToAllTab()">
       ← Back
     </button>
 
@@ -998,7 +1029,7 @@ header {
 
   <!-- SETTINGS SECTION -->
   <div id="settingsSection" class="content-section hidden">
-    <button class="back-button" onclick="showSection('main')">
+    <button class="back-button" onclick="goBackToAllTab()">
       ← Back
     </button>
 
@@ -1072,6 +1103,7 @@ const cartDetails = document.getElementById("cartDetails");
 const cartTotal = document.getElementById("cartTotal");
 const total = document.getElementById("total");
 const menuCartCount = document.getElementById("menuCartCount");
+const headerCartCount = document.getElementById("headerCartCount");
 const nameEl = document.getElementById("name");
 const mobileEl = document.getElementById("mobile");
 const addressEl = document.getElementById("address");
@@ -1080,6 +1112,7 @@ const placeBtn = document.getElementById("placeBtn");
 const cartBar = document.getElementById("cartBar");
 const hamburgerBtn = document.getElementById("hamburgerBtn");
 const orderHistoryList = document.getElementById("orderHistoryList");
+const shopBackButton = document.getElementById("shopBackButton");
 
 const loginName = document.getElementById("loginName");
 const loginMobile = document.getElementById("loginMobile");
@@ -1169,6 +1202,8 @@ window.showSection = function(section) {
   currentSection = section;
   if (section === 'shop') {
     shopSection.classList.remove('hidden');
+    // Show/hide back button based on current category
+    updateShopBackButtonVisibility();
     render();
   } else if (section === 'cart') {
     cartSection.classList.remove('hidden');
@@ -1190,6 +1225,36 @@ window.showSection = function(section) {
     currentSection = 'main';
   }
 };
+
+// New function to go back to All tab
+window.goBackToAllTab = function() {
+  // Set category to All
+  setCat('All');
+  // Show shop section (which will default to All tab)
+  showSection('shop');
+};
+
+// New function to handle back from shop
+window.goBackFromShop = function() {
+  if (cat === 'All') {
+    // If already in All tab, go to main login view
+    showSection('main');
+  } else {
+    // If in another category, go to All tab
+    setCat('All');
+  }
+};
+
+// Update shop back button visibility
+function updateShopBackButtonVisibility() {
+  if (shopBackButton) {
+    if (cat === 'All') {
+      shopBackButton.style.display = 'none';
+    } else {
+      shopBackButton.style.display = 'flex';
+    }
+  }
+}
 
 // Auto-fill delivery details from user profile
 function autoFillDeliveryDetails() {
@@ -1306,6 +1371,8 @@ window.setCat = c => {
   document.querySelectorAll('.cats button')
     .forEach(b => b.classList.toggle('active', b.textContent === c));
   render();
+  // Update back button visibility after category change
+  updateShopBackButtonVisibility();
 };
 
 window.add = id => {
@@ -1342,6 +1409,7 @@ function updateCartCount() {
     c += cart[i].qty;
   }
   menuCartCount.textContent = c;
+  headerCartCount.textContent = c;
 }
 
 // PHONE AUTH
@@ -1415,7 +1483,7 @@ window.updateProfile = async () => {
   userProfileData.address = settingsAddress.value.trim();
   
   alert("Profile updated successfully!");
-  showSection('main');
+  goBackToAllTab();
 };
 
 // auth state: show/hide shop and welcome text
@@ -1579,6 +1647,7 @@ window.placeOrder = async () => {
 
   // Update user profile with delivery details
   userProfileData.name = nameEl.value.trim();
+
   userProfileData.phone = mobileEl.value.trim();
   userProfileData.address = addressEl.value.trim();
 
@@ -1608,7 +1677,7 @@ window.placeOrder = async () => {
   locStatus.textContent = '';
   currentLat = null;
   currentLng = null;
-  showSection('main');
+  goBackToAllTab();
 };
 
 if (search) search.oninput = render;
