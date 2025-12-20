@@ -647,6 +647,28 @@ code {
   box-shadow: 0 6px 20px rgba(46, 125, 50, 0.6);
 }
 
+/* Status Update Feedback */
+.status-update-feedback {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--status-delivered);
+  color: white;
+  padding: 12px 24px;
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1001;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .order-header {
@@ -678,6 +700,11 @@ code {
 <header>
   <div>Village Grocery – Admin Dashboard</div>
 </header>
+
+<!-- Status Update Feedback -->
+<div id="statusFeedback" class="status-update-feedback">
+  <span>✅ Status updated successfully!</span>
+</div>
 
 <!-- Google login -->
 <div id="loginBox" class="card">
@@ -751,27 +778,28 @@ code {
   </div>
   
   <div class="code-block">
-    <h4>Authentication Functions</h4>
-    <pre><code><span class="keyword">async function</span> <span class="function">loginWithGoogle</span>() {
-  <span class="keyword">try</span> {
-    <span class="keyword">const</span> <span class="variable">result</span> = <span class="keyword">await</span> <span class="function">signInWithPopup</span>(auth, provider);
-    <span class="variable">console</span>.<span class="function">log</span>(<span class="string">"User:"</span>, result.user);
-  } <span class="keyword">catch</span> (<span class="variable">error</span>) {
-    <span class="variable">console</span>.<span class="function">error</span>(<span class="string">"Login error:"</span>, error);
-  }
-}</code></pre>
-  </div>
-  
-  <div class="code-block">
-    <h4>Update Order Status</h4>
-    <pre><code><span class="keyword">async function</span> <span class="function">updateOrderStatus</span>(<span class="variable">orderId</span>, <span class="variable">newStatus</span>) {
+    <h4>Fixed Update Order Status Function</h4>
+    <pre><code><span class="keyword">async function</span> <span class="function">updateOrderStatus</span>(<span class="variable">orderId</span>, <span class="variable">newStatus</span>, <span class="variable">button</span>) {
   <span class="keyword">try</span> {
     <span class="keyword">await</span> <span class="function">updateDoc</span>(<span class="function">doc</span>(db, <span class="string">"orders"</span>, orderId), { 
       <span class="string">status</span>: newStatus 
     });
-    <span class="comment">// Status updated successfully</span>
+    
+    <span class="comment">// Show success feedback on the clicked button</span>
+    <span class="keyword">const</span> <span class="variable">originalText</span> = button.textContent;
+    button.textContent = <span class="string">'✓ Updated'</span>;
+    button.style.opacity = <span class="string">'0.8'</span>;
+    
+    <span class="comment">// Show global feedback</span>
+    <span class="function">showStatusFeedback</span>(<span class="string">'✅ Status updated successfully!'</span>);
+    
+    <span class="function">setTimeout</span>(() => {
+      button.textContent = originalText;
+      button.style.opacity = <span class="string">'1'</span>;
+    }, <span class="number">1500</span>);
   } <span class="keyword">catch</span> (<span class="variable">error</span>) {
     <span class="variable">console</span>.<span class="function">error</span>(<span class="string">"Update error:"</span>, error);
+    <span class="function">showStatusFeedback</span>(<span class="string">'❌ Failed to update. Please try again.'</span>, <span class="string">'error'</span>);
   }
 }</code></pre>
   </div>
@@ -813,6 +841,7 @@ const adminContent = document.getElementById("adminContent");
 const ordersList = document.getElementById("ordersList");
 const googleBtn = document.getElementById("googleBtn");
 const logoutBtn = document.getElementById("logoutBtn");
+const statusFeedback = document.getElementById("statusFeedback");
 
 // Stats elements
 const totalOrdersEl = document.getElementById("totalOrders");
@@ -834,6 +863,17 @@ window.toggleCodePanel = function() {
   const panel = document.getElementById("codePanel");
   panel.style.display = panel.style.display === "block" ? "none" : "block";
 };
+
+// Show status feedback
+function showStatusFeedback(message, type = 'success') {
+  statusFeedback.innerHTML = `<span>${message}</span>`;
+  statusFeedback.style.background = type === 'success' ? 'var(--status-delivered)' : 'var(--status-cancelled)';
+  statusFeedback.style.display = 'flex';
+  
+  setTimeout(() => {
+    statusFeedback.style.display = 'none';
+  }, 3000);
+}
 
 // Filter orders
 window.filterOrders = function(filter) {
@@ -921,7 +961,7 @@ function renderOrders() {
     const statusClass = status.toLowerCase();
     
     html += `
-      <div class="order-card" data-status="${status}">
+      <div class="order-card" data-status="${status}" id="order-${order.id}">
         <div class="order-header">
           <div class="order-info">
             <b>${order.name || 'Customer'}</b>
@@ -938,9 +978,9 @@ function renderOrders() {
             <span class="badge ${statusClass}">${status}</span>
             <div class="order-time">${formattedDate} at ${formattedTime}</div>
             <div class="status-buttons">
-              <button class="status-btn new" onclick="setStatus('${order.id}','NEW')">New</button>
-              <button class="status-btn inprogress" onclick="setStatus('${order.id}','INPROGRESS')">In Progress</button>
-              <button class="status-btn delivered" onclick="setStatus('${order.id}','DELIVERED')">Delivered</button>
+              <button class="status-btn new" onclick="setStatus('${order.id}','NEW', this)">New</button>
+              <button class="status-btn inprogress" onclick="setStatus('${order.id}','INPROGRESS', this)">In Progress</button>
+              <button class="status-btn delivered" onclick="setStatus('${order.id}','DELIVERED', this)">Delivered</button>
             </div>
           </div>
         </div>
@@ -972,7 +1012,7 @@ googleBtn.onclick = async () => {
     await signInWithPopup(auth, provider);
   } catch (err) {
     console.error("Google sign-in error:", err);
-    alert("Google sign-in failed. Please try again.");
+    showStatusFeedback("❌ Google sign-in failed. Please try again.", 'error');
   }
 };
 
@@ -995,30 +1035,38 @@ function hideAdmin(){
   ordersList.classList.remove('loading');
 }
 
-// helper to update status
-async function updateOrderStatus(orderId, newStatus){
+// helper to update status - FIXED VERSION
+async function updateOrderStatus(orderId, newStatus, button){
   try {
     await updateDoc(doc(db, "orders", orderId), { status: newStatus });
     
-    // Show success feedback
-    const button = event.target;
+    // Show success feedback on the clicked button
     const originalText = button.textContent;
-    button.textContent = '✓ Done';
-    button.style.background = '#4caf50';
+    const originalBg = button.style.background;
+    button.textContent = '✓ Updated';
+    button.style.opacity = '0.8';
+    
+    // Show global feedback
+    showStatusFeedback('✅ Status updated successfully!');
     
     setTimeout(() => {
       button.textContent = originalText;
-      button.style.background = '';
+      button.style.opacity = '1';
+      button.style.background = originalBg;
     }, 1500);
+    
+    return true;
   } catch (e) {
     console.error("Update status error:", e);
-    alert("Failed to update order status. Please try again.");
+    console.error("Error details:", e.message, e.code);
+    showStatusFeedback('❌ Failed to update. Please try again.', 'error');
+    return false;
   }
 }
 
-// make accessible from HTML
-window.setStatus = (id, status) => {
-  updateOrderStatus(id, status);
+// make accessible from HTML - FIXED: Now passes the button element
+window.setStatus = (id, status, button) => {
+  updateOrderStatus(id, status, button);
 };
 
 // subscribe to orders
@@ -1046,6 +1094,7 @@ function subscribeOrders(){
     console.error("Orders onSnapshot error:", err);
     ordersList.innerHTML = '<div class="empty-state">Error loading orders. Please refresh the page.</div>';
     ordersList.classList.remove('loading');
+    showStatusFeedback('❌ Error loading orders. Check console.', 'error');
   });
 }
 </script>
