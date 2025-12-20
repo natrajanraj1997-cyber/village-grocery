@@ -6,105 +6,118 @@
 <title>Village Grocery Delivery</title>
 
 <style>
+:root{
+  --green:#2e7d32;
+  --light:#f4f6f8;
+  --card:#ffffff;
+  --border:#e0e0e0;
+}
+*{box-sizing:border-box}
 body{
   font-family:Arial,sans-serif;
-  background:#f4f6f8;
-  margin:0;padding-bottom:90px;
+  background:var(--light);
+  margin:0;
+  padding-bottom:90px;
 }
 header{
-  background:#2e7d32;color:#fff;
+  background:var(--green);color:#fff;
   padding:14px 16px;
-  display:flex;justify-content:space-between;
+  display:flex;justify-content:space-between;align-items:center;
+  position:sticky;top:0;z-index:10;
 }
+header div:first-child{font-weight:bold}
+
 .container{max-width:480px;margin:auto;padding:12px}
 
-.search, .cats{
-  background:#fff;padding:10px;
-  margin-bottom:10px;border-radius:10px;
+/* cards */
+.card{
+  background:var(--card);
+  border-radius:14px;
+  padding:12px;
+  margin-bottom:12px;
+  box-shadow:0 1px 3px rgba(0,0,0,.06);
 }
 
+/* search & categories */
 .search input{
-  width:100%;padding:8px;border-radius:6px;
-  border:1px solid #ccc;
+  width:100%;padding:9px 10px;border-radius:8px;
+  border:1px solid var(--border);font-size:14px;
 }
-
+.cats{
+  display:flex;flex-wrap:wrap;gap:6px;
+}
 .cats button{
   padding:6px 14px;border-radius:20px;
-  border:1px solid #ccc;background:#fff;
-  margin:4px;cursor:pointer;
+  border:1px solid var(--border);background:#fff;
+  cursor:pointer;font-size:13px;
 }
-.cats .active{background:#2e7d32;color:#fff}
+.cats .active{background:var(--green);color:#fff;border-color:var(--green)}
 
+/* product list */
 .product{
-  background:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;   /* content left, actions right */
-  padding:10px;margin-bottom:10px;
-  border-radius:12px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 8px;border-radius:12px;
+  border:1px solid var(--border);
+  margin-bottom:8px;
 }
 .product img{
-  width:64px;height:64px;border-radius:10px;
+  width:60px;height:60px;border-radius:10px;
   margin-right:10px;object-fit:cover;
 }
-.product h4{margin:0;font-size:15px}
-.product p{margin:4px 0;color:#2e7d32;font-weight:bold}
+.product h4{margin:0;font-size:14px}
+.product p{margin:4px 0;color:var(--green);font-weight:bold;font-size:14px}
+.product-info{flex:1;margin-right:8px}
+.product-actions{display:flex;align-items:center;gap:8px}
 
-.product-info{
-  flex:1;
-  margin-right:10px;
-}
-.product-actions{
-  display:flex;
-  align-items:center;
-  gap:8px;
-}
-
-.qty{
-  text-align:right;
-}
-.add, .qty button{
+.add,.qty button{
   padding:6px 12px;border-radius:20px;
-  border:1px solid #ccc;background:#fff;
-  cursor:pointer;
+  border:1px solid var(--green);background:#fff;
+  color:var(--green);font-size:13px;cursor:pointer;
 }
-.qty span{margin:0 8px}
-.out{
-  color:red;font-size:12px;font-weight:bold;
+.add:hover,.qty button:hover{background:var(--green);color:#fff}
+.qty span{margin:0 8px;font-size:13px}
+.out{color:red;font-size:11px;font-weight:bold}
+
+.cart ul{padding-left:18px;margin:6px 0}
+
+/* login */
+h4{margin:0 0 8px 0;font-size:15px}
+.cart input,.cart textarea{
+  width:100%;padding:9px 10px;margin:5px 0;
+  border-radius:8px;border:1px solid var(--border);font-size:14px;
+}
+.cart textarea{min-height:60px;resize:vertical}
+.btn-primary, .btn-ghost{
+  width:100%;padding:9px 10px;border-radius:24px;
+  border:none;font-size:14px;cursor:pointer;
+}
+.btn-primary{
+  background:var(--green);color:#fff;
+}
+.btn-ghost{
+  background:#fff;border:1px solid var(--border);color:#333;
+}
+.btn-primary:hover{filter:brightness(0.95)}
+.btn-ghost:hover{background:#f1f1f1}
+
+#locStatus{
+  font-size:12px;color:#555;margin-top:3px;
 }
 
-.cart{
-  background:#fff;padding:10px;border-radius:10px;
-}
-.cart ul{padding-left:18px}
-
+/* bottom bar */
 .cart-bar{
-  position:fixed;bottom:0;width:100%;
+  position:fixed;bottom:0;left:0;width:100%;
   background:#fff;padding:10px;
   box-shadow:0 -3px 10px rgba(0,0,0,.2);
 }
 .cart-bar button{
-  width:100%;padding:12px;
-  border:none;border-radius:30px;
-  background:#2e7d32;color:#fff;font-size:16px;
+  width:100%;padding:12px;border:none;border-radius:30px;
+  background:var(--green);color:#fff;font-size:16px;font-weight:bold;
 }
-.cart input, .cart textarea, .cart select{
-  width:100%;
-  box-sizing:border-box;
-  padding:8px;
-  margin:4px 0;
-  border-radius:6px;
-  border:1px solid #ccc;
-}
-.cart textarea{
-  min-height:60px;
-  resize:vertical;
-}
-#locStatus{
-  font-size:12px;
-  color:#555;
-  margin-top:4px;
-}
+.cart-bar button:disabled{opacity:.5}
+
+/* small text */
+.small{font-size:12px;color:#666}
 </style>
 </head>
 
@@ -117,48 +130,91 @@ header{
 
 <div class="container">
 
-<div class="search">
-  <input id="search" placeholder="Search products">
-</div>
+  <!-- LOGIN CARD (always visible) -->
+  <div class="card cart">
+    <h4>👤 Login to continue</h4>
+    <div id="loginBox">
+      <input id="loginMobile" placeholder="+91XXXXXXXXXX">
+      <div id="recaptcha-container"></div>
+      <button class="btn-primary" type="button" onclick="sendOtp()">Send OTP</button>
 
-<div class="cats">
-  <button class="active" onclick="setCat('All')">All</button>
-  <button onclick="setCat('Grocery')">Grocery</button>
-  <button onclick="setCat('Bathroom')">Bathroom</button>
-</div>
+      <input id="otpCode" placeholder="Enter OTP">
+      <button class="btn-primary" type="button" onclick="verifyOtp()">Verify OTP</button>
 
-<div id="products"></div>
+      <div style="text-align:center;margin:8px 0;" class="small">or</div>
 
-<div class="cart">
-  <h4>🛒 Cart</h4>
-  <ul id="cartList"></ul>
-  <b>Total ₹<span id="total">0</span></b>
-</div>
+      <button class="btn-ghost" type="button" onclick="googleLogin()">Sign in with Google</button>
+      <p class="small">After login you can see products, place orders and view your history.</p>
+    </div>
 
-<div class="cart">
-  <h4>📦 Delivery</h4>
-  <input id="name" placeholder="Name *">
-  <input id="mobile" placeholder="Mobile *">
+    <div id="userBox" style="display:none">
+      <p class="small">Logged in as <b><span id="userInfo"></span></b></p>
+      <button class="btn-ghost" type="button" onclick="logout()">Logout</button>
+    </div>
+  </div>
 
-  <!-- Share live location -->
-  <button type="button" onclick="getLocation()">📍 Share live location</button>
-  <div id="locStatus"></div>
+  <!-- SHOP AREA: hidden until login -->
+  <div id="shopArea" style="display:none">
 
-  <textarea id="address" placeholder="Address * (house / street / landmark)"></textarea>
-</div>
+    <div class="card search">
+      <input id="search" placeholder="Search products">
+    </div>
+
+    <div class="card">
+      <div class="cats">
+        <button class="active" onclick="setCat('All')">All</button>
+        <button onclick="setCat('Grocery')">Grocery</button>
+        <button onclick="setCat('Bathroom')">Bathroom</button>
+      </div>
+    </div>
+
+    <div id="products"></div>
+
+    <div class="card cart">
+      <h4>📜 Order history</h4>
+      <ul id="orderHistory"></ul>
+    </div>
+
+    <div class="card cart">
+      <h4>🛒 Cart</h4>
+      <ul id="cartList"></ul>
+      <b>Total ₹<span id="total">0</span></b>
+    </div>
+
+    <div class="card cart">
+      <h4>📦 Delivery details</h4>
+      <input id="name" placeholder="Name *">
+      <input id="mobile" placeholder="Mobile *">
+
+      <button class="btn-ghost" type="button" onclick="getLocation()">📍 Share live location</button>
+      <div id="locStatus"></div>
+
+      <textarea id="address" placeholder="Address * (house / street / landmark)"></textarea>
+    </div>
+
+  </div>
 
 </div>
 
 <div class="cart-bar">
-  <button onclick="placeOrder()">Place Order</button>
+  <button id="placeBtn" onclick="placeOrder()">Place Order</button>
 </div>
 
 <!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { 
-  getFirestore, collection, addDoc, serverTimestamp, onSnapshot 
+  getFirestore, collection, addDoc, serverTimestamp, onSnapshot, query, where, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getAuth,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+  signOut,
+  onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"; /* modular web auth [web:12][web:6] */
 
 const firebaseConfig = {
   apiKey: "AIzaSyCYDLsQLFvuTV1N0mXtZFVYcSQqOkGfCrE",
@@ -171,9 +227,10 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
 
-// PRODUCTS FROM FIRESTORE
-let data = [];           // products
+let data = [];
 let cart = {};
 let cat = 'All';
 
@@ -186,22 +243,40 @@ const nameEl = document.getElementById("name");
 const mobileEl = document.getElementById("mobile");
 const addressEl = document.getElementById("address");
 const locStatus = document.getElementById("locStatus");
+const placeBtn = document.getElementById("placeBtn");
 
-// geolocation variables
+const loginMobile = document.getElementById("loginMobile");
+const otpCode = document.getElementById("otpCode");
+const loginBox = document.getElementById("loginBox");
+const userBox = document.getElementById("userBox");
+const userInfo = document.getElementById("userInfo");
+const orderHistoryEl = document.getElementById("orderHistory");
+const shopArea = document.getElementById("shopArea");
+
+// geolocation
 let currentLat = null;
 let currentLng = null;
 
-// realtime listener on "products" collection
-const productsRef = collection(db, "products");
+// reCAPTCHA + OTP
+let recaptchaVerifier;
+let confirmationResultGlobal = null;
 
+// init invisible reCAPTCHA for phone auth [web:1]
+function initRecaptcha() {
+  recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+    size: 'invisible'
+  });
+}
+initRecaptcha();
+
+// products listener
+const productsRef = collection(db, "products");
 onSnapshot(productsRef, (snapshot) => {
-  console.log("Products docs count:", snapshot.docs.length);
   data = snapshot.docs.map(doc => {
     const d = doc.data();
-    console.log("Product doc:", doc.id, d);
     return {
       id: doc.id,
-      name: d.Name,        // Firestore field "Name"
+      name: d.Name,
       price: d.price,
       cat: d.cat,
       img: d.img,
@@ -210,13 +285,12 @@ onSnapshot(productsRef, (snapshot) => {
     };
   });
   render();
-}, (error) => {
-  console.error("onSnapshot error:", error);
-});
+}, (error) => console.error(error));
 
 function render(){
+  if (!list) return;
   list.innerHTML = '';
-  const txt = (search.value || "").toLowerCase();
+  const txt = (search?.value || "").toLowerCase();
 
   data
     .filter(p =>
@@ -226,7 +300,7 @@ function render(){
     .forEach(p => {
       const qty = cart[p.id]?.qty || 0;
       list.innerHTML += `
-      <div class="product">
+      <div class="card product">
         <img src="${p.img}">
         <div class="product-info">
           <h4>${p.name} ${p.unit ? '('+p.unit+')' : ''}</h4>
@@ -250,7 +324,7 @@ function render(){
     });
 
   if (data.length === 0) {
-    list.innerHTML = '<p>No products found in Firestore "products" collection.</p>';
+    list.innerHTML = '<div class="card small">No products found.</div>';
   }
 }
 
@@ -293,7 +367,116 @@ function renderCart(){
   count.textContent = c;
 }
 
-// get current location
+// PHONE AUTH [web:1]
+window.sendOtp = async () => {
+  const phone = loginMobile.value.trim();
+  if (!phone) {
+    alert("Enter mobile with country code (e.g. +91...)");
+    return;
+  }
+  try {
+    confirmationResultGlobal = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
+    alert("OTP sent");
+  } catch (e) {
+    console.error(e);
+    alert(e.message);
+  }
+};
+
+window.verifyOtp = async () => {
+  if (!confirmationResultGlobal) {
+    alert("Click 'Send OTP' first");
+    return;
+  }
+  try {
+    await confirmationResultGlobal.confirm(otpCode.value.trim());
+  } catch (e) {
+    console.error(e);
+    alert("Wrong OTP");
+  }
+};
+
+// GOOGLE AUTH [web:6]
+window.googleLogin = async () => {
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch (e) {
+    console.error(e);
+    alert(e.message);
+  }
+};
+
+window.logout = async () => {
+  try {
+    await signOut(auth);
+  } catch (e) {
+    console.error(e);
+  }
+};
+
+// auth state: show/hide shop [web:12]
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    loginBox.style.display = "none";
+    userBox.style.display = "block";
+    userInfo.textContent = user.phoneNumber || user.email || "User";
+
+    shopArea.style.display = "block";
+    placeBtn.disabled = false;
+    loadOrderHistory(user.uid);
+  } else {
+    loginBox.style.display = "block";
+    userBox.style.display = "none";
+    userInfo.textContent = "";
+
+    shopArea.style.display = "none";
+    placeBtn.disabled = true;
+    orderHistoryEl.innerHTML = "<li class='small'>Login to see your orders</li>";
+  }
+});
+
+// ORDER HISTORY [web:43]
+function loadOrderHistory(userId) {
+  if (!userId) {
+    orderHistoryEl.innerHTML = "<li class='small'>Login to see your orders</li>";
+    return;
+  }
+
+  const q = query(
+    collection(db, "orders"),
+    where("userId", "==", userId),
+    orderBy("createdAt", "desc")
+  );
+
+  onSnapshot(q, (snap) => {
+    if (snap.empty) {
+      orderHistoryEl.innerHTML = "<li class='small'>No orders yet</li>";
+      return;
+    }
+
+    orderHistoryEl.innerHTML = "";
+    snap.forEach(doc => {
+      const o = doc.data();
+      const itemsText = Object.values(o.items || {})
+        .map(it => `${it.name} x ${it.qty}`)
+        .join(", ");
+
+      const created = o.createdAt?.toDate
+        ? o.createdAt.toDate().toLocaleString()
+        : "";
+
+      const li = document.createElement("li");
+      li.className = "small";
+      li.textContent = `${created} - ${itemsText} [${o.status}]`;
+      orderHistoryEl.appendChild(li);
+    });
+  }, (err) => {
+    console.error(err);
+    orderHistoryEl.innerHTML = "<li class='small'>Error loading orders</li>";
+  });
+}
+
+// geolocation
 window.getLocation = () => {
   if (!navigator.geolocation) {
     locStatus.textContent = "Geolocation not supported in this browser.";
@@ -316,7 +499,13 @@ window.getLocation = () => {
 
 window.placeOrder = async () => {
   if(!nameEl.value || !mobileEl.value || !addressEl.value || !Object.keys(cart).length){
-    alert("Fill all details");
+    alert("Fill all details & add at least one item");
+    return;
+  }
+
+  const user = auth.currentUser;
+  if (!user) {
+    alert("Please login first");
     return;
   }
 
@@ -330,7 +519,10 @@ window.placeOrder = async () => {
     location: (currentLat !== null && currentLng !== null) ? {
       lat: currentLat,
       lng: currentLng
-    } : null
+    } : null,
+    userId: user.uid,
+    userPhone: user.phoneNumber || null,
+    userEmail: user.email || null
   });
 
   alert("✅ Order placed");
@@ -345,7 +537,7 @@ window.placeOrder = async () => {
   currentLng = null;
 };
 
-search.oninput = render;
+if (search) search.oninput = render;
 </script>
 
 </body>
