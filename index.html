@@ -6,118 +6,501 @@
 <title>Village Grocery Delivery</title>
 
 <style>
-:root{
-  --green:#2e7d32;
-  --light:#f4f6f8;
-  --card:#ffffff;
-  --border:#e0e0e0;
-}
-*{box-sizing:border-box}
-body{
-  font-family:Arial,sans-serif;
-  background:var(--light);
-  margin:0;
-  padding-bottom:90px;
-}
-header{
-  background:var(--green);color:#fff;
-  padding:14px 16px;
-  display:flex;justify-content:space-between;align-items:center;
-  position:sticky;top:0;z-index:10;
-}
-header div:first-child{font-weight:bold}
-
-.container{max-width:480px;margin:auto;padding:12px}
-
-/* cards */
-.card{
-  background:var(--card);
-  border-radius:14px;
-  padding:12px;
-  margin-bottom:12px;
-  box-shadow:0 1px 3px rgba(0,0,0,.06);
+:root {
+  --primary: #2e7d32;
+  --primary-light: #4caf50;
+  --primary-dark: #1b5e20;
+  --secondary: #ff9800;
+  --secondary-light: #ffb74d;
+  --light: #f8f9fa;
+  --lighter: #fefefe;
+  --card: #ffffff;
+  --border: #e8f5e9;
+  --text: #333333;
+  --text-light: #666666;
+  --text-lighter: #888888;
+  --shadow: rgba(46, 125, 50, 0.1);
+  --shadow-light: rgba(0, 0, 0, 0.05);
+  --radius: 16px;
+  --radius-sm: 12px;
+  --radius-full: 999px;
+  --transition: all 0.3s ease;
 }
 
-/* search & categories */
-.search input{
-  width:100%;padding:9px 10px;border-radius:8px;
-  border:1px solid var(--border);font-size:14px;
-}
-.cats{
-  display:flex;flex-wrap:wrap;gap:6px;
-}
-.cats button{
-  padding:6px 14px;border-radius:20px;
-  border:1px solid var(--border);background:#fff;
-  cursor:pointer;font-size:13px;
-}
-.cats .active{background:var(--green);color:#fff;border-color:var(--green)}
-
-/* product list */
-.product{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:10px 8px;border-radius:12px;
-  border:1px solid var(--border);
-  margin-bottom:8px;
-}
-.product img{
-  width:60px;height:60px;border-radius:10px;
-  margin-right:10px;object-fit:cover;
-}
-.product h4{margin:0;font-size:14px}
-.product p{margin:4px 0;color:var(--green);font-weight:bold;font-size:14px}
-.product-info{flex:1;margin-right:8px}
-.product-actions{display:flex;align-items:center;gap:8px}
-
-.add,.qty button{
-  padding:6px 12px;border-radius:20px;
-  border:1px solid var(--green);background:#fff;
-  color:var(--green);font-size:13px;cursor:pointer;
-}
-.add:hover,.qty button:hover{background:var(--green);color:#fff}
-.qty span{margin:0 8px;font-size:13px}
-.out{color:red;font-size:11px;font-weight:bold}
-
-.cart ul{padding-left:18px;margin:6px 0}
-
-/* login */
-h4{margin:0 0 8px 0;font-size:15px}
-.cart input,.cart textarea{
-  width:100%;padding:9px 10px;margin:5px 0;
-  border-radius:8px;border:1px solid var(--border);font-size:14px;
-}
-.cart textarea{min-height:60px;resize:vertical}
-.btn-primary, .btn-ghost{
-  width:100%;padding:9px 10px;border-radius:24px;
-  border:none;font-size:14px;cursor:pointer;
-}
-.btn-primary{
-  background:var(--green);color:#fff;
-}
-.btn-ghost{
-  background:#fff;border:1px solid var(--border);color:#333;
-}
-.btn-primary:hover{filter:brightness(0.95)}
-.btn-ghost:hover{background:#f1f1f1}
-
-#locStatus{
-  font-size:12px;color:#555;margin-top:3px;
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-/* bottom bar */
-.cart-bar{
-  position:fixed;bottom:0;left:0;width:100%;
-  background:#fff;padding:10px;
-  box-shadow:0 -3px 10px rgba(0,0,0,.2);
+body {
+  font-family: 'Segoe UI', 'Roboto', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e8f5e9 100%);
+  color: var(--text);
+  line-height: 1.5;
+  margin: 0;
+  padding-bottom: 100px;
+  min-height: 100vh;
 }
-.cart-bar button{
-  width:100%;padding:12px;border:none;border-radius:30px;
-  background:var(--green);color:#fff;font-size:16px;font-weight:bold;
-}
-.cart-bar button:disabled{opacity:.5}
 
-/* small text */
-.small{font-size:12px;color:#666}
+/* Header */
+header {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  padding: 18px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+header div:first-child {
+  font-weight: 700;
+  font-size: 1.4rem;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+header div:first-child::before {
+  content: "🌾";
+}
+
+header div:last-child {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.container {
+  max-width: 480px;
+  margin: auto;
+  padding: 20px;
+}
+
+/* Cards */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 6px 16px var(--shadow);
+  border: 1px solid var(--border);
+  transition: var(--transition);
+}
+
+.card:hover {
+  box-shadow: 0 8px 20px rgba(46, 125, 50, 0.15);
+}
+
+/* Login card */
+.cart h4 {
+  margin: 0 0 16px 0;
+  font-size: 1.1rem;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Inputs */
+.cart input, .cart textarea, .search input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid #e0e0e0;
+  font-size: 15px;
+  margin: 8px 0;
+  transition: var(--transition);
+  background: var(--lighter);
+}
+
+.cart input:focus, .cart textarea:focus, .search input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+}
+
+.cart textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* Buttons */
+.btn-primary, .btn-ghost {
+  width: 100%;
+  padding: 14px;
+  border-radius: var(--radius-full);
+  border: none;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  margin: 8px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(46, 125, 50, 0.4);
+}
+
+.btn-ghost {
+  background: white;
+  border: 1.5px solid var(--primary);
+  color: var(--primary);
+}
+
+.btn-ghost:hover {
+  background: rgba(46, 125, 50, 0.05);
+  transform: translateY(-2px);
+}
+
+/* Search & Categories */
+.search input {
+  padding: 14px 18px;
+  background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%232e7d32' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z'/%3E%3C/svg%3E") no-repeat 18px center;
+  background-size: 18px;
+  padding-left: 48px;
+  border: 1.5px solid #e0e0e0;
+}
+
+.cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cats button {
+  padding: 10px 20px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--border);
+  background: var(--lighter);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: var(--transition);
+  color: var(--text-light);
+}
+
+.cats button:hover {
+  background: rgba(46, 125, 50, 0.05);
+  border-color: var(--primary-light);
+}
+
+.cats .active {
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  border-color: var(--primary);
+  box-shadow: 0 4px 8px rgba(46, 125, 50, 0.2);
+}
+
+/* Product list */
+.product {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  margin-bottom: 12px;
+  background: white;
+  transition: var(--transition);
+}
+
+.product:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+}
+
+.product img {
+  width: 70px;
+  height: 70px;
+  border-radius: 12px;
+  margin-right: 16px;
+  object-fit: cover;
+  border: 1px solid #f0f0f0;
+}
+
+.product-info {
+  flex: 1;
+  margin-right: 12px;
+}
+
+.product h4 {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.product p {
+  margin: 6px 0 0 0;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.product-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.add, .qty button {
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--primary);
+  background: white;
+  color: var(--primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.add:hover, .qty button:hover {
+  background: var(--primary);
+  color: white;
+  transform: scale(1.05);
+}
+
+.qty {
+  display: flex;
+  align-items: center;
+  background: rgba(46, 125, 50, 0.08);
+  border-radius: var(--radius-full);
+  padding: 4px;
+}
+
+.qty button {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: white;
+  color: var(--primary);
+  font-weight: bold;
+  font-size: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.qty span {
+  margin: 0 12px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 20px;
+  text-align: center;
+}
+
+.out {
+  color: #f44336;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(244, 67, 54, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-top: 6px;
+  display: inline-block;
+}
+
+/* Cart list */
+.cart ul {
+  padding-left: 20px;
+  margin: 12px 0;
+}
+
+.cart ul li {
+  margin-bottom: 8px;
+  padding: 8px 0;
+  border-bottom: 1px dashed #e0e0e0;
+  color: var(--text);
+}
+
+.cart ul li:last-child {
+  border-bottom: none;
+}
+
+#total {
+  color: var(--primary);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+/* Location status */
+#locStatus {
+  font-size: 13px;
+  color: var(--primary);
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(46, 125, 50, 0.08);
+  border-radius: var(--radius-sm);
+  border-left: 4px solid var(--primary);
+}
+
+/* Bottom bar */
+.cart-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: white;
+  padding: 16px 20px;
+  box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+}
+
+.cart-bar button {
+  width: 100%;
+  padding: 18px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: white;
+  font-size: 17px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition);
+  box-shadow: 0 4px 12px rgba(46, 125, 50, 0.3);
+}
+
+.cart-bar button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(46, 125, 50, 0.4);
+}
+
+.cart-bar button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Small text */
+.small {
+  font-size: 13px;
+  color: var(--text-light);
+  line-height: 1.5;
+}
+
+/* Divider */
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 20px 0;
+  color: var(--text-lighter);
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.divider span {
+  padding: 0 16px;
+}
+
+/* Recaptcha container */
+#recaptcha-container {
+  margin: 12px 0;
+}
+
+/* Login/User boxes */
+#loginBox, #userBox {
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Order history */
+#orderHistory li {
+  padding: 12px;
+  background: rgba(46, 125, 50, 0.03);
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+  border-left: 3px solid var(--primary);
+}
+
+/* Status indicator */
+.status-new {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* Product category tags */
+.category-tag {
+  font-size: 11px;
+  background: rgba(46, 125, 50, 0.1);
+  color: var(--primary);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
+/* Loading animation */
+.loading {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .container {
+    padding: 16px;
+  }
+  
+  .card {
+    padding: 16px;
+  }
+  
+  .product {
+    padding: 14px;
+  }
+  
+  .cart-bar {
+    padding: 14px 16px;
+  }
+  
+  .cart-bar button {
+    padding: 16px;
+  }
+}
 </style>
 </head>
 
@@ -136,24 +519,32 @@ h4{margin:0 0 8px 0;font-size:15px}
 
     <!-- BEFORE LOGIN -->
     <div id="loginBox">
-      <input id="loginName" placeholder="Name">
+      <input id="loginName" placeholder="Your name">
       <input id="loginMobile" placeholder="Phone number (with or without +91)">
       <div id="recaptcha-container"></div>
-      <button class="btn-primary" type="button" onclick="sendOtp()">Send OTP</button>
+      <button class="btn-primary" type="button" onclick="sendOtp()">
+        <span>Send OTP</span>
+      </button>
 
       <input id="otpCode" placeholder="Enter OTP">
-      <button class="btn-primary" type="button" onclick="verifyOtp()">Verify OTP</button>
+      <button class="btn-primary" type="button" onclick="verifyOtp()">
+        <span>Verify OTP</span>
+      </button>
 
-      <div style="text-align:center;margin:8px 0;" class="small">or</div>
+      <div class="divider"><span>or</span></div>
 
-      <button class="btn-ghost" type="button" onclick="googleLogin()">Sign in with Google</button>
+      <button class="btn-ghost" type="button" onclick="googleLogin()">
+        <span>Sign in with Google</span>
+      </button>
       <p class="small">After login you can see products, place orders and view your history.</p>
     </div>
 
     <!-- AFTER LOGIN -->
     <div id="userBox" style="display:none">
       <p class="small" id="welcomeText"></p>
-      <button class="btn-ghost" type="button" onclick="logout()">Logout</button>
+      <button class="btn-ghost" type="button" onclick="logout()">
+        <span>Logout</span>
+      </button>
     </div>
   </div>
 
@@ -161,7 +552,7 @@ h4{margin:0 0 8px 0;font-size:15px}
   <div id="shopArea" style="display:none">
 
     <div class="card search">
-      <input id="search" placeholder="Search products">
+      <input id="search" placeholder="Search products...">
     </div>
 
     <div class="card">
@@ -182,7 +573,10 @@ h4{margin:0 0 8px 0;font-size:15px}
     <div class="card cart">
       <h4>🛒 Cart</h4>
       <ul id="cartList"></ul>
-      <b>Total ₹<span id="total">0</span></b>
+      <div style="text-align: right; margin-top: 16px; padding-top: 16px; border-top: 2px solid var(--border);">
+        <span style="color: var(--text-light); font-weight: 600;">Total:</span>
+        <span style="font-size: 1.6rem; font-weight: 700; color: var(--primary); margin-left: 10px;">₹<span id="total">0</span></span>
+      </div>
     </div>
 
     <div class="card cart">
@@ -190,7 +584,9 @@ h4{margin:0 0 8px 0;font-size:15px}
       <input id="name" placeholder="Name *">
       <input id="mobile" placeholder="Mobile *">
 
-      <button class="btn-ghost" type="button" onclick="getLocation()">📍 Share live location</button>
+      <button class="btn-ghost" type="button" onclick="getLocation()">
+        <span>📍 Share live location</span>
+      </button>
       <div id="locStatus"></div>
 
       <textarea id="address" placeholder="Address * (house / street / landmark)"></textarea>
@@ -218,7 +614,7 @@ import {
   onAuthStateChanged,
   GoogleAuthProvider,
   signInWithPopup
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"; /* web modular auth [web:12][web:6] */
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCYDLsQLFvuTV1N0mXtZFVYcSQqOkGfCrE",
@@ -266,7 +662,7 @@ let currentLng = null;
 let recaptchaVerifier;
 let confirmationResultGlobal = null;
 
-// init invisible reCAPTCHA for phone auth [web:1]
+// init invisible reCAPTCHA for phone auth
 function initRecaptcha() {
   recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
     size: 'invisible'
@@ -308,13 +704,13 @@ function render(){
       <div class="card product">
         <img src="${p.img}">
         <div class="product-info">
-          <h4>${p.name} ${p.unit ? '('+p.unit+')' : ''}</h4>
+          <h4>${p.name} ${p.unit ? '('+p.unit+')' : ''} <span class="category-tag">${p.cat}</span></h4>
           <p>₹${p.price}</p>
           ${p.inStock ? '' : '<div class="out">OUT OF STOCK</div>'}
         </div>
 
         <div class="product-actions">
-          <div class="qty" style="display:${qty > 0 ? 'block' : 'none'}">
+          <div class="qty" style="display:${qty > 0 ? 'flex' : 'none'}">
             <button onclick="chg('${p.id}',-1)">−</button>
             <span>${qty}</span>
             <button onclick="chg('${p.id}',1)">+</button>
@@ -329,7 +725,7 @@ function render(){
     });
 
   if (data.length === 0) {
-    list.innerHTML = '<div class="card small">No products found.</div>';
+    list.innerHTML = '<div class="card small" style="text-align: center; padding: 24px;">No products found. Try a different search.</div>';
   }
 }
 
@@ -372,7 +768,7 @@ function renderCart(){
   count.textContent = c;
 }
 
-// PHONE AUTH [web:1]
+// PHONE AUTH
 window.sendOtp = async () => {
   let phone = loginMobile.value.trim();
   if (!phone.startsWith("+")) {
@@ -404,7 +800,7 @@ window.verifyOtp = async () => {
   }
 };
 
-// GOOGLE AUTH [web:6]
+// GOOGLE AUTH
 window.googleLogin = async () => {
   try {
     await signInWithPopup(auth, googleProvider);
@@ -422,7 +818,7 @@ window.logout = async () => {
   }
 };
 
-// auth state: show/hide shop and welcome text [web:12][web:78]
+// auth state: show/hide shop and welcome text
 onAuthStateChanged(auth, (user) => {
   if (user) {
     loginBox.style.display = "none";
@@ -451,7 +847,7 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// ORDER HISTORY [web:43]
+// ORDER HISTORY
 function loadOrderHistory(userId) {
   if (!userId) {
     orderHistoryEl.innerHTML = "<li class='small'>Login to see your orders</li>";
