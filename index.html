@@ -369,9 +369,13 @@ function renderCart(){
 
 // PHONE AUTH [web:1]
 window.sendOtp = async () => {
-  const phone = loginMobile.value.trim();
-  if (!phone) {
-    alert("Enter mobile with country code (e.g. +91...)");
+  let phone = loginMobile.value.trim();
+  if (!phone.startsWith("+")) {
+    // assume India if user forgot +91
+    phone = "+91" + phone;
+  }
+  if (phone.length < 12) {
+    alert("Enter valid mobile number");
     return;
   }
   try {
