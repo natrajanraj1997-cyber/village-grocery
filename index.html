@@ -236,6 +236,19 @@ header {
   flex: 1;
 }
 
+.cart-count-badge {
+  background: var(--primary);
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 /* Submenu for Categories */
 .submenu {
   display: none;
@@ -544,7 +557,7 @@ header {
   border-left: 4px solid var(--primary);
 }
 
-/* Bottom bar */
+/* Bottom bar - Cart page only */
 .cart-bar {
   position: fixed;
   bottom: 0;
@@ -554,6 +567,11 @@ header {
   padding: 16px 20px;
   box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.1);
   z-index: 50;
+  display: none;
+}
+
+.cart-bar.active {
+  display: block;
 }
 
 .cart-bar button {
@@ -624,13 +642,52 @@ header {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Order history */
-#orderHistory li {
+/* Order history items */
+.order-item {
+  display: flex;
+  align-items: center;
   padding: 12px;
   background: rgba(46, 125, 50, 0.03);
   border-radius: var(--radius-sm);
   margin-bottom: 10px;
   border-left: 3px solid var(--primary);
+}
+
+.order-item-image {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  margin-right: 15px;
+  object-fit: cover;
+  border: 1px solid var(--border);
+}
+
+.order-item-info {
+  flex: 1;
+}
+
+.order-item-name {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.order-item-details {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-bottom: 4px;
+}
+
+.order-item-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.order-item-date {
+  font-size: 12px;
+  color: var(--text-lighter);
+  margin-top: 4px;
 }
 
 /* Status indicator */
@@ -748,6 +805,11 @@ header {
     width: 280px;
     left: -280px;
   }
+  
+  .order-item-image {
+    width: 50px;
+    height: 50px;
+  }
 }
 </style>
 </head>
@@ -782,6 +844,9 @@ header {
       <span class="menu-arrow">▼</span>
     </a>
     <div class="submenu active" id="categoriesSubmenu">
+      <div class="submenu-item" onclick="setCat('All'); showSection('shop'); closeMenu();">
+        All
+      </div>
       <div class="submenu-item" onclick="setCat('Grocery'); showSection('shop'); closeMenu();">
         Grocery
       </div>
@@ -802,7 +867,7 @@ header {
     <a href="#" class="menu-item" onclick="showSection('cart'); closeMenu();">
       <span class="menu-icon">🛒</span>
       <span class="menu-text">Cart</span>
-      <span class="cart-count" id="menuCartCount">0</span>
+      <span class="cart-count-badge" id="menuCartCount">0</span>
     </a>
     <a href="#" class="menu-item" onclick="showSection('orderHistory'); closeMenu();">
       <span class="menu-icon">📜</span>
@@ -859,20 +924,18 @@ header {
       <button class="btn-ghost" type="button" onclick="googleLogin()">
         <span>Sign in with Google</span>
       </button>
-      <p class="small">After login you can see products, place orders and view your history.</p>
     </div>
 
     <!-- AFTER LOGIN -->
     <div id="userBox" style="display:none">
-      <p class="small" id="welcomeText"></p>
-      <!-- Removed logout button from here since it's in settings -->
+      <!-- Removed welcome message -->
     </div>
   </div>
 
   <!-- SHOP AREA (hidden until login, but will be shown based on menu selection) -->
   <div id="shopSection" class="content-section hidden">
     <button class="back-button" onclick="showSection('main')">
-      ← Back to Main
+      ← Back
     </button>
 
     <div class="card search">
@@ -895,7 +958,7 @@ header {
   <!-- CART SECTION -->
   <div id="cartSection" class="content-section hidden">
     <button class="back-button" onclick="showSection('main')">
-      ← Back to Main
+      ← Back
     </button>
 
     <div class="card cart">
@@ -924,19 +987,19 @@ header {
   <!-- ORDER HISTORY SECTION -->
   <div id="orderHistorySection" class="content-section hidden">
     <button class="back-button" onclick="showSection('main')">
-      ← Back to Main
+      ← Back
     </button>
 
     <div class="card cart">
       <h4>📜 Order History</h4>
-      <ul id="orderHistory"></ul>
+      <div id="orderHistoryList"></div>
     </div>
   </div>
 
   <!-- SETTINGS SECTION -->
   <div id="settingsSection" class="content-section hidden">
     <button class="back-button" onclick="showSection('main')">
-      ← Back to Main
+      ← Back
     </button>
 
     <div class="card cart">
@@ -956,8 +1019,8 @@ header {
 
 </div>
 
-<!-- Bottom bar - only shown after login -->
-<div class="cart-bar" id="cartBar" style="display:none;">
+<!-- Bottom bar - only shown in cart section -->
+<div class="cart-bar" id="cartBar">
   <button id="placeBtn" onclick="placeOrder()">Place Order</button>
 </div>
 
@@ -996,6 +1059,11 @@ let data = [];
 let cart = {};
 let cat = 'All';
 let currentSection = 'main';
+let userProfileData = {
+  name: '',
+  phone: '',
+  address: ''
+};
 
 // DOM Elements
 const list = document.getElementById("products");
@@ -1011,14 +1079,13 @@ const locStatus = document.getElementById("locStatus");
 const placeBtn = document.getElementById("placeBtn");
 const cartBar = document.getElementById("cartBar");
 const hamburgerBtn = document.getElementById("hamburgerBtn");
+const orderHistoryList = document.getElementById("orderHistoryList");
 
 const loginName = document.getElementById("loginName");
 const loginMobile = document.getElementById("loginMobile");
 const otpCode = document.getElementById("otpCode");
 const loginBox = document.getElementById("loginBox");
 const userBox = document.getElementById("userBox");
-const welcomeText = document.getElementById("welcomeText");
-const orderHistoryEl = document.getElementById("orderHistory");
 const shopSection = document.getElementById("shopSection");
 const cartSection = document.getElementById("cartSection");
 const orderHistorySection = document.getElementById("orderHistorySection");
@@ -1091,6 +1158,13 @@ window.showSection = function(section) {
     el.classList.add('hidden');
   });
   
+  // Show/hide cart bar
+  if (section === 'cart') {
+    cartBar.classList.add('active');
+  } else {
+    cartBar.classList.remove('active');
+  }
+  
   // Show selected section
   currentSection = section;
   if (section === 'shop') {
@@ -1099,6 +1173,8 @@ window.showSection = function(section) {
   } else if (section === 'cart') {
     cartSection.classList.remove('hidden');
     renderCartPage();
+    // Auto-fill delivery details from user profile
+    autoFillDeliveryDetails();
   } else if (section === 'orderHistory') {
     orderHistorySection.classList.remove('hidden');
   } else if (section === 'settings') {
@@ -1106,14 +1182,29 @@ window.showSection = function(section) {
     // Load current user data
     const user = auth.currentUser;
     if (user) {
-      settingsName.value = user.displayName || loginName.value || '';
-      // In a real app, you would load address from user profile in Firestore
+      settingsName.value = userProfileData.name || user.displayName || loginName.value || '';
+      settingsAddress.value = userProfileData.address || '';
     }
   } else {
     // 'main' section - show login card
     currentSection = 'main';
   }
 };
+
+// Auto-fill delivery details from user profile
+function autoFillDeliveryDetails() {
+  const user = auth.currentUser;
+  if (user) {
+    // Fill name from user profile or login
+    nameEl.value = userProfileData.name || user.displayName || loginName.value || '';
+    
+    // Fill mobile from user profile or phone number
+    mobileEl.value = userProfileData.phone || user.phoneNumber || loginMobile.value || '';
+    
+    // Fill address from user profile
+    addressEl.value = userProfileData.address || '';
+  }
+}
 
 // products listener
 const productsRef = collection(db, "products");
@@ -1221,7 +1312,7 @@ window.add = id => {
   const product = data.find(p => p.id === id);
   if (!product) return;
   if (!cart[id]) {
-    cart[id] = { qty: 1, price: product.price, name: product.name };
+    cart[id] = { qty: 1, price: product.price, name: product.name, img: product.img };
   } else {
     cart[id].qty += 1;
   }
@@ -1319,7 +1410,10 @@ window.updateProfile = async () => {
     return;
   }
   
-  // In a real app, you would update user profile in Firestore
+  // Update user profile data
+  userProfileData.name = settingsName.value.trim();
+  userProfileData.address = settingsAddress.value.trim();
+  
   alert("Profile updated successfully!");
   showSection('main');
 };
@@ -1331,17 +1425,19 @@ onAuthStateChanged(auth, (user) => {
     userBox.style.display = "block";
 
     const userName = loginName.value.trim() || user.displayName || user.email || user.phoneNumber || "Customer";
-    const userEmail = user.email || user.phoneNumber || "Logged in";
-
-    welcomeText.textContent = `Logged in successfully. Welcome ${userName}.`;
+    const userEmail = user.email || user.phoneNumber || "";
+    
+    // Store user profile data
+    userProfileData.name = userName;
+    userProfileData.phone = user.phoneNumber || loginMobile.value || "";
+    userProfileData.address = "";
     
     // Update menu user info
     menuUserName.textContent = userName;
-    menuUserEmail.textContent = userEmail;
+    menuUserEmail.textContent = userEmail || "Logged in";
     
-    // Show hamburger menu and cart bar
+    // Show hamburger menu
     hamburgerBtn.style.display = "block";
-    cartBar.style.display = "block";
     
     // Show All Categories by default after login
     showSection('shop');
@@ -1352,24 +1448,22 @@ onAuthStateChanged(auth, (user) => {
   } else {
     loginBox.style.display = "block";
     userBox.style.display = "none";
-    welcomeText.textContent = "";
     
     // Hide hamburger menu and cart bar
     hamburgerBtn.style.display = "none";
-
-    cartBar.style.display = "none";
+    cartBar.classList.remove('active');
     
     menuUserName.textContent = "Guest User";
     menuUserEmail.textContent = "Login to continue";
     
-    orderHistoryEl.innerHTML = "<li class='small'>Login to see your orders</li>";
+    orderHistoryList.innerHTML = "<div class='small' style='text-align: center; padding: 20px;'>Login to see your orders</div>";
   }
 });
 
-// ORDER HISTORY
+// ORDER HISTORY - Now with images
 function loadOrderHistory(userId) {
   if (!userId) {
-    orderHistoryEl.innerHTML = "<li class='small'>Login to see your orders</li>";
+    orderHistoryList.innerHTML = "<div class='small' style='text-align: center; padding: 20px;'>Login to see your orders</div>";
     return;
   }
 
@@ -1381,30 +1475,73 @@ function loadOrderHistory(userId) {
 
   onSnapshot(q, (snap) => {
     if (snap.empty) {
-      orderHistoryEl.innerHTML = "<li class='small'>No orders yet</li>";
+      orderHistoryList.innerHTML = "<div class='small' style='text-align: center; padding: 20px;'>No orders yet</div>";
       return;
     }
 
-    orderHistoryEl.innerHTML = "";
+    orderHistoryList.innerHTML = "";
     snap.forEach(doc => {
       const o = doc.data();
-      const itemsText = Object.values(o.items || {})
-        .map(it => `${it.name} x ${it.qty}`)
-        .join(", ");
-
+      const orderId = doc.id;
       const created = o.createdAt?.toDate
         ? o.createdAt.toDate().toLocaleString()
-        : "";
-
-      const li = document.createElement("li");
-      li.className = "small";
-      li.textContent = `${created} - ${itemsText} [${o.status}]`;
-      orderHistoryEl.appendChild(li);
+        : "Recent";
+      
+      // Create order card
+      const orderCard = document.createElement('div');
+      orderCard.className = 'card';
+      orderCard.innerHTML = `
+        <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
+          <strong>Order #${orderId.substring(0, 8)}</strong>
+          <div class="small">${created}</div>
+          <div style="color: var(--primary); font-weight: 600; margin-top: 5px;">${o.status || 'PROCESSING'}</div>
+        </div>
+        <div id="orderItems-${orderId}"></div>
+        <div style="text-align: right; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border);">
+          <strong>Total: ₹${calculateOrderTotal(o.items)}</strong>
+        </div>
+      `;
+      
+      orderHistoryList.appendChild(orderCard);
+      
+      // Add order items with images
+      const orderItemsContainer = document.getElementById(`orderItems-${orderId}`);
+      if (o.items) {
+        for (let itemId in o.items) {
+          const item = o.items[itemId];
+          // Try to find product image from current products data
+          const product = data.find(p => p.name === item.name);
+          const productImg = product ? product.img : 'https://via.placeholder.com/60x60?text=Product';
+          
+          orderItemsContainer.innerHTML += `
+            <div class="order-item">
+              <img src="${productImg}" alt="${item.name}" class="order-item-image">
+              <div class="order-item-info">
+                <div class="order-item-name">${item.name}</div>
+                <div class="order-item-details">Quantity: ${item.qty} × ₹${item.price} = ₹${item.qty * item.price}</div>
+                <div class="order-item-date">Ordered on: ${created}</div>
+              </div>
+            </div>
+          `;
+        }
+      }
     });
   }, (err) => {
     console.error(err);
-    orderHistoryEl.innerHTML = "<li class='small'>Error loading orders</li>";
+    orderHistoryList.innerHTML = "<div class='small' style='text-align: center; padding: 20px; color: #f44336;'>Error loading orders</div>";
   });
+}
+
+// Calculate order total
+function calculateOrderTotal(items) {
+  let total = 0;
+  if (items) {
+    for (let itemId in items) {
+      const item = items[itemId];
+      total += item.qty * item.price;
+    }
+  }
+  return total;
 }
 
 // geolocation
@@ -1440,6 +1577,11 @@ window.placeOrder = async () => {
     return;
   }
 
+  // Update user profile with delivery details
+  userProfileData.name = nameEl.value.trim();
+  userProfileData.phone = mobileEl.value.trim();
+  userProfileData.address = addressEl.value.trim();
+
   await addDoc(collection(db,"orders"),{
     name: nameEl.value,
     mobile: mobileEl.value,
@@ -1456,7 +1598,7 @@ window.placeOrder = async () => {
     userEmail: user.email || null
   });
 
-  alert("✅ Order placed");
+  alert("✅ Order placed successfully!");
   cart = {};
   updateCartCount();
   renderCartPage();
