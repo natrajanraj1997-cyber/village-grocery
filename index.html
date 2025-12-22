@@ -75,6 +75,21 @@ header {
   align-items: center;
   gap: 20px;
 }
+.profile-image-upload input[type="file"] {
+  display: none;
+}
+.profile-image {
+  transition: all 0.2s ease;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  border: 3px solid var(--border);
+  cursor: pointer;
+}
 
 .hamburger {
   font-size: 1.8rem;
@@ -850,7 +865,7 @@ header {
         👤
       </div>
       <label class="profile-image-upload">
-     <input type="file" id="imageUpload" accept="image/*">
+        <input type="file" id="imageUpload" accept="image/*">
         📷
       </label>
     </div>
@@ -920,8 +935,7 @@ header {
 <header>
   <div class="app-name">Village Grocery</div>
   <div class="header-right">
-    <!-- Cart icon in header with count -->
-   <div class="cart-icon-header" id="headerCartIcon" style="display:none;" onclick="showSection('cart')">
+    <div class="cart-icon-header" id="headerCartIcon" style="display:none;" onclick="showSection('cart')">
       🛒
       <span class="cart-count-badge-header" id="headerCartCount">0</span>
     </div>
@@ -931,11 +945,10 @@ header {
 
 <div class="container">
 
-  <!-- LOGIN CARD (always visible) -->
+  <!-- LOGIN CARD -->
   <div class="card cart">
     <h4 id="loginTitle">👤 Login to continue</h4>
 
-    <!-- BEFORE LOGIN -->
     <div id="loginBox">
       <input id="loginName" placeholder="Your name">
       <input id="loginMobile" placeholder="Phone number (with or without +91)">
@@ -956,15 +969,11 @@ header {
       </button>
     </div>
 
-    <!-- AFTER LOGIN -->
-    <div id="userBox" style="display:none">
-      <!-- Removed welcome message -->
-    </div>
+    <div id="userBox" style="display:none"></div>
   </div>
 
-  <!-- SHOP AREA (hidden until login, but will be shown based on menu selection) -->
+  <!-- SHOP -->
   <div id="shopSection" class="content-section hidden">
-    <!-- Back button only shows when NOT in All tab -->
     <button class="back-button" id="shopBackButton" onclick="goBackFromShop()">
       ← Back
     </button>
@@ -986,7 +995,7 @@ header {
     <div id="products"></div>
   </div>
 
-  <!-- CART SECTION -->
+  <!-- CART -->
   <div id="cartSection" class="content-section hidden">
     <button class="back-button" onclick="goBackToAllTab()">
       ← Back
@@ -1005,17 +1014,15 @@ header {
       <h4>📦 Delivery details</h4>
       <input id="name" placeholder="Name *">
       <input id="mobile" placeholder="Mobile *">
-
       <button class="btn-ghost" type="button" onclick="getLocation()">
         <span>📍 Share live location</span>
       </button>
       <div id="locStatus"></div>
-
       <textarea id="address" placeholder="Address * (house / street / landmark)"></textarea>
     </div>
   </div>
 
-  <!-- ORDER HISTORY SECTION -->
+  <!-- ORDER HISTORY -->
   <div id="orderHistorySection" class="content-section hidden">
     <button class="back-button" onclick="goBackToAllTab()">
       ← Back
@@ -1027,7 +1034,7 @@ header {
     </div>
   </div>
 
-  <!-- SETTINGS SECTION -->
+  <!-- SETTINGS -->
   <div id="settingsSection" class="content-section hidden">
     <button class="back-button" onclick="goBackToAllTab()">
       ← Back
@@ -1038,27 +1045,21 @@ header {
       <div class="settings-form">
         <input id="settingsName" placeholder="Your name">
         <textarea id="settingsAddress" placeholder="Your address"></textarea>
-        <button class="btn-primary" onclick="updateProfile()">
-          Update Profile
-        </button>
-        <button class="btn-ghost" onclick="logout()">
-          Logout
-        </button>
+        <button class="btn-primary" onclick="updateProfile()">Update Profile</button>
+        <button class="btn-ghost" onclick="logout()">Logout</button>
       </div>
     </div>
   </div>
 
 </div>
 
-<!-- Bottom bar - only shown in cart section -->
 <div class="cart-bar" id="cartBar">
   <button id="placeBtn" onclick="placeOrder()">Place Order</button>
 </div>
 
-<!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { 
+import {
   getFirestore,
   collection,
   addDoc,
@@ -1067,7 +1068,6 @@ import {
   query,
   where,
   orderBy,
-  updateDoc,
   doc,
   setDoc,
   getDoc
@@ -1078,7 +1078,6 @@ import {
   uploadBytes,
   getDownloadURL
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-
 import {
   getAuth,
   RecaptchaVerifier,
@@ -1100,35 +1099,28 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-const storage = getStorage(app);
-
 const db = getFirestore(app);
+const storage = getStorage(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
 let data = [];
 let cart = {};
-let cat = 'All';
-let currentSection = 'main';
-let userProfileData = {
-  name: '',
-  phone: '',
-  address: ''
-};
+let cat = "All";
+let currentSection = "main";
+let userProfileData = { name: "", phone: "", address: "" };
 
-// DOM Elements
+// DOM
 const list = document.getElementById("products");
 const search = document.getElementById("search");
 const cartDetails = document.getElementById("cartDetails");
 const cartTotal = document.getElementById("cartTotal");
-const total = document.getElementById("total");
 const menuCartCount = document.getElementById("menuCartCount");
 const headerCartCount = document.getElementById("headerCartCount");
 const nameEl = document.getElementById("name");
 const mobileEl = document.getElementById("mobile");
 const addressEl = document.getElementById("address");
 const locStatus = document.getElementById("locStatus");
-const placeBtn = document.getElementById("placeBtn");
 const cartBar = document.getElementById("cartBar");
 const hamburgerBtn = document.getElementById("hamburgerBtn");
 const orderHistoryList = document.getElementById("orderHistoryList");
@@ -1143,7 +1135,6 @@ const shopSection = document.getElementById("shopSection");
 const cartSection = document.getElementById("cartSection");
 const orderHistorySection = document.getElementById("orderHistorySection");
 const settingsSection = document.getElementById("settingsSection");
-
 const settingsName = document.getElementById("settingsName");
 const settingsAddress = document.getElementById("settingsAddress");
 
@@ -1153,107 +1144,78 @@ const menuUserName = document.getElementById("menuUserName");
 const menuUserEmail = document.getElementById("menuUserEmail");
 const profileImage = document.getElementById("profileImage");
 
-// geolocation
 let currentLat = null;
 let currentLng = null;
-
-// reCAPTCHA + OTP
 let recaptchaVerifier;
 let confirmationResultGlobal = null;
-
-// User profile image (optional in-memory cache, not required for persistence)
 let userProfileImage = null;
-let profileListenerUnsub = null; // For cleaning up Firestore listener
+let profileListenerUnsub = null;
 
-// Simple cropper functions
-function initSimpleCropper(img) {
-  let startX, startY, startWidth, startHeight, isDragging = false;
-  
-  // Add crop overlay
-  img.style.position = 'relative';
-  img.parentNode.style.position = 'relative';
-  
-  const overlay = document.createElement('div');
-  overlay.id = 'cropOverlay';
-  overlay.style.cssText = `
-    position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;
-    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,0.3) 2px,rgba(255,255,255,0.3) 4px),
-                repeating-linear-gradient(90deg,transparent,transparent 2px,rgba(255,255,255,0.3) 2px,rgba(255,255,255,0.3) 4px);
-    border:2px solid rgba(255,255,255,0.8);
-  `;
-  img.parentNode.appendChild(overlay);
-}
+// center square crop helper
+function getCroppedCanvasFromImage(img, size = 300) {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
 
-async function getCroppedCanvas(img, size = 300, quality = 0.9) {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
+  const iw = img.naturalWidth || img.width;
+  const ih = img.naturalHeight || img.height;
+  const side = Math.min(iw, ih);
+  const sx = (iw - side) / 2;
+  const sy = (ih - side) / 2;
+
   canvas.width = size;
   canvas.height = size;
-  
-  ctx.imageSmoothingQuality = 'high';
-  ctx.drawImage(img, 0, 0, size, size);
-  
-  return new Promise(resolve => {
-    canvas.toBlob(resolve, 'image/jpeg', quality);
-  });
+
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+
+  return canvas;
 }
 
-// init invisible reCAPTCHA for phone auth
+// recaptcha
 function initRecaptcha() {
-  recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-    size: 'invisible'
+  recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+    size: "invisible"
   });
 }
 initRecaptcha();
 
-// Unified helper to show default icon
+// profile helpers
 function showDefaultProfileIcon() {
-  profileImage.innerHTML = '👤';
-  profileImage.style.backgroundImage = '';
-  profileImage.style.backgroundColor = '#f0f0f0';
+  profileImage.innerHTML = "👤";
+  profileImage.style.backgroundImage = "";
+  profileImage.style.backgroundColor = "#f0f0f0";
 }
-
-// Unified helper to show a photoURL
 function showProfilePhoto(url) {
-  // Create an img element to test if the URL is valid
   const img = new Image();
-  img.onload = function() {
-    // URL is valid, show the image
-    profileImage.innerHTML = '';
+  img.onload = function () {
+    profileImage.innerHTML = "";
     profileImage.style.backgroundImage = `url(${url})`;
-    profileImage.style.backgroundSize = 'cover';
-    profileImage.style.backgroundPosition = 'center';
-    profileImage.style.backgroundColor = 'transparent';
+    profileImage.style.backgroundSize = "cover";
+    profileImage.style.backgroundPosition = "center";
+    profileImage.style.backgroundColor = "transparent";
   };
-  img.onerror = function() {
-    // URL is invalid, show default icon
-    console.error('Failed to load profile image:', url);
+  img.onerror = function () {
+    console.error("Failed to load profile image:", url);
     showDefaultProfileIcon();
   };
   img.src = url;
 }
 
-// IMPROVED Image upload - With CROP + MIN SIZE + FULL PERSISTENCE
-document.getElementById('imageUpload').addEventListener('change', async function (e) {
+// upload + crop
+document.getElementById("imageUpload").addEventListener("change", async (e) => {
   const file = e.target.files[0];
   const user = auth.currentUser;
-
   if (!file || !user) return;
 
-  // MIN SIZE VALIDATION (100KB min)
   if (file.size < 100 * 1024) {
     alert("Image too small. Minimum 100KB required.");
-    e.target.value = '';
+    e.target.value = "";
     return;
   }
 
-  // Create cropper
-  const img = document.createElement('img');
-  img.src = URL.createObjectURL(file);
-  
-  const cropperModal = document.createElement('div');
-  cropperModal.id = 'cropperModal';
-  cropperModal.innerHTML = `
+  const modal = document.createElement("div");
+  modal.id = "cropperModal";
+  modal.innerHTML = `
     <div style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:9999;display:flex;align-items:center;justify-content:center;">
       <div style="background:white;padding:20px;border-radius:12px;max-width:90vw;max-height:90vh;overflow:auto;">
         <div style="text-align:center;margin-bottom:12px;font-weight:600;">Crop your profile photo</div>
@@ -1263,221 +1225,190 @@ document.getElementById('imageUpload').addEventListener('change', async function
           <button id="cropCancelBtn" style="flex:1;padding:12px;border-radius:8px;background:#f0f0f0;border:1px solid var(--border);">❌ Cancel</button>
         </div>
       </div>
-    </div>
-  `;
-  document.body.appendChild(cropperModal);
+    </div>`;
+  document.body.appendChild(modal);
 
-  // Load image for cropping
-  const cropperImg = document.getElementById('cropperImg');
-  cropperImg.onload = () => {
-    initSimpleCropper(cropperImg);
-  };
-  cropperImg.src = img.src;
+  const cropperImg = document.getElementById("cropperImg");
+  cropperImg.src = URL.createObjectURL(file);
 
-  // Crop & Save
-  document.getElementById('cropSaveBtn').onclick = async () => {
+  document.getElementById("cropSaveBtn").onclick = async () => {
     try {
-      // Show loading
-      profileImage.innerHTML = '📤';
-      
-      // Get cropped canvas (300x300)
-      const blob = await getCroppedCanvas(cropperImg, 300, 300);
-      
+      profileImage.innerHTML = "📤";
+      const canvas = getCroppedCanvasFromImage(cropperImg, 300);
+      const blob = await new Promise((resolve) =>
+        canvas.toBlob(resolve, "image/jpeg", 0.9)
+      );
+
       const imageRef = ref(storage, `profileImages/${user.uid}/profile.jpg`);
       await uploadBytes(imageRef, blob);
       const photoURL = await getDownloadURL(imageRef);
 
-      // UPDATE BOTH Firestore AND Auth
       await Promise.all([
-        setDoc(doc(db, "users", user.uid), { 
-          photoURL: photoURL,
-          name: user.displayName || userProfileData.name || "",
-          email: user.email || "",
-          phone: user.phoneNumber || ""
-        }, { merge: true }),
-        updateProfile(user, { photoURL: photoURL })
+        setDoc(
+          doc(db, "users", user.uid),
+          {
+            photoURL: photoURL,
+            name: user.displayName || userProfileData.name || "",
+            email: user.email || "",
+            phone: user.phoneNumber || ""
+          },
+          { merge: true }
+        ),
+        updateProfile(user, { photoURL })
       ]);
 
       showProfilePhoto(photoURL);
       userProfileImage = photoURL;
-      alert("✅ Profile image updated!");
-      
-      // Clean up
-      document.body.removeChild(cropperModal);
-      e.target.value = '';
-      
+      alert("Profile image updated!");
+      document.body.removeChild(modal);
+      e.target.value = "";
     } catch (err) {
-      console.error("Upload failed:", err);
+      console.error(err);
       alert("Upload failed. Please try again.");
       showDefaultProfileIcon();
     }
   };
 
-  // Cancel
-  document.getElementById('cropCancelBtn').onclick = () => {
-    document.body.removeChild(cropperModal);
-    e.target.value = '';
+  document.getElementById("cropCancelBtn").onclick = () => {
+    document.body.removeChild(modal);
+    e.target.value = "";
   };
 });
 
-// Menu functions
-window.toggleMenu = function() {
-  sideMenu.classList.toggle('active');
-  menuOverlay.classList.toggle('active');
+// menu
+window.toggleMenu = () => {
+  sideMenu.classList.toggle("active");
+  menuOverlay.classList.toggle("active");
+};
+window.closeMenu = () => {
+  sideMenu.classList.remove("active");
+  menuOverlay.classList.remove("active");
+};
+window.toggleSubmenu = (id) => {
+  document.getElementById(id).classList.toggle("active");
 };
 
-window.closeMenu = function() {
-  sideMenu.classList.remove('active');
-  menuOverlay.classList.remove('active');
-};
-
-window.toggleSubmenu = function(submenuId) {
-  const submenu = document.getElementById(submenuId);
-  submenu.classList.toggle('active');
-};
-
-window.showSection = function(section) {
+window.showSection = (section) => {
   closeMenu();
-  document.querySelectorAll('.content-section').forEach(el => {
-    el.classList.add('hidden');
-  });
-
-  if (section === 'cart') {
-    cartBar.classList.add('active');
-  } else {
-    cartBar.classList.remove('active');
-  }
-
+  document.querySelectorAll(".content-section").forEach((el) =>
+    el.classList.add("hidden")
+  );
+  cartBar.classList.toggle("active", section === "cart");
   currentSection = section;
-  if (section === 'shop') {
-    shopSection.classList.remove('hidden');
+
+  if (section === "shop") {
+    shopSection.classList.remove("hidden");
     updateShopBackButtonVisibility();
     render();
-  } else if (section === 'cart') {
-    cartSection.classList.remove('hidden');
+  } else if (section === "cart") {
+    cartSection.classList.remove("hidden");
     renderCartPage();
     autoFillDeliveryDetails();
-  } else if (section === 'orderHistory') {
-    orderHistorySection.classList.remove('hidden');
-  } else if (section === 'settings') {
-    settingsSection.classList.remove('hidden');
+  } else if (section === "orderHistory") {
+    orderHistorySection.classList.remove("hidden");
+  } else if (section === "settings") {
+    settingsSection.classList.remove("hidden");
     const user = auth.currentUser;
     if (user) {
-      settingsName.value = userProfileData.name || user.displayName || loginName.value || '';
-      settingsAddress.value = userProfileData.address || '';
+      settingsName.value =
+        userProfileData.name || user.displayName || loginName.value || "";
+      settingsAddress.value = userProfileData.address || "";
     }
   } else {
-    currentSection = 'main';
+    currentSection = "main";
   }
 };
 
-// New function to go back to All tab
-window.goBackToAllTab = function() {
-  setCat('All');
-  showSection('shop');
+window.goBackToAllTab = () => {
+  setCat("All");
+  showSection("shop");
 };
-
-// New function to handle back from shop
-window.goBackFromShop = function() {
-  if (cat === 'All') {
-    showSection('main');
-  } else {
-    setCat('All');
-  }
+window.goBackFromShop = () => {
+  if (cat === "All") showSection("main");
+  else setCat("All");
 };
-
-// Update shop back button visibility
 function updateShopBackButtonVisibility() {
-  if (shopBackButton) {
-    if (cat === 'All') {
-      shopBackButton.style.display = 'none';
-    } else {
-      shopBackButton.style.display = 'flex';
-    }
-  }
+  if (!shopBackButton) return;
+  shopBackButton.style.display = cat === "All" ? "none" : "flex";
 }
-
-// Auto-fill delivery details from user profile
 function autoFillDeliveryDetails() {
   const user = auth.currentUser;
-  if (user) {
-    nameEl.value = userProfileData.name || user.displayName || loginName.value || '';
-    mobileEl.value = userProfileData.phone || user.phoneNumber || loginMobile.value || '';
-    addressEl.value = userProfileData.address || '';
-  }
+  if (!user) return;
+  nameEl.value =
+    userProfileData.name || user.displayName || loginName.value || "";
+  mobileEl.value =
+    userProfileData.phone || user.phoneNumber || loginMobile.value || "";
+  addressEl.value = userProfileData.address || "";
 }
 
-// products listener
+// products
 const productsRef = collection(db, "products");
 onSnapshot(productsRef, (snapshot) => {
-  data = snapshot.docs.map(doc => {
-    const d = doc.data();
+  data = snapshot.docs.map((d) => {
+    const v = d.data();
     return {
-      id: doc.id,
-      name: d.Name,
-      price: d.price,
-      cat: d.cat,
-      img: d.img,
-      inStock: d.stock,
-      unit: d.unit
+      id: d.id,
+      name: v.Name,
+      price: v.price,
+      cat: v.cat,
+      img: v.img,
+      inStock: v.stock,
+      unit: v.unit
     };
   });
-  if (currentSection === 'shop') {
-    render();
-  }
-}, (error) => console.error(error));
+  if (currentSection === "shop") render();
+});
 
-function render(){
+function render() {
   if (!list) return;
-  list.innerHTML = '';
+  list.innerHTML = "";
   const txt = (search?.value || "").toLowerCase();
-
   data
-    .filter(p =>
-      p.name.toLowerCase().includes(txt) &&
-      (cat === 'All' || p.cat === cat)
+    .filter(
+      (p) =>
+        p.name.toLowerCase().includes(txt) &&
+        (cat === "All" || p.cat === cat)
     )
-    .forEach(p => {
+    .forEach((p) => {
       const qty = cart[p.id]?.qty || 0;
       list.innerHTML += `
       <div class="card product">
         <img src="${p.img}">
         <div class="product-info">
-          <h4>${p.name} ${p.unit ? '('+p.unit+')' : ''} <span class="category-tag">${p.cat}</span></h4>
+          <h4>${p.name} ${p.unit ? "(" + p.unit + ")" : ""} <span class="category-tag">${
+        p.cat
+      }</span></h4>
           <p>₹${p.price}</p>
-          ${p.inStock ? '' : '<div class="out">OUT OF STOCK</div>'}
+          ${p.inStock ? "" : '<div class="out">OUT OF STOCK</div>'}
         </div>
-
         <div class="product-actions">
-          <div class="qty" style="display:${qty > 0 ? 'flex' : 'none'}">
+          <div class="qty" style="display:${qty > 0 ? "flex" : "none"}">
             <button onclick="chg('${p.id}',-1)">−</button>
             <span>${qty}</span>
             <button onclick="chg('${p.id}',1)">+</button>
           </div>
-
-          ${p.inStock && qty === 0
-            ? `<button class="add" onclick="add('${p.id}')">Add</button>`
-            : ''
+          ${
+            p.inStock && qty === 0
+              ? `<button class="add" onclick="add('${p.id}')">Add</button>`
+              : ""
           }
         </div>
       </div>`;
     });
-
   if (data.length === 0) {
-    list.innerHTML = '<div class="card small" style="text-align: center; padding: 24px;">No products found. Try a different search.</div>';
+    list.innerHTML =
+      '<div class="card small" style="text-align:center;padding:24px;">No products found. Try a different search.</div>';
   }
 }
 
 function renderCartPage() {
   if (!cartDetails) return;
-  cartDetails.innerHTML = '';
+  cartDetails.innerHTML = "";
   let t = 0;
-  
-  for(let i in cart){
+  for (let i in cart) {
     const item = cart[i];
     const itemTotal = item.qty * item.price;
     t += itemTotal;
-    
     cartDetails.innerHTML += `
       <div class="cart-item">
         <div class="cart-item-info">
@@ -1493,79 +1424,69 @@ function renderCartPage() {
         </div>
       </div>`;
   }
-  
   if (Object.keys(cart).length === 0) {
-    cartDetails.innerHTML = '<p class="small" style="text-align: center; padding: 20px;">Your cart is empty</p>';
+    cartDetails.innerHTML =
+      '<p class="small" style="text-align:center;padding:20px;">Your cart is empty</p>';
   }
-  
   cartTotal.textContent = t;
-  total.textContent = t;
 }
 
-window.setCat = c => {
+window.setCat = (c) => {
   cat = c;
-  document.querySelectorAll('.cats button')
-    .forEach(b => b.classList.toggle('active', b.textContent === c));
+  document
+    .querySelectorAll(".cats button")
+    .forEach((b) => b.classList.toggle("active", b.textContent === c));
   render();
   updateShopBackButtonVisibility();
 };
-
-window.add = id => {
-  const product = data.find(p => p.id === id);
+window.add = (id) => {
+  const product = data.find((p) => p.id === id);
   if (!product) return;
   if (!cart[id]) {
-    cart[id] = { qty: 1, price: product.price, name: product.name, img: product.img };
-  } else {
-    cart[id].qty += 1;
-  }
+    cart[id] = {
+      qty: 1,
+      price: product.price,
+      name: product.name,
+      img: product.img
+    };
+  } else cart[id].qty += 1;
   updateCartCount();
-  if (currentSection === 'shop') {
-    render();
-  } else if (currentSection === 'cart') {
-    renderCartPage();
-  }
+  currentSection === "shop" ? render() : renderCartPage();
 };
-
 window.chg = (id, d) => {
   if (!cart[id]) return;
   cart[id].qty += d;
   if (cart[id].qty <= 0) delete cart[id];
   updateCartCount();
-  if (currentSection === 'shop') {
-    render();
-  } else if (currentSection === 'cart') {
-    renderCartPage();
-  }
+  currentSection === "shop" ? render() : renderCartPage();
 };
-
 function updateCartCount() {
   let c = 0;
-  for(let i in cart){
-    c += cart[i].qty;
-  }
+  for (let i in cart) c += cart[i].qty;
   menuCartCount.textContent = c;
   headerCartCount.textContent = c;
 }
 
-// PHONE AUTH
+// phone auth
 window.sendOtp = async () => {
   let phone = loginMobile.value.trim();
-  if (!phone.startsWith("+")) {
-    phone = "+91" + phone;
-  }
+  if (!phone.startsWith("+")) phone = "+91" + phone;
   if (phone.length < 12) {
     alert("Enter valid mobile number");
     return;
   }
   try {
-    confirmationResultGlobal = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
+    confirmationResultGlobal = await signInWithPhoneNumber(
+      auth,
+      phone,
+      recaptchaVerifier
+    );
     alert("OTP sent");
   } catch (e) {
     console.error(e);
     alert(e.message);
   }
 };
-
 window.verifyOtp = async () => {
   if (!confirmationResultGlobal) {
     alert("Click 'Send OTP' first");
@@ -1573,25 +1494,21 @@ window.verifyOtp = async () => {
   }
   try {
     await confirmationResultGlobal.confirm(otpCode.value.trim());
-  } catch (e) {
-    console.error(e);
+  } catch {
     alert("Wrong OTP");
   }
 };
 
-// GOOGLE AUTH
+// google auth
 window.googleLogin = async () => {
   try {
     await signInWithPopup(auth, googleProvider);
   } catch (e) {
-    console.error(e);
     alert(e.message);
   }
 };
-
 window.logout = async () => {
   try {
-    // Cleanup profile listener on logout
     if (profileListenerUnsub) {
       profileListenerUnsub();
       profileListenerUnsub = null;
@@ -1599,64 +1516,52 @@ window.logout = async () => {
     await signOut(auth);
     cart = {};
     updateCartCount();
-    showSection('main');
+    showSection("main");
   } catch (e) {
     console.error(e);
   }
 };
 
-// Update profile
+// settings profile
 window.updateProfile = async () => {
   const user = auth.currentUser;
   if (!user) {
     alert("Please login first");
     return;
   }
-  
   if (!settingsName.value.trim()) {
     alert("Please enter your name");
     return;
   }
-  
   userProfileData.name = settingsName.value.trim();
   userProfileData.address = settingsAddress.value.trim();
-  
   alert("Profile updated successfully!");
   goBackToAllTab();
 };
 
-// FIXED: onAuthStateChanged to properly handle profile image persistence
+// auth listener
 onAuthStateChanged(auth, async (user) => {
-
-  // Cleanup previous listener
   if (profileListenerUnsub) {
     profileListenerUnsub();
     profileListenerUnsub = null;
   }
-
-  // ---------------- LOGOUT ----------------
   if (!user) {
     document.getElementById("headerCartIcon").style.display = "none";
     document.getElementById("loginTitle").style.display = "block";
-
     loginBox.style.display = "block";
     userBox.style.display = "none";
     hamburgerBtn.style.display = "none";
-    cartBar.classList.remove('active');
-
+    cartBar.classList.remove("active");
     menuUserName.textContent = "Guest User";
     menuUserEmail.textContent = "Login to continue";
     showDefaultProfileIcon();
-
     orderHistoryList.innerHTML =
       "<div class='small' style='text-align:center;padding:20px;'>Login to see your orders</div>";
     return;
   }
 
-  // ---------------- LOGIN ----------------
   document.getElementById("headerCartIcon").style.display = "block";
   document.getElementById("loginTitle").style.display = "none";
-
   loginBox.style.display = "none";
   userBox.style.display = "block";
   hamburgerBtn.style.display = "block";
@@ -1667,7 +1572,6 @@ onAuthStateChanged(auth, async (user) => {
     user.email ||
     user.phoneNumber ||
     "Customer";
-
   const userEmail = user.email || user.phoneNumber || "";
 
   userProfileData.name = userName;
@@ -1677,50 +1581,45 @@ onAuthStateChanged(auth, async (user) => {
   menuUserName.textContent = userName;
   menuUserEmail.textContent = userEmail || "Logged in";
 
-  showSection('shop');
+  showSection("shop");
   loadOrderHistory(user.uid);
 
-  // ✅ ENSURE Firestore user doc ALWAYS exists
   const userDocRef = doc(db, "users", user.uid);
-  
-  // First, get the document to check if it exists
-  const userDocSnap = await getDoc(userDocRef);
-  
-  if (userDocSnap.exists()) {
-    // Document exists, merge with existing data
-    const existingData = userDocSnap.data();
+  const snap = await getDoc(userDocRef);
+
+  if (snap.exists()) {
+    const existing = snap.data();
     await setDoc(
       userDocRef,
       {
-        name: user.displayName || existingData.name || "",
-        phone: user.phoneNumber || existingData.phone || "",
-        email: user.email || existingData.email || "",
-        photoURL: user.photoURL || existingData.photoURL || ""
+        name: user.displayName || existing.name || "",
+        phone: user.phoneNumber || existing.phone || "",
+        email: user.email || existing.email || "",
+        photoURL: user.photoURL || existing.photoURL || ""
       },
       { merge: true }
     );
-    
-    // If Firestore has a photoURL, use it
-    if (existingData.photoURL) {
-      showProfilePhoto(existingData.photoURL);
-      userProfileImage = existingData.photoURL;
-      
-      // Sync to Auth if different
-      if (user.photoURL !== existingData.photoURL) {
-        updateProfile(user, { photoURL: existingData.photoURL }).catch(console.error);
+
+    if (existing.photoURL) {
+      showProfilePhoto(existing.photoURL);
+      userProfileImage = existing.photoURL;
+      if (user.photoURL !== existing.photoURL) {
+        updateProfile(user, { photoURL: existing.photoURL }).catch(
+          console.error
+        );
       }
     } else if (user.photoURL) {
-      // Use Auth photoURL if Firestore doesn't have one
       showProfilePhoto(user.photoURL);
       userProfileImage = user.photoURL;
-      
-      // Save to Firestore for future sessions
-      setDoc(userDocRef, { photoURL: user.photoURL }, { merge: true }).catch(console.error);
+      setDoc(
+        userDocRef,
+        { photoURL: user.photoURL },
+        { merge: true }
+      ).catch(console.error);
     } else {
       showDefaultProfileIcon();
     }
   } else {
-    // Document doesn't exist, create new
     await setDoc(
       userDocRef,
       {
@@ -1731,8 +1630,6 @@ onAuthStateChanged(auth, async (user) => {
       },
       { merge: true }
     );
-    
-    // Use Auth photoURL
     if (user.photoURL) {
       showProfilePhoto(user.photoURL);
       userProfileImage = user.photoURL;
@@ -1741,15 +1638,12 @@ onAuthStateChanged(auth, async (user) => {
     }
   }
 
-  // ✅ REAL-TIME profile image sync with proper fallbacks
   profileListenerUnsub = onSnapshot(
     userDocRef,
-    (snap) => {
-      if (snap.exists()) {
-        const d = snap.data();
-        
-        // Check Firestore for photoURL
-        if (d?.photoURL) {
+    (s) => {
+      if (s.exists()) {
+        const d = s.data();
+        if (d.photoURL) {
           showProfilePhoto(d.photoURL);
           userProfileImage = d.photoURL;
         } else {
@@ -1757,102 +1651,94 @@ onAuthStateChanged(auth, async (user) => {
         }
       }
     },
-    (err) => {
-      console.error("Profile listener error:", err);
-      // Fallback to current image or default
-      if (userProfileImage) {
-        showProfilePhoto(userProfileImage);
-      } else if (user.photoURL) {
-        showProfilePhoto(user.photoURL);
-      } else {
-        showDefaultProfileIcon();
-      }
+    () => {
+      if (userProfileImage) showProfilePhoto(userProfileImage);
+      else if (user.photoURL) showProfilePhoto(user.photoURL);
+      else showDefaultProfileIcon();
     }
   );
 });
 
-// ORDER HISTORY - Now with images
+// order history
 function loadOrderHistory(userId) {
   if (!userId) {
-    orderHistoryList.innerHTML = "<div class='small' style='text-align: center; padding: 20px;'>Login to see your orders</div>";
+    orderHistoryList.innerHTML =
+      "<div class='small' style='text-align:center;padding:20px;'>Login to see your orders</div>";
     return;
   }
-
   const q = query(
     collection(db, "orders"),
     where("userId", "==", userId),
     orderBy("createdAt", "desc")
   );
-
-  onSnapshot(q, (snap) => {
-    if (snap.empty) {
-      orderHistoryList.innerHTML = "<div class='small' style='text-align: center; padding: 20px;'>No orders yet</div>";
-      return;
-    }
-
-    orderHistoryList.innerHTML = "";
-    snap.forEach(doc => {
-      const o = doc.data();
-      const orderId = doc.id;
-      const created = o.createdAt?.toDate
-        ? o.createdAt.toDate().toLocaleString()
-        : "Recent";
-      
-      const orderCard = document.createElement('div');
-      orderCard.className = 'card';
-      orderCard.innerHTML = `
-        <div style="margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border);">
-          <strong>Order #${orderId.substring(0, 8)}</strong>
-          <div class="small">${created}</div>
-          <div style="color: var(--primary); font-weight: 600; margin-top: 5px;">${o.status || 'PROCESSING'}</div>
-        </div>
-        <div id="orderItems-${orderId}"></div>
-        <div style="text-align: right; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border);">
-          <strong>Total: ₹${calculateOrderTotal(o.items)}</strong>
-        </div>
-      `;
-      
-      orderHistoryList.appendChild(orderCard);
-      
-      const orderItemsContainer = document.getElementById(`orderItems-${orderId}`);
-      if (o.items) {
-        for (let itemId in o.items) {
-          const item = o.items[itemId];
-          const product = data.find(p => p.name === item.name);
-          const productImg = product ? product.img : 'https://via.placeholder.com/60x60?text=Product';
-          
-          orderItemsContainer.innerHTML += `
-            <div class="order-item">
-              <img src="${productImg}" alt="${item.name}" class="order-item-image">
-              <div class="order-item-info">
-                <div class="order-item-name">${item.name}</div>
-                <div class="order-item-details">Quantity: ${item.qty} × ₹${item.price} = ₹${item.qty * item.price}</div>
-                <div class="order-item-date">Ordered on: ${created}</div>
-              </div>
-            </div>
-          `;
-        }
+  onSnapshot(
+    q,
+    (snap) => {
+      if (snap.empty) {
+        orderHistoryList.innerHTML =
+          "<div class='small' style='text-align:center;padding:20px;'>No orders yet</div>";
+        return;
       }
-    });
-  }, (err) => {
-    console.error(err);
-    orderHistoryList.innerHTML = "<div class='small' style='text-align: center; padding: 20px; color: #f44336;'>Error loading orders</div>";
-  });
-}
-
-// Calculate order total
-function calculateOrderTotal(items) {
-  let total = 0;
-  if (items) {
-    for (let itemId in items) {
-      const item = items[itemId];
-      total += item.qty * item.price;
+      orderHistoryList.innerHTML = "";
+      snap.forEach((docSnap) => {
+        const o = docSnap.data();
+        const orderId = docSnap.id;
+        const created = o.createdAt?.toDate
+          ? o.createdAt.toDate().toLocaleString()
+          : "Recent";
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+            <strong>Order #${orderId.substring(0, 8)}</strong>
+            <div class="small">${created}</div>
+            <div style="color:var(--primary);font-weight:600;margin-top:5px;">${
+              o.status || "PROCESSING"
+            }</div>
+          </div>
+          <div id="orderItems-${orderId}"></div>
+          <div style="text-align:right;margin-top:15px;padding-top:15px;border-top:1px solid var(--border);">
+            <strong>Total: ₹${calculateOrderTotal(o.items)}</strong>
+          </div>`;
+        orderHistoryList.appendChild(card);
+        const container = document.getElementById(`orderItems-${orderId}`);
+        if (o.items) {
+          for (let itemId in o.items) {
+            const item = o.items[itemId];
+            const product = data.find((p) => p.name === item.name);
+            const img = product
+              ? product.img
+              : "https://via.placeholder.com/60x60?text=Product";
+            container.innerHTML += `
+              <div class="order-item">
+                <img src="${img}" alt="${item.name}" class="order-item-image">
+                <div class="order-item-info">
+                  <div class="order-item-name">${item.name}</div>
+                  <div class="order-item-details">Quantity: ${item.qty} × ₹${item.price} = ₹${
+              item.qty * item.price
+            }</div>
+                  <div class="order-item-date">Ordered on: ${created}</div>
+                </div>
+              </div>`;
+          }
+        }
+      });
+    },
+    () => {
+      orderHistoryList.innerHTML =
+        "<div class='small' style='text-align:center;padding:20px;color:#f44336;'>Error loading orders</div>";
     }
+  );
+}
+function calculateOrderTotal(items) {
+  let t = 0;
+  if (items) {
+    for (let id in items) t += items[id].qty * items[id].price;
   }
-  return total;
+  return t;
 }
 
-// geolocation
+// geolocation + place order
 window.getLocation = () => {
   if (!navigator.geolocation) {
     locStatus.textContent = "Geolocation not supported in this browser.";
@@ -1860,59 +1746,63 @@ window.getLocation = () => {
   }
   locStatus.textContent = "Getting location...";
   navigator.geolocation.getCurrentPosition(
-    (position) => {
-      currentLat = position.coords.latitude;
-      currentLng = position.coords.longitude;
-      locStatus.textContent = `Location captured ✅ (${currentLat.toFixed(5)}, ${currentLng.toFixed(5)})`;
+    (pos) => {
+      currentLat = pos.coords.latitude;
+      currentLng = pos.coords.longitude;
+      locStatus.textContent = `Location captured ✅ (${currentLat.toFixed(
+        5
+      )}, ${currentLng.toFixed(5)})`;
     },
-    (error) => {
-      locStatus.textContent = "Unable to get location. Please allow location permission.";
-      console.warn(error);
+    () => {
+      locStatus.textContent =
+        "Unable to get location. Please allow location permission.";
     },
     { enableHighAccuracy: true, timeout: 10000 }
   );
 };
-
 window.placeOrder = async () => {
-  if(!nameEl.value || !mobileEl.value || !addressEl.value || !Object.keys(cart).length){
+  if (
+    !nameEl.value ||
+    !mobileEl.value ||
+    !addressEl.value ||
+    !Object.keys(cart).length
+  ) {
     alert("Fill all details & add at least one item");
     return;
   }
-
   const user = auth.currentUser;
   if (!user) {
     alert("Please login first");
     return;
   }
-
   userProfileData.name = nameEl.value.trim();
   userProfileData.phone = mobileEl.value.trim();
   userProfileData.address = addressEl.value.trim();
 
-  await addDoc(collection(db,"orders"),{
+  await addDoc(collection(db, "orders"), {
     name: nameEl.value,
     mobile: mobileEl.value,
     address: addressEl.value,
     items: cart,
-    status:"NEW",
+    status: "NEW",
     createdAt: serverTimestamp(),
-    location: (currentLat !== null && currentLng !== null) ? {
-      lat: currentLat,
-      lng: currentLng
-    } : null,
+    location:
+      currentLat !== null && currentLng !== null
+        ? { lat: currentLat, lng: currentLng }
+        : null,
     userId: user.uid,
     userPhone: user.phoneNumber || null,
     userEmail: user.email || null
   });
 
-  alert("✅ Order placed successfully!");
+  alert("Order placed successfully!");
   cart = {};
   updateCartCount();
   renderCartPage();
-  nameEl.value = '';
-  mobileEl.value = '';
-  addressEl.value = '';
-  locStatus.textContent = '';
+  nameEl.value = "";
+  mobileEl.value = "";
+  addressEl.value = "";
+  locStatus.textContent = "";
   currentLat = null;
   currentLng = null;
   goBackToAllTab();
@@ -1922,5 +1812,6 @@ if (search) search.oninput = render;
 </script>
 
 </body>
+
 
 </html>
