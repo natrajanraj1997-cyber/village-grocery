@@ -1195,9 +1195,9 @@ document.getElementById('imageUpload').addEventListener('change', async function
 
   if (!file || !user) return;
 
-  // Local preview
-  const objectUrl = URL.createObjectURL(file);
-  showProfilePhoto(objectUrl);
+  // Show loading state
+  profileImage.innerHTML = '<div class="loading"></div>';
+  profileImage.style.backgroundImage = '';
 
   try {
     const imageRef = ref(storage, `profileImages/${user.uid}/profile.jpg`);
@@ -1210,7 +1210,7 @@ document.getElementById('imageUpload').addEventListener('change', async function
       updateProfile(user, { photoURL })
     ]);
 
-    URL.revokeObjectURL(objectUrl);
+    // Show the uploaded photo
     showProfilePhoto(photoURL);
     userProfileImage = photoURL;
 
@@ -1218,7 +1218,14 @@ document.getElementById('imageUpload').addEventListener('change', async function
   } catch (err) {
     console.error("Upload failed:", err);
     alert("Image upload failed. Please try again.");
-    showDefaultProfileIcon();
+    // Restore previous image or default
+    if (userProfileImage) {
+      showProfilePhoto(userProfileImage);
+    } else if (user.photoURL) {
+      showProfilePhoto(user.photoURL);
+    } else {
+      showDefaultProfileIcon();
+    }
   }
 });
 
@@ -1527,7 +1534,7 @@ window.updateProfile = async () => {
   goBackToAllTab();
 };
 
-// FIXED auth state: Real-time profile image sync across devices
+// FIXED: onAuthStateChanged to properly handle profile image persistence
 onAuthStateChanged(auth, async (user) => {
 
   // Cleanup previous listener
@@ -1584,40 +1591,88 @@ onAuthStateChanged(auth, async (user) => {
 
   // ✅ ENSURE Firestore user doc ALWAYS exists
   const userDocRef = doc(db, "users", user.uid);
-  await setDoc(
-    userDocRef,
-    {
-      name: user.displayName || "",
-      phone: user.phoneNumber || "",
-      email: user.email || "",
-      photoURL: user.photoURL || ""
-    },
-    { merge: true }
-  );
+  
+  // First, get the document to check if it exists
+  const userDocSnap = await getDoc(userDocRef);
+  
+  if (userDocSnap.exists()) {
+    // Document exists, merge with existing data
+    const existingData = userDocSnap.data();
+    await setDoc(
+      userDocRef,
+      {
+        name: user.displayName || existingData.name || "",
+        phone: user.phoneNumber || existingData.phone || "",
+        email: user.email || existingData.email || "",
+        photoURL: user.photoURL || existingData.photoURL || ""
+      },
+      { merge: true }
+    );
+  } else {
+    // Document doesn't exist, create new
+    await setDoc(
+      userDocRef,
+      {
+        name: user.displayName || "",
+        phone: user.phoneNumber || "",
+        email: user.email || "",
+        photoURL: user.photoURL || ""
+      },
+      { merge: true }
+    );
+  }
 
-  // ✅ REAL-TIME profile image sync (cross-device)
+  // ✅ REAL-TIME profile image sync with proper fallbacks
   profileListenerUnsub = onSnapshot(
     userDocRef,
     (snap) => {
-      const d = snap.data();
-
-      if (d?.photoURL) {
-        showProfilePhoto(d.photoURL);
-        userProfileImage = d.photoURL;
-      } else if (user.photoURL) {
+      if (snap.exists()) {
+        const d = snap.data();
+        
+        // Priority 1: Check Firestore for photoURL
+        if (d?.photoURL) {
+          showProfilePhoto(d.photoURL);
+          userProfileImage = d.photoURL;
+          
+          // Also update Auth if it's different
+          if (user.photoURL !== d.photoURL) {
+            updateProfile(user, { photoURL: d.photoURL }).catch(console.error);
+          }
+        } 
+        // Priority 2: Check Auth for photoURL
+        else if (user.photoURL) {
+          showProfilePhoto(user.photoURL);
+          userProfileImage = user.photoURL;
+          
+          // Save to Firestore for future sessions
+          setDoc(userDocRef, { photoURL: user.photoURL }, { merge: true }).catch(console.error);
+        } 
+        // Priority 3: Default icon
+        else {
+          showDefaultProfileIcon();
+        }
+      } else {
+        // No document yet, check Auth
+        if (user.photoURL) {
+          showProfilePhoto(user.photoURL);
+          userProfileImage = user.photoURL;
+        } else {
+          showDefaultProfileIcon();
+        }
+      }
+    },
+    (err) => {
+      console.error("Profile listener error:", err);
+      // Fallback to Auth photoURL
+      if (user.photoURL) {
         showProfilePhoto(user.photoURL);
         userProfileImage = user.photoURL;
       } else {
         showDefaultProfileIcon();
       }
-    },
-    (err) => {
-      console.error("Profile listener error:", err);
-      showDefaultProfileIcon();
     }
   );
 });
-
 
 // ORDER HISTORY - Now with images
 function loadOrderHistory(userId) {
