@@ -1528,72 +1528,96 @@ window.updateProfile = async () => {
 };
 
 // FIXED auth state: Real-time profile image sync across devices
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
+
   // Cleanup previous listener
   if (profileListenerUnsub) {
     profileListenerUnsub();
     profileListenerUnsub = null;
   }
 
-  if (user) {
-    document.getElementById("headerCartIcon").style.display = "block";
-    document.getElementById("loginTitle").style.display = "none";
-
-    loginBox.style.display = "none";
-    userBox.style.display = "block";
-
-    const userName = loginName.value.trim() || user.displayName || user.email || user.phoneNumber || "Customer";
-    const userEmail = user.email || user.phoneNumber || "";
-    
-    userProfileData.name = userName;
-    userProfileData.phone = user.phoneNumber || loginMobile.value || "";
-    userProfileData.address = "";
-    
-    menuUserName.textContent = userName;
-    menuUserEmail.textContent = userEmail || "Logged in";
-    
-    hamburgerBtn.style.display = "block";
-    showSection('shop');
-    loadOrderHistory(user.uid);
-
-    // REAL-TIME profile image sync from Firestore (works across devices + refresh)
-    const userDocRef = doc(db, "users", user.uid);
-    profileListenerUnsub = onSnapshot(userDocRef, (snap) => {
-      const data = snap.data();
-      if (data?.photoURL) {
-        showProfilePhoto(data.photoURL);
-        userProfileImage = data.photoURL;
-      } else {
-        // Fallback to Auth photoURL or default
-        if (user.photoURL) {
-          showProfilePhoto(user.photoURL);
-          userProfileImage = user.photoURL;
-        } else {
-          showDefaultProfileIcon();
-        }
-      }
-    }, (err) => {
-      console.error("Profile listener error:", err);
-      showDefaultProfileIcon();
-    });
-
-  } else {
+  // ---------------- LOGOUT ----------------
+  if (!user) {
     document.getElementById("headerCartIcon").style.display = "none";
     document.getElementById("loginTitle").style.display = "block";
 
     loginBox.style.display = "block";
     userBox.style.display = "none";
-    
     hamburgerBtn.style.display = "none";
     cartBar.classList.remove('active');
-    
+
     menuUserName.textContent = "Guest User";
     menuUserEmail.textContent = "Login to continue";
     showDefaultProfileIcon();
-    
-    orderHistoryList.innerHTML = "<div class='small' style='text-align: center; padding: 20px;'>Login to see your orders</div>";
+
+    orderHistoryList.innerHTML =
+      "<div class='small' style='text-align:center;padding:20px;'>Login to see your orders</div>";
+    return;
   }
+
+  // ---------------- LOGIN ----------------
+  document.getElementById("headerCartIcon").style.display = "block";
+  document.getElementById("loginTitle").style.display = "none";
+
+  loginBox.style.display = "none";
+  userBox.style.display = "block";
+  hamburgerBtn.style.display = "block";
+
+  const userName =
+    loginName.value.trim() ||
+    user.displayName ||
+    user.email ||
+    user.phoneNumber ||
+    "Customer";
+
+  const userEmail = user.email || user.phoneNumber || "";
+
+  userProfileData.name = userName;
+  userProfileData.phone = user.phoneNumber || loginMobile.value || "";
+  userProfileData.address = "";
+
+  menuUserName.textContent = userName;
+  menuUserEmail.textContent = userEmail || "Logged in";
+
+  showSection('shop');
+  loadOrderHistory(user.uid);
+
+  // ✅ ENSURE Firestore user doc ALWAYS exists
+  const userDocRef = doc(db, "users", user.uid);
+  await setDoc(
+    userDocRef,
+    {
+      name: user.displayName || "",
+      phone: user.phoneNumber || "",
+      email: user.email || "",
+      photoURL: user.photoURL || ""
+    },
+    { merge: true }
+  );
+
+  // ✅ REAL-TIME profile image sync (cross-device)
+  profileListenerUnsub = onSnapshot(
+    userDocRef,
+    (snap) => {
+      const d = snap.data();
+
+      if (d?.photoURL) {
+        showProfilePhoto(d.photoURL);
+        userProfileImage = d.photoURL;
+      } else if (user.photoURL) {
+        showProfilePhoto(user.photoURL);
+        userProfileImage = user.photoURL;
+      } else {
+        showDefaultProfileIcon();
+      }
+    },
+    (err) => {
+      console.error("Profile listener error:", err);
+      showDefaultProfileIcon();
+    }
+  );
 });
+
 
 // ORDER HISTORY - Now with images
 function loadOrderHistory(userId) {
