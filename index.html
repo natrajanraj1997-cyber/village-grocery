@@ -1100,7 +1100,7 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-	const storage = getStorage(app);
+const storage = getStorage(app);
 
 const db = getFirestore(app);
 const auth = getAuth(app);
@@ -1161,7 +1161,7 @@ let currentLng = null;
 let recaptchaVerifier;
 let confirmationResultGlobal = null;
 
-// User profile image
+// User profile image (optional in-memory cache, not required for persistence)
 let userProfileImage = null;
 
 // init invisible reCAPTCHA for phone auth
@@ -1172,6 +1172,20 @@ function initRecaptcha() {
 }
 initRecaptcha();
 
+// Unified helper to show default icon
+function showDefaultProfileIcon() {
+  profileImage.innerHTML = '👤';
+  profileImage.style.backgroundImage = '';
+}
+
+// Unified helper to show a photoURL
+function showProfilePhoto(url) {
+  profileImage.innerHTML = '';
+  profileImage.style.backgroundImage = `url(${url})`;
+  profileImage.style.backgroundSize = 'cover';
+  profileImage.style.backgroundPosition = 'center';
+}
+
 // Image upload
 document.getElementById('imageUpload').addEventListener('change', async function (e) {
   const file = e.target.files[0];
@@ -1179,49 +1193,32 @@ document.getElementById('imageUpload').addEventListener('change', async function
 
   if (!file || !user) return;
 
-  // 1. CREATE LOCAL PREVIEW FIRST
-  // This creates a temporary URL for the selected file to display it immediately[citation:2]
+  // Local preview
   const objectUrl = URL.createObjectURL(file);
-  
-  // Update the UI with the local preview
-  profileImage.innerHTML = '';
-  profileImage.style.backgroundImage = `url(${objectUrl})`;
-  profileImage.style.backgroundSize = 'cover';
-  profileImage.style.backgroundPosition = 'center';
+  showProfilePhoto(objectUrl);
 
   try {
     const imageRef = ref(storage, `profileImages/${user.uid}/profile.jpg`);
-    
-    // Upload to Firebase Storage
     await uploadBytes(imageRef, file);
-    
-    // Get public URL from Firebase
     const photoURL = await getDownloadURL(imageRef);
-    
-    // Save URL to Firestore
+
     await setDoc(
       doc(db, "users", user.uid),
       { photoURL },
       { merge: true }
     );
-    
-    // Important: Revoke the local object URL to free up memory[citation:2]
-    // The Firebase URL (`photoURL`) is now the permanent source
+
     URL.revokeObjectURL(objectUrl);
-    
-    // Update UI with the permanent Firebase URL
-    profileImage.style.backgroundImage = `url(${photoURL})`;
-    
+    showProfilePhoto(photoURL);
+    userProfileImage = photoURL;
+
     alert("Profile image updated successfully!");
   } catch (err) {
     console.error("Upload failed:", err);
     alert("Image upload failed. Please try again.");
-    // If upload fails, revert to default icon
-    profileImage.style.backgroundImage = '';
-    profileImage.innerHTML = '👤';
+    showDefaultProfileIcon();
   }
 });
-
 
 // Menu functions
 window.toggleMenu = function() {
@@ -1240,62 +1237,51 @@ window.toggleSubmenu = function(submenuId) {
 };
 
 window.showSection = function(section) {
-	closeMenu();
-  // Hide all sections
+  closeMenu();
   document.querySelectorAll('.content-section').forEach(el => {
     el.classList.add('hidden');
   });
-  
-  // Show/hide cart bar
+
   if (section === 'cart') {
     cartBar.classList.add('active');
   } else {
     cartBar.classList.remove('active');
   }
-  
-  // Show selected section
+
   currentSection = section;
   if (section === 'shop') {
     shopSection.classList.remove('hidden');
-    // Show/hide back button based on current category
     updateShopBackButtonVisibility();
     render();
   } else if (section === 'cart') {
     cartSection.classList.remove('hidden');
     renderCartPage();
-    // Auto-fill delivery details from user profile
     autoFillDeliveryDetails();
   } else if (section === 'orderHistory') {
     orderHistorySection.classList.remove('hidden');
   } else if (section === 'settings') {
     settingsSection.classList.remove('hidden');
-    // Load current user data
     const user = auth.currentUser;
     if (user) {
       settingsName.value = userProfileData.name || user.displayName || loginName.value || '';
       settingsAddress.value = userProfileData.address || '';
     }
   } else {
-    // 'main' section - show login card
     currentSection = 'main';
   }
 };
 
 // New function to go back to All tab
 window.goBackToAllTab = function() {
-  // Set category to All
   setCat('All');
-  // Show shop section (which will default to All tab)
   showSection('shop');
 };
 
 // New function to handle back from shop
 window.goBackFromShop = function() {
   if (cat === 'All') {
-    // If already in All tab, go to main login view
     showSection('main');
   } else {
-    // If in another category, go to All tab
     setCat('All');
   }
 };
@@ -1315,13 +1301,8 @@ function updateShopBackButtonVisibility() {
 function autoFillDeliveryDetails() {
   const user = auth.currentUser;
   if (user) {
-    // Fill name from user profile or login
     nameEl.value = userProfileData.name || user.displayName || loginName.value || '';
-    
-    // Fill mobile from user profile or phone number
     mobileEl.value = userProfileData.phone || user.phoneNumber || loginMobile.value || '';
-    
-    // Fill address from user profile
     addressEl.value = userProfileData.address || '';
   }
 }
@@ -1426,7 +1407,6 @@ window.setCat = c => {
   document.querySelectorAll('.cats button')
     .forEach(b => b.classList.toggle('active', b.textContent === c));
   render();
-  // Update back button visibility after category change
   updateShopBackButtonVisibility();
 };
 
@@ -1533,7 +1513,6 @@ window.updateProfile = async () => {
     return;
   }
   
-  // Update user profile data
   userProfileData.name = settingsName.value.trim();
   userProfileData.address = settingsAddress.value.trim();
   
@@ -1544,9 +1523,8 @@ window.updateProfile = async () => {
 // auth state: show/hide shop and welcome text
 onAuthStateChanged(auth, (user) => {
   if (user) {
-	  document.getElementById("headerCartIcon").style.display = "block";
-	  document.getElementById("loginTitle").style.display = "none";
-
+    document.getElementById("headerCartIcon").style.display = "block";
+    document.getElementById("loginTitle").style.display = "none";
 
     loginBox.style.display = "none";
     userBox.style.display = "block";
@@ -1554,52 +1532,48 @@ onAuthStateChanged(auth, (user) => {
     const userName = loginName.value.trim() || user.displayName || user.email || user.phoneNumber || "Customer";
     const userEmail = user.email || user.phoneNumber || "";
     
-    // Store user profile data
     userProfileData.name = userName;
     userProfileData.phone = user.phoneNumber || loginMobile.value || "";
     userProfileData.address = "";
     
-    // Update menu user info
     menuUserName.textContent = userName;
     menuUserEmail.textContent = userEmail || "Logged in";
     
-    // Show hamburger menu
     hamburgerBtn.style.display = "block";
-    
-    // Show All Categories by default after login
     showSection('shop');
-    
-    // Load order history
     loadOrderHistory(user.uid);
-    
-	  // Load profile image
-(async () => {
-  const snap = await getDoc(doc(db, "users", user.uid));
-  if (snap.exists() && snap.data().photoURL) {
-    profileImage.innerHTML = '';
-    profileImage.style.backgroundImage = `url(${snap.data().photoURL})`;
-    profileImage.style.backgroundSize = 'cover';
-    profileImage.style.backgroundPosition = 'center';
-  } else {
-    profileImage.innerHTML = '👤';
-    profileImage.style.backgroundImage = '';
-  }
-})();
+
+    // Load profile image (persistent after refresh)
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        const data = snap.exists() ? snap.data() : {};
+        const photoURL = data.photoURL || userProfileImage;
+        if (photoURL) {
+          showProfilePhoto(photoURL);
+          userProfileImage = photoURL;
+        } else {
+          showDefaultProfileIcon();
+        }
+      } catch (e) {
+        console.error(e);
+        showDefaultProfileIcon();
+      }
+    })();
 
   } else {
-	  document.getElementById("headerCartIcon").style.display = "none";
-	  document.getElementById("loginTitle").style.display = "block";
-
+    document.getElementById("headerCartIcon").style.display = "none";
+    document.getElementById("loginTitle").style.display = "block";
 
     loginBox.style.display = "block";
     userBox.style.display = "none";
     
-    // Hide hamburger menu and cart bar
     hamburgerBtn.style.display = "none";
     cartBar.classList.remove('active');
     
     menuUserName.textContent = "Guest User";
     menuUserEmail.textContent = "Login to continue";
+    showDefaultProfileIcon();
     
     orderHistoryList.innerHTML = "<div class='small' style='text-align: center; padding: 20px;'>Login to see your orders</div>";
   }
@@ -1632,7 +1606,6 @@ function loadOrderHistory(userId) {
         ? o.createdAt.toDate().toLocaleString()
         : "Recent";
       
-      // Create order card
       const orderCard = document.createElement('div');
       orderCard.className = 'card';
       orderCard.innerHTML = `
@@ -1649,12 +1622,10 @@ function loadOrderHistory(userId) {
       
       orderHistoryList.appendChild(orderCard);
       
-      // Add order items with images
       const orderItemsContainer = document.getElementById(`orderItems-${orderId}`);
       if (o.items) {
         for (let itemId in o.items) {
           const item = o.items[itemId];
-          // Try to find product image from current products data
           const product = data.find(p => p.name === item.name);
           const productImg = product ? product.img : 'https://via.placeholder.com/60x60?text=Product';
           
@@ -1722,9 +1693,7 @@ window.placeOrder = async () => {
     return;
   }
 
-  // Update user profile with delivery details
   userProfileData.name = nameEl.value.trim();
-
   userProfileData.phone = mobileEl.value.trim();
   userProfileData.address = addressEl.value.trim();
 
@@ -1759,6 +1728,7 @@ window.placeOrder = async () => {
 
 if (search) search.oninput = render;
 </script>
+
 
 </body>
 </html>
