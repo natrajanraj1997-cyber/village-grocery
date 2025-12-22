@@ -934,7 +934,7 @@ header {
 
   <!-- LOGIN CARD (always visible) -->
   <div class="card cart">
-    <h4>👤 Login to continue</h4>
+    <h4 id="loginTitle">👤 Login to continue</h4>
 
     <!-- BEFORE LOGIN -->
     <div id="loginBox">
@@ -1492,6 +1492,8 @@ window.updateProfile = async () => {
 onAuthStateChanged(auth, (user) => {
   if (user) {
 	  document.getElementById("headerCartIcon").style.display = "block";
+	  document.getElementById("loginTitle").style.display = "none";
+
 
     loginBox.style.display = "none";
     userBox.style.display = "block";
@@ -1519,6 +1521,8 @@ onAuthStateChanged(auth, (user) => {
     
   } else {
 	  document.getElementById("headerCartIcon").style.display = "none";
+	  document.getElementById("loginTitle").style.display = "block";
+
 
     loginBox.style.display = "block";
     userBox.style.display = "none";
