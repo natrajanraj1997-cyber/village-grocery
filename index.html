@@ -1087,7 +1087,8 @@ import {
   signOut,
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -1163,6 +1164,7 @@ let confirmationResultGlobal = null;
 
 // User profile image (optional in-memory cache, not required for persistence)
 let userProfileImage = null;
+let profileListenerUnsub = null; // For cleaning up Firestore listener
 
 // init invisible reCAPTCHA for phone auth
 function initRecaptcha() {
@@ -1186,7 +1188,7 @@ function showProfilePhoto(url) {
   profileImage.style.backgroundPosition = 'center';
 }
 
-// Image upload
+// FIXED Image upload - Updates BOTH Firestore AND Auth
 document.getElementById('imageUpload').addEventListener('change', async function (e) {
   const file = e.target.files[0];
   const user = auth.currentUser;
@@ -1202,11 +1204,11 @@ document.getElementById('imageUpload').addEventListener('change', async function
     await uploadBytes(imageRef, file);
     const photoURL = await getDownloadURL(imageRef);
 
-    await setDoc(
-      doc(db, "users", user.uid),
-      { photoURL },
-      { merge: true }
-    );
+    // UPDATE BOTH Firestore AND Firebase Auth for full persistence
+    await Promise.all([
+      setDoc(doc(db, "users", user.uid), { photoURL }, { merge: true }),
+      updateProfile(user, { photoURL })
+    ]);
 
     URL.revokeObjectURL(objectUrl);
     showProfilePhoto(photoURL);
@@ -1491,6 +1493,11 @@ window.googleLogin = async () => {
 
 window.logout = async () => {
   try {
+    // Cleanup profile listener on logout
+    if (profileListenerUnsub) {
+      profileListenerUnsub();
+      profileListenerUnsub = null;
+    }
     await signOut(auth);
     cart = {};
     updateCartCount();
@@ -1520,8 +1527,14 @@ window.updateProfile = async () => {
   goBackToAllTab();
 };
 
-// auth state: show/hide shop and welcome text
+// FIXED auth state: Real-time profile image sync across devices
 onAuthStateChanged(auth, (user) => {
+  // Cleanup previous listener
+  if (profileListenerUnsub) {
+    profileListenerUnsub();
+    profileListenerUnsub = null;
+  }
+
   if (user) {
     document.getElementById("headerCartIcon").style.display = "block";
     document.getElementById("loginTitle").style.display = "none";
@@ -1543,23 +1556,26 @@ onAuthStateChanged(auth, (user) => {
     showSection('shop');
     loadOrderHistory(user.uid);
 
-    // Load profile image (persistent after refresh)
-    (async () => {
-      try {
-        const snap = await getDoc(doc(db, "users", user.uid));
-        const data = snap.exists() ? snap.data() : {};
-        const photoURL = data.photoURL || userProfileImage;
-        if (photoURL) {
-          showProfilePhoto(photoURL);
-          userProfileImage = photoURL;
+    // REAL-TIME profile image sync from Firestore (works across devices + refresh)
+    const userDocRef = doc(db, "users", user.uid);
+    profileListenerUnsub = onSnapshot(userDocRef, (snap) => {
+      const data = snap.data();
+      if (data?.photoURL) {
+        showProfilePhoto(data.photoURL);
+        userProfileImage = data.photoURL;
+      } else {
+        // Fallback to Auth photoURL or default
+        if (user.photoURL) {
+          showProfilePhoto(user.photoURL);
+          userProfileImage = user.photoURL;
         } else {
           showDefaultProfileIcon();
         }
-      } catch (e) {
-        console.error(e);
-        showDefaultProfileIcon();
       }
-    })();
+    }, (err) => {
+      console.error("Profile listener error:", err);
+      showDefaultProfileIcon();
+    });
 
   } else {
     document.getElementById("headerCartIcon").style.display = "none";
@@ -1728,6 +1744,7 @@ window.placeOrder = async () => {
 
 if (search) search.oninput = render;
 </script>
+
 
 
 </body>
