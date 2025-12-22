@@ -1079,17 +1079,17 @@ let confirmationResultGlobal = null;
 let userProfileImage = null;
 let profileListenerUnsub = null;
 
-// canvas.toBlob polyfill for Safari etc.[web:24]
+// canvas.toBlob polyfill for Safari etc.
 if (!HTMLCanvasElement.prototype.toBlob) {
-  HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
-    const dataURL = this.toDataURL(type, quality);
-    const byteString = atob(dataURL.split(",")[1]);
-    const mimeString = dataURL.split(",")[0].split(":")[1].split(";")[0];
-    const ab = new ArrayBuffer(byteString.length);
-    const ia = new Uint8Array(ab);
-    for (let i = 0; i < byteString.length; i++) ia[i] = byteString.charCodeAt(i);
-    callback(new Blob([ab], { type: mimeString }));
-  };
+  Object.defineProperty(HTMLCanvasElement.prototype, 'toBlob', {
+    value: function (callback, type, quality) {
+      const binStr = atob(this.toDataURL(type, quality).split(',')[1]);
+      const len = binStr.length;
+      const arr = new Uint8Array(len);
+      for (let i = 0; i < len; i++) arr[i] = binStr.charCodeAt(i);
+      callback(new Blob([arr], { type: type || 'image/png' }));
+    }
+  });
 }
 
 // center square crop
@@ -1108,11 +1108,6 @@ function getCroppedCanvasFromImage(img, size = 300) {
   ctx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
   return canvas;
 }
-
-function initRecaptcha() {
-  recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
-}
-initRecaptcha();
 
 function showDefaultProfileIcon() {
   profileImage.innerHTML = "👤";
@@ -1135,7 +1130,7 @@ function showProfilePhoto(url) {
   img.src = url;
 }
 
-// upload + crop
+// upload + crop - FIXED VERSION
 document.getElementById("imageUpload").addEventListener("change", async (e) => {
   const file = e.target.files[0];
   const user = auth.currentUser;
@@ -1165,22 +1160,40 @@ document.getElementById("imageUpload").addEventListener("change", async (e) => {
   const cropperImg = document.getElementById("cropperImg");
   cropperImg.src = URL.createObjectURL(file);
 
+  // Wait for image to load
+  await new Promise(resolve => {
+    if (cropperImg.complete) resolve();
+    else cropperImg.onload = resolve;
+  });
+
   document.getElementById("cropSaveBtn").onclick = async () => {
     try {
+      profileImage.innerHTML = "📤";
+      
+      // Create cropped canvas
       const canvas = getCroppedCanvasFromImage(cropperImg, 300);
-      const blob = await new Promise((resolve, reject) => {
-        canvas.toBlob((b) => {
-          if (!b) reject(new Error("Failed to create blob"));
-          else resolve(b);
-        }, "image/jpeg", 0.9);
+      
+      // Create blob from canvas - FIXED
+      const blob = await new Promise((resolve) => {
+        canvas.toBlob(
+          (b) => resolve(b),
+          'image/jpeg',
+          0.9
+        );
       });
 
-      profileImage.innerHTML = "📤";
+      if (!blob) {
+        throw new Error("Failed to create blob from canvas");
+      }
 
+      // Upload to Firebase Storage
       const imageRef = ref(storage, `profileImages/${user.uid}/profile.jpg`);
-      await uploadBytes(imageRef, blob);               // upload to Storage[web:9]
-      const photoURL = await getDownloadURL(imageRef); // get URL[web:9]
+      await uploadBytes(imageRef, blob);
+      
+      // Get download URL
+      const photoURL = await getDownloadURL(imageRef);
 
+      // Update Firestore and user profile
       await Promise.all([
         setDoc(
           doc(db, "users", user.uid),
@@ -1195,15 +1208,17 @@ document.getElementById("imageUpload").addEventListener("change", async (e) => {
         updateProfile(user, { photoURL })
       ]);
 
+      // Update UI
       showProfilePhoto(photoURL);
       userProfileImage = photoURL;
-      alert("Profile image updated!");
+      alert("Profile image updated successfully!");
       document.body.removeChild(modal);
       e.target.value = "";
     } catch (err) {
-      console.error(err);
-      alert("Crop & upload failed. Try again.");
+      console.error("Upload error:", err);
+      alert("Failed to upload image. Please try again.");
       showDefaultProfileIcon();
+      document.body.removeChild(modal);
     }
   };
 
@@ -1653,6 +1668,12 @@ window.placeOrder = async () => {
 };
 
 if (search) search.oninput = render;
+
+// Initialize recaptcha
+function initRecaptcha() {
+  recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
+}
+initRecaptcha();
 </script>
 
 </body>
