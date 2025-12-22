@@ -1491,6 +1491,8 @@ window.updateProfile = async () => {
 // auth state: show/hide shop and welcome text
 onAuthStateChanged(auth, (user) => {
   if (user) {
+	  document.getElementById("headerCartIcon").style.display = "block";
+
     loginBox.style.display = "none";
     userBox.style.display = "block";
 
@@ -1516,6 +1518,8 @@ onAuthStateChanged(auth, (user) => {
     loadOrderHistory(user.uid);
     
   } else {
+	  document.getElementById("headerCartIcon").style.display = "none";
+
     loginBox.style.display = "block";
     userBox.style.display = "none";
     
