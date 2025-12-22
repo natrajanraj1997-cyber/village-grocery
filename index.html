@@ -1060,9 +1060,26 @@ header {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { 
-  getFirestore, collection, addDoc, serverTimestamp, onSnapshot, query, where, orderBy,
-  updateDoc, doc
+  getFirestore,
+  collection,
+  addDoc,
+  serverTimestamp,
+  onSnapshot,
+  query,
+  where,
+  orderBy,
+  updateDoc,
+  doc,
+  setDoc,
+  getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
 import {
   getAuth,
   RecaptchaVerifier,
@@ -1083,6 +1100,8 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
+	const storage = getStorage(app);
+
 const db = getFirestore(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
@@ -1154,21 +1173,41 @@ function initRecaptcha() {
 initRecaptcha();
 
 // Image upload
-document.getElementById('imageUpload').addEventListener('change', function(e) {
+document.getElementById('imageUpload').addEventListener('change', async function (e) {
   const file = e.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function(event) {
-      userProfileImage = event.target.result;
-      profileImage.innerHTML = '';
-      profileImage.style.backgroundImage = `url(${userProfileImage})`;
-      profileImage.style.backgroundSize = 'cover';
-      profileImage.style.backgroundPosition = 'center';
-      alert('Profile image updated!');
-    };
-    reader.readAsDataURL(file);
+  const user = auth.currentUser;
+
+  if (!file || !user) return;
+
+  try {
+    const imageRef = ref(storage, `profileImages/${user.uid}/profile.jpg`);
+
+    // Upload to Firebase Storage
+    await uploadBytes(imageRef, file);
+
+    // Get public URL
+    const photoURL = await getDownloadURL(imageRef);
+
+    // Save URL to Firestore
+    await setDoc(
+      doc(db, "users", user.uid),
+      { photoURL },
+      { merge: true }
+    );
+
+    // Update UI
+    profileImage.innerHTML = '';
+    profileImage.style.backgroundImage = `url(${photoURL})`;
+    profileImage.style.backgroundSize = 'cover';
+    profileImage.style.backgroundPosition = 'center';
+
+    alert("Profile image updated!");
+  } catch (err) {
+    console.error(err);
+    alert("Image upload failed");
   }
 });
+
 
 // Menu functions
 window.toggleMenu = function() {
@@ -1519,6 +1558,20 @@ onAuthStateChanged(auth, (user) => {
     // Load order history
     loadOrderHistory(user.uid);
     
+	  // Load profile image
+(async () => {
+  const snap = await getDoc(doc(db, "users", user.uid));
+  if (snap.exists() && snap.data().photoURL) {
+    profileImage.innerHTML = '';
+    profileImage.style.backgroundImage = `url(${snap.data().photoURL})`;
+    profileImage.style.backgroundSize = 'cover';
+    profileImage.style.backgroundPosition = 'center';
+  } else {
+    profileImage.innerHTML = '👤';
+    profileImage.style.backgroundImage = '';
+  }
+})();
+
   } else {
 	  document.getElementById("headerCartIcon").style.display = "none";
 	  document.getElementById("loginTitle").style.display = "block";
