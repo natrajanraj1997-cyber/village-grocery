@@ -850,7 +850,7 @@ header {
         👤
       </div>
       <label class="profile-image-upload">
-        <input type="file" id="imageUpload" accept="image/*" capture="user">
+     <input type="file" id="imageUpload" accept="image/*">
         📷
       </label>
     </div>
@@ -921,7 +921,8 @@ header {
   <div class="app-name">Village Grocery</div>
   <div class="header-right">
     <!-- Cart icon in header with count -->
-    <div class="cart-icon-header" onclick="showSection('cart')">
+   <div class="cart-icon-header" id="headerCartIcon" style="display:none;" onclick="showSection('cart')">
+
       🛒
       <span class="cart-count-badge-header" id="headerCartCount">0</span>
     </div>
@@ -1186,6 +1187,7 @@ window.toggleSubmenu = function(submenuId) {
 };
 
 window.showSection = function(section) {
+	closeMenu();
   // Hide all sections
   document.querySelectorAll('.content-section').forEach(el => {
     el.classList.add('hidden');
