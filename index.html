@@ -856,7 +856,6 @@ header {
 
 <body>
 
-<!-- Side Menu -->
 <div class="side-menu" id="sideMenu">
   <div class="user-profile">
     <div class="profile-image-container">
@@ -1079,7 +1078,7 @@ let confirmationResultGlobal = null;
 let userProfileImage = null;
 let profileListenerUnsub = null;
 
-// canvas.toBlob polyfill for Safari etc.
+// canvas.toBlob polyfill
 if (!HTMLCanvasElement.prototype.toBlob) {
   Object.defineProperty(HTMLCanvasElement.prototype, 'toBlob', {
     value: function (callback, type, quality) {
@@ -1092,7 +1091,7 @@ if (!HTMLCanvasElement.prototype.toBlob) {
   });
 }
 
-// center square crop
+// center square crop logic
 function getCroppedCanvasFromImage(img, size = 300) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -1114,6 +1113,7 @@ function showDefaultProfileIcon() {
   profileImage.style.backgroundImage = "";
   profileImage.style.backgroundColor = "#f0f0f0";
 }
+
 function showProfilePhoto(url) {
   const img = new Image();
   img.onload = () => {
@@ -1130,7 +1130,7 @@ function showProfilePhoto(url) {
   img.src = url;
 }
 
-// upload + crop - FIXED VERSION
+// Fixed Image Upload + Crop logic
 document.getElementById("imageUpload").addEventListener("change", async (e) => {
   const file = e.target.files[0];
   const user = auth.currentUser;
@@ -1150,17 +1150,17 @@ document.getElementById("imageUpload").addEventListener("change", async (e) => {
         <div style="text-align:center;margin-bottom:12px;font-weight:600;">Crop your profile photo</div>
         <img id="cropperImg" style="max-width:100%;max-height:70vh;border-radius:8px;">
         <div style="margin-top:16px;display:flex;gap:8px;">
-          <button id="cropSaveBtn" style="flex:1;padding:12px;border-radius:8px;background:var(--primary);color:white;border:none;font-weight:600;">✅ Crop & Save</button>
-          <button id="cropCancelBtn" style="flex:1;padding:12px;border-radius:8px;background:#f0f0f0;border:1px solid var(--border);">❌ Cancel</button>
+          <button id="cropSaveBtn" style="flex:1;padding:12px;border-radius:8px;background:var(--primary);color:white;border:none;font-weight:600;cursor:pointer;">✅ Crop & Save</button>
+          <button id="cropCancelBtn" style="flex:1;padding:12px;border-radius:8px;background:#f0f0f0;border:1px solid var(--border);cursor:pointer;">❌ Cancel</button>
         </div>
       </div>
     </div>`;
   document.body.appendChild(modal);
 
   const cropperImg = document.getElementById("cropperImg");
-  cropperImg.src = URL.createObjectURL(file);
+  const tempUrl = URL.createObjectURL(file);
+  cropperImg.src = tempUrl;
 
-  // Wait for image to load
   await new Promise(resolve => {
     if (cropperImg.complete) resolve();
     else cropperImg.onload = resolve;
@@ -1168,67 +1168,57 @@ document.getElementById("imageUpload").addEventListener("change", async (e) => {
 
   document.getElementById("cropSaveBtn").onclick = async () => {
     try {
+      const saveBtn = document.getElementById("cropSaveBtn");
+      saveBtn.disabled = true;
+      saveBtn.innerText = "Processing...";
       profileImage.innerHTML = "📤";
       
-      // Create cropped canvas
       const canvas = getCroppedCanvasFromImage(cropperImg, 300);
       
-      // Create blob from canvas - FIXED
-      const blob = await new Promise((resolve) => {
-        canvas.toBlob(
-          (b) => resolve(b),
-          'image/jpeg',
-          0.9
-        );
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((b) => {
+          if (b) resolve(b);
+          else reject(new Error("Blob conversion failed"));
+        }, 'image/jpeg', 0.9);
       });
 
-      if (!blob) {
-        throw new Error("Failed to create blob from canvas");
-      }
-
-      // Upload to Firebase Storage
       const imageRef = ref(storage, `profileImages/${user.uid}/profile.jpg`);
       await uploadBytes(imageRef, blob);
-      
-      // Get download URL
       const photoURL = await getDownloadURL(imageRef);
 
-      // Update Firestore and user profile
+      // Update both Firestore and Auth Profile
       await Promise.all([
-        setDoc(
-          doc(db, "users", user.uid),
-          {
-            photoURL,
-            name: user.displayName || userProfileData.name || "",
-            email: user.email || "",
-            phone: user.phoneNumber || ""
-          },
-          { merge: true }
-        ),
+        setDoc(doc(db, "users", user.uid), {
+          photoURL,
+          updatedAt: serverTimestamp()
+        }, { merge: true }),
         updateProfile(user, { photoURL })
       ]);
 
-      // Update UI
       showProfilePhoto(photoURL);
       userProfileImage = photoURL;
       alert("Profile image updated successfully!");
-      document.body.removeChild(modal);
-      e.target.value = "";
+      cleanup();
     } catch (err) {
       console.error("Upload error:", err);
-      alert("Failed to upload image. Please try again.");
+      alert("Failed to save image. Please try again.");
       showDefaultProfileIcon();
-      document.body.removeChild(modal);
+      cleanup();
     }
   };
 
-  document.getElementById("cropCancelBtn").onclick = () => {
-    document.body.removeChild(modal);
+  const cleanup = () => {
+    if (document.getElementById("cropperModal")) {
+      document.body.removeChild(modal);
+    }
+    URL.revokeObjectURL(tempUrl);
     e.target.value = "";
   };
+
+  document.getElementById("cropCancelBtn").onclick = cleanup;
 });
 
-// menu + sections
+// Menu + Section logic
 window.toggleMenu = () => {
   sideMenu.classList.toggle("active");
   menuOverlay.classList.toggle("active");
@@ -1273,6 +1263,7 @@ function updateShopBackButtonVisibility() {
   if (!shopBackButton) return;
   shopBackButton.style.display = cat === "All" ? "none" : "flex";
 }
+
 function autoFillDeliveryDetails() {
   const user = auth.currentUser;
   if (!user) return;
@@ -1281,7 +1272,7 @@ function autoFillDeliveryDetails() {
   addressEl.value = userProfileData.address || "";
 }
 
-// products
+// Products handling
 const productsRef = collection(db, "products");
 onSnapshot(productsRef, (snapshot) => {
   data = snapshot.docs.map((d) => {
@@ -1318,7 +1309,7 @@ function render() {
       </div>`;
     });
   if (data.length === 0) {
-    list.innerHTML = '<div class="card small" style="text-align:center;padding:24px;">No products found. Try a different search.</div>';
+    list.innerHTML = '<div class="card small" style="text-align:center;padding:24px;">No products found.</div>';
   }
 }
 
@@ -1379,7 +1370,7 @@ function updateCartCount() {
   headerCartCount.textContent = c;
 }
 
-// phone auth
+// Phone Auth logic
 window.sendOtp = async () => {
   let phone = loginMobile.value.trim();
   if (!phone.startsWith("+")) phone = "+91" + phone;
@@ -1388,7 +1379,6 @@ window.sendOtp = async () => {
     confirmationResultGlobal = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
     alert("OTP sent");
   } catch (e) {
-    console.error(e);
     alert(e.message);
   }
 };
@@ -1401,7 +1391,6 @@ window.verifyOtp = async () => {
   }
 };
 
-// google auth
 window.googleLogin = async () => {
   try {
     await signInWithPopup(auth, googleProvider);
@@ -1421,18 +1410,24 @@ window.logout = async () => {
   }
 };
 
-// profile update (settings)
 window.updateProfile = async () => {
   const user = auth.currentUser;
   if (!user) { alert("Please login first"); return; }
   if (!settingsName.value.trim()) { alert("Please enter your name"); return; }
+  
   userProfileData.name = settingsName.value.trim();
   userProfileData.address = settingsAddress.value.trim();
+  
+  await setDoc(doc(db, "users", user.uid), {
+    name: userProfileData.name,
+    address: userProfileData.address
+  }, { merge: true });
+  
   alert("Profile updated successfully!");
   goBackToAllTab();
 };
 
-// auth state
+// Auth State Observer
 onAuthStateChanged(auth, async (user) => {
   if (profileListenerUnsub) { profileListenerUnsub(); profileListenerUnsub = null; }
 
@@ -1446,7 +1441,6 @@ onAuthStateChanged(auth, async (user) => {
     menuUserName.textContent = "Guest User";
     menuUserEmail.textContent = "Login to continue";
     showDefaultProfileIcon();
-    orderHistoryList.innerHTML = "<div class='small' style='text-align:center;padding:20px;'>Login to see your orders</div>";
     return;
   }
 
@@ -1456,20 +1450,12 @@ onAuthStateChanged(auth, async (user) => {
   userBox.style.display = "block";
   hamburgerBtn.style.display = "block";
 
-  const userName =
-    loginName.value.trim() ||
-    user.displayName ||
-    user.email ||
-    user.phoneNumber ||
-    "Customer";
-  const userEmail = user.email || user.phoneNumber || "";
-
+  const userName = loginName.value.trim() || user.displayName || user.phoneNumber || "Customer";
   userProfileData.name = userName;
-  userProfileData.phone = user.phoneNumber || loginMobile.value || "";
-  userProfileData.address = "";
+  userProfileData.phone = user.phoneNumber || "";
 
   menuUserName.textContent = userName;
-  menuUserEmail.textContent = userEmail || "Logged in";
+  menuUserEmail.textContent = user.email || user.phoneNumber || "Logged in";
 
   showSection("shop");
   loadOrderHistory(user.uid);
@@ -1479,168 +1465,58 @@ onAuthStateChanged(auth, async (user) => {
 
   if (snap.exists()) {
     const existing = snap.data();
-    await setDoc(
-      userDocRef,
-      {
-        name: user.displayName || existing.name || "",
-        phone: user.phoneNumber || existing.phone || "",
-        email: user.email || existing.email || "",
-        photoURL: user.photoURL || existing.photoURL || ""
-      },
-      { merge: true }
-    );
-
+    userProfileData.address = existing.address || "";
     if (existing.photoURL) {
       showProfilePhoto(existing.photoURL);
       userProfileImage = existing.photoURL;
-      if (user.photoURL !== existing.photoURL) {
-        updateProfile(user, { photoURL: existing.photoURL }).catch(console.error);
-      }
-    } else if (user.photoURL) {
-      showProfilePhoto(user.photoURL);
-      userProfileImage = user.photoURL;
-      setDoc(userDocRef, { photoURL: user.photoURL }, { merge: true }).catch(console.error);
-    } else {
-      showDefaultProfileIcon();
     }
   } else {
-    await setDoc(
-      userDocRef,
-      {
-        name: user.displayName || "",
-        phone: user.phoneNumber || "",
-        email: user.email || "",
-        photoURL: user.photoURL || ""
-      },
-      { merge: true }
-    );
-    if (user.photoURL) {
-      showProfilePhoto(user.photoURL);
-      userProfileImage = user.photoURL;
-    } else {
-      showDefaultProfileIcon();
-    }
+    await setDoc(userDocRef, {
+      name: userName,
+      phone: user.phoneNumber || "",
+      email: user.email || ""
+    }, { merge: true });
+    showDefaultProfileIcon();
   }
 
-  profileListenerUnsub = onSnapshot(
-    userDocRef,
-    (s) => {
-      if (s.exists()) {
-        const d = s.data();
-        if (d.photoURL) {
-          showProfilePhoto(d.photoURL);
-          userProfileImage = d.photoURL;
-        } else {
-          showDefaultProfileIcon();
-        }
-      }
-    },
-    () => {
-      if (userProfileImage) showProfilePhoto(userProfileImage);
-      else if (user.photoURL) showProfilePhoto(user.photoURL);
-      else showDefaultProfileIcon();
+  profileListenerUnsub = onSnapshot(userDocRef, (s) => {
+    if (s.exists()) {
+      const d = s.data();
+      if (d.photoURL) showProfilePhoto(d.photoURL);
     }
-  );
+  });
 });
 
-// order history
 function loadOrderHistory(userId) {
-  if (!userId) {
-    orderHistoryList.innerHTML = "<div class='small' style='text-align:center;padding:20px;'>Login to see your orders</div>";
-    return;
-  }
-  const q = query(
-    collection(db, "orders"),
-    where("userId", "==", userId),
-    orderBy("createdAt", "desc")
-  );
-  onSnapshot(
-    q,
-    (snap) => {
-      if (snap.empty) {
-        orderHistoryList.innerHTML = "<div class='small' style='text-align:center;padding:20px;'>No orders yet</div>";
-        return;
-      }
-      orderHistoryList.innerHTML = "";
-      snap.forEach((docSnap) => {
-        const o = docSnap.data();
-        const orderId = docSnap.id;
-        const created = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString() : "Recent";
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border);">
-            <strong>Order #${orderId.substring(0, 8)}</strong>
-            <div class="small">${created}</div>
-            <div style="color:var(--primary);font-weight:600;margin-top:5px;">${o.status || "PROCESSING"}</div>
-          </div>
-          <div id="orderItems-${orderId}"></div>
-          <div style="text-align:right;margin-top:15px;padding-top:15px;border-top:1px solid var(--border);">
-            <strong>Total: ₹${calculateOrderTotal(o.items)}</strong>
-          </div>`;
-        orderHistoryList.appendChild(card);
-        const container = document.getElementById(`orderItems-${orderId}`);
-        if (o.items) {
-          for (let itemId in o.items) {
-            const item = o.items[itemId];
-            const product = data.find((p) => p.name === item.name);
-            const img = product ? product.img : "https://via.placeholder.com/60x60?text=Product";
-            container.innerHTML += `
-              <div class="order-item">
-                <img src="${img}" alt="${item.name}" class="order-item-image">
-                <div class="order-item-info">
-                  <div class="order-item-name">${item.name}</div>
-                  <div class="order-item-details">Quantity: ${item.qty} × ₹${item.price} = ₹${item.qty * item.price}</div>
-                  <div class="order-item-date">Ordered on: ${created}</div>
-                </div>
-              </div>`;
-          }
-        }
-      });
-    },
-    () => {
-      orderHistoryList.innerHTML =
-        "<div class='small' style='text-align:center;padding:20px;color:#f44336;'>Error loading orders</div>";
-    }
-  );
-}
-function calculateOrderTotal(items) {
-  let t = 0;
-  if (items) for (let id in items) t += items[id].qty * items[id].price;
-  return t;
+  const q = query(collection(db, "orders"), where("userId", "==", userId), orderBy("createdAt", "desc"));
+  onSnapshot(q, (snap) => {
+    orderHistoryList.innerHTML = snap.empty ? "<div class='small' style='text-align:center;padding:20px;'>No orders yet</div>" : "";
+    snap.forEach((docSnap) => {
+      const o = docSnap.data();
+      const created = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString() : "Recent";
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `<strong>Order #${docSnap.id.substring(0, 8)}</strong><div class="small">${created}</div><div style="color:var(--primary);">${o.status}</div>`;
+      orderHistoryList.appendChild(card);
+    });
+  });
 }
 
-// geolocation + place order
 window.getLocation = () => {
-  if (!navigator.geolocation) {
-    locStatus.textContent = "Geolocation not supported in this browser.";
-    return;
-  }
+  if (!navigator.geolocation) { alert("Not supported"); return; }
   locStatus.textContent = "Getting location...";
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      currentLat = pos.coords.latitude;
-      currentLng = pos.coords.longitude;
-      locStatus.textContent = `Location captured ✅ (${currentLat.toFixed(5)}, ${currentLng.toFixed(5)})`;
-    },
-    () => {
-      locStatus.textContent = "Unable to get location. Please allow location permission.";
-    },
-    { enableHighAccuracy: true, timeout: 10000 }
-  );
+  navigator.geolocation.getCurrentPosition((pos) => {
+    currentLat = pos.coords.latitude;
+    currentLng = pos.coords.longitude;
+    locStatus.textContent = "Location captured ✅";
+  }, () => { locStatus.textContent = "Permission denied"; });
 };
+
 window.placeOrder = async () => {
   if (!nameEl.value || !mobileEl.value || !addressEl.value || !Object.keys(cart).length) {
-    alert("Fill all details & add at least one item");
-    return;
+    alert("Fill all details"); return;
   }
   const user = auth.currentUser;
-  if (!user) { alert("Please login first"); return; }
-
-  userProfileData.name = nameEl.value.trim();
-  userProfileData.phone = mobileEl.value.trim();
-  userProfileData.address = addressEl.value.trim();
-
   await addDoc(collection(db, "orders"), {
     name: nameEl.value,
     mobile: mobileEl.value,
@@ -1648,28 +1524,16 @@ window.placeOrder = async () => {
     items: cart,
     status: "NEW",
     createdAt: serverTimestamp(),
-    location: currentLat !== null && currentLng !== null ? { lat: currentLat, lng: currentLng } : null,
-    userId: user.uid,
-    userPhone: user.phoneNumber || null,
-    userEmail: user.email || null
+    location: currentLat ? { lat: currentLat, lng: currentLng } : null,
+    userId: user.uid
   });
-
-  alert("Order placed successfully!");
+  alert("Order placed!");
   cart = {};
   updateCartCount();
-  renderCartPage();
-  nameEl.value = "";
-  mobileEl.value = "";
-  addressEl.value = "";
-  locStatus.textContent = "";
-  currentLat = null;
-  currentLng = null;
   goBackToAllTab();
 };
 
 if (search) search.oninput = render;
-
-// Initialize recaptcha
 function initRecaptcha() {
   recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
 }
