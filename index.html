@@ -1178,7 +1178,6 @@ initRecaptcha();
 function showDefaultProfileIcon() {
   profileImage.innerHTML = '👤';
   profileImage.style.backgroundImage = '';
-  profileImage.style.backgroundColor = '#f0f0f0';
 }
 
 // Unified helper to show a photoURL
@@ -1187,7 +1186,6 @@ function showProfilePhoto(url) {
   profileImage.style.backgroundImage = `url(${url})`;
   profileImage.style.backgroundSize = 'cover';
   profileImage.style.backgroundPosition = 'center';
-  profileImage.style.backgroundColor = 'transparent';
 }
 
 // FIXED Image upload - Updates BOTH Firestore AND Auth
@@ -1197,10 +1195,9 @@ document.getElementById('imageUpload').addEventListener('change', async function
 
   if (!file || !user) return;
 
-  // Show loading state - simple text instead of loading animation
-  profileImage.innerHTML = '📷';
+  // Show loading state
+  profileImage.innerHTML = '<div class="loading"></div>';
   profileImage.style.backgroundImage = '';
-  profileImage.style.backgroundColor = '#f0f0f0';
 
   try {
     const imageRef = ref(storage, `profileImages/${user.uid}/profile.jpg`);
@@ -1229,9 +1226,6 @@ document.getElementById('imageUpload').addEventListener('change', async function
     } else {
       showDefaultProfileIcon();
     }
-  } finally {
-    // Clear file input
-    e.target.value = '';
   }
 });
 
@@ -1639,11 +1633,19 @@ onAuthStateChanged(auth, async (user) => {
         if (d?.photoURL) {
           showProfilePhoto(d.photoURL);
           userProfileImage = d.photoURL;
+          
+          // Also update Auth if it's different
+          if (user.photoURL !== d.photoURL) {
+            updateProfile(user, { photoURL: d.photoURL }).catch(console.error);
+          }
         } 
         // Priority 2: Check Auth for photoURL
         else if (user.photoURL) {
           showProfilePhoto(user.photoURL);
           userProfileImage = user.photoURL;
+          
+          // Save to Firestore for future sessions
+          setDoc(userDocRef, { photoURL: user.photoURL }, { merge: true }).catch(console.error);
         } 
         // Priority 3: Default icon
         else {
