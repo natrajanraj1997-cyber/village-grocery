@@ -1179,32 +1179,46 @@ document.getElementById('imageUpload').addEventListener('change', async function
 
   if (!file || !user) return;
 
+  // 1. CREATE LOCAL PREVIEW FIRST
+  // This creates a temporary URL for the selected file to display it immediately[citation:2]
+  const objectUrl = URL.createObjectURL(file);
+  
+  // Update the UI with the local preview
+  profileImage.innerHTML = '';
+  profileImage.style.backgroundImage = `url(${objectUrl})`;
+  profileImage.style.backgroundSize = 'cover';
+  profileImage.style.backgroundPosition = 'center';
+
   try {
     const imageRef = ref(storage, `profileImages/${user.uid}/profile.jpg`);
-
+    
     // Upload to Firebase Storage
     await uploadBytes(imageRef, file);
-
-    // Get public URL
+    
+    // Get public URL from Firebase
     const photoURL = await getDownloadURL(imageRef);
-
+    
     // Save URL to Firestore
     await setDoc(
       doc(db, "users", user.uid),
       { photoURL },
       { merge: true }
     );
-
-    // Update UI
-    profileImage.innerHTML = '';
+    
+    // Important: Revoke the local object URL to free up memory[citation:2]
+    // The Firebase URL (`photoURL`) is now the permanent source
+    URL.revokeObjectURL(objectUrl);
+    
+    // Update UI with the permanent Firebase URL
     profileImage.style.backgroundImage = `url(${photoURL})`;
-    profileImage.style.backgroundSize = 'cover';
-    profileImage.style.backgroundPosition = 'center';
-
-    alert("Profile image updated!");
+    
+    alert("Profile image updated successfully!");
   } catch (err) {
-    console.error(err);
-    alert("Image upload failed");
+    console.error("Upload failed:", err);
+    alert("Image upload failed. Please try again.");
+    // If upload fails, revert to default icon
+    profileImage.style.backgroundImage = '';
+    profileImage.innerHTML = '👤';
   }
 });
 
