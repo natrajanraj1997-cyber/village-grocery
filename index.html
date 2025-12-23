@@ -810,15 +810,6 @@ header {
   gap: 10px;
 }
 
-/* Settings form */
-.settings-form {
-  margin-top: 20px;
-}
-
-.settings-form input {
-  margin-bottom: 15px;
-}
-
 /* Mobile adjustments */
 @media (max-width: 480px) {
   .container {
@@ -898,15 +889,10 @@ header {
       <span class="menu-icon">📜</span>
       <span class="menu-text">Order History</span>
     </a>
-    <a href="#" class="menu-item" onclick="toggleSubmenu('settingsSubmenu')">
-      <span class="menu-icon">⚙️</span>
-      <span class="menu-text">Settings</span>
-      <span class="menu-arrow">▼</span>
+    <a href="#" class="menu-item" onclick="logout()" style="color:#f44336;">
+      <span class="menu-icon">🚪</span>
+      <span class="menu-text">Logout</span>
     </a>
-    <div class="submenu" id="settingsSubmenu">
-      <div class="submenu-item" onclick="showSection('settings'); closeMenu();">Update Profile</div>
-      <div class="submenu-item" onclick="logout()" style="color:#f44336;">Logout</div>
-    </div>
   </div>
 </div>
 
@@ -983,19 +969,6 @@ header {
       <div id="orderHistoryList"></div>
     </div>
   </div>
-
-  <div id="settingsSection" class="content-section hidden">
-    <button class="back-button" onclick="goBackToAllTab()">← Back</button>
-    <div class="card cart">
-      <h4>⚙️ Settings</h4>
-      <div class="settings-form">
-        <input id="settingsName" placeholder="Your name">
-        <textarea id="settingsAddress" placeholder="Your address"></textarea>
-        <button class="btn-primary" onclick="updateProfile()">Update Profile</button>
-        <button class="btn-ghost" onclick="logout()">Logout</button>
-      </div>
-    </div>
-  </div>
 </div>
 
 <div class="cart-bar" id="cartBar">
@@ -1061,9 +1034,6 @@ const userBox = document.getElementById("userBox");
 const shopSection = document.getElementById("shopSection");
 const cartSection = document.getElementById("cartSection");
 const orderHistorySection = document.getElementById("orderHistorySection");
-const settingsSection = document.getElementById("settingsSection");
-const settingsName = document.getElementById("settingsName");
-const settingsAddress = document.getElementById("settingsAddress");
 
 const sideMenu = document.getElementById("sideMenu");
 const menuOverlay = document.getElementById("menuOverlay");
@@ -1149,7 +1119,7 @@ function showProfilePhoto(url) {
   img.src = url;
 }
 
-// ✅ COMPLETELY REWRITTEN: Profile image upload with reliable processing
+// ✅ SIMPLIFIED: Profile image upload without complex modal
 document.getElementById("imageUpload").addEventListener("change", async (e) => {
   const file = e.target.files[0];
   const user = auth.currentUser;
@@ -1172,198 +1142,59 @@ document.getElementById("imageUpload").addEventListener("change", async (e) => {
     return;
   }
 
-  // Create modal with SIMPLE interface
-  const modal = document.createElement("div");
-  modal.id = "cropperModal";
-  modal.innerHTML = `
-    <style>
-      #cropperModal {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.9); z-index: 9999; display: flex;
-        align-items: center; justify-content: center; padding: 20px;
-      }
-      .cropper-container {
-        background: white; padding: 24px; border-radius: 16px;
-        max-width: 90vw; max-height: 90vh; width: 100%; max-width: 500px;
-        display: flex; flex-direction: column;
-      }
-      .cropper-preview {
-        width: 100%; height: 300px; border-radius: 12px; border: 2px solid #e0e0e0;
-        overflow: hidden; margin-bottom: 20px; position: relative;
-      }
-      #cropperImg {
-        width: 100%; height: 100%; object-fit: contain;
-      }
-      .crop-buttons {
-        display: flex; gap: 12px;
-      }
-      .btn-crop { 
-        flex: 1; padding: 14px; border-radius: 12px; border: none;
-        font-weight: 600; font-size: 1em; cursor: pointer; 
-        transition: all 0.2s;
-      }
-      .btn-crop:disabled {
-        opacity: 0.5; cursor: not-allowed;
-      }
-      .btn-save { background: #4CAF50; color: white; }
-      .btn-cancel { background: #f5f5f5; border: 2px solid #ddd; color: #333; }
-      .crop-status { 
-        text-align: center; margin: 10px 0; font-weight: 600;
-        min-height: 24px;
-      }
-      .progress-container {
-        width: 100%; height: 6px; background: #e0e0e0; border-radius: 3px;
-        margin: 15px 0; overflow: hidden; display: none;
-      }
-      .progress-bar {
-        height: 100%; background: #4CAF50; width: 0%; 
-        transition: width 0.3s ease;
-      }
-    </style>
-    <div class="cropper-container">
-      <div style="text-align:center;margin-bottom:20px;font-weight:600;font-size:1.1em;">
-        Crop your profile photo
-      </div>
-      <div class="cropper-preview">
-        <img id="cropperImg" src="${URL.createObjectURL(file)}">
-      </div>
-      <div class="progress-container" id="uploadProgress">
-        <div class="progress-bar" id="progressBar"></div>
-      </div>
-      <div id="cropStatus" class="crop-status">Ready to upload</div>
-      <div class="crop-buttons">
-        <button id="cropSaveBtn" class="btn-crop btn-save">✅ Crop & Save</button>
-        <button id="cropCancelBtn" class="btn-crop btn-cancel">❌ Cancel</button>
-      </div>
-    </div>
-  `;
-  
-  document.body.appendChild(modal);
-  
-  const saveBtn = document.getElementById("cropSaveBtn");
-  const cancelBtn = document.getElementById("cropCancelBtn");
-  const cropStatus = document.getElementById("cropStatus");
-  const uploadProgress = document.getElementById("uploadProgress");
-  const progressBar = document.getElementById("progressBar");
-  const cropperImg = document.getElementById("cropperImg");
-
-  // ✅ FIXED: Simplified upload function that actually works
-  saveBtn.onclick = async () => {
+  try {
+    // Show loading state
+    const originalContent = profileImage.innerHTML;
+    profileImage.innerHTML = "⏳";
+    
+    // Crop image
+    let blob;
     try {
-      // Disable buttons and show progress
-      saveBtn.disabled = true;
-      cancelBtn.disabled = true;
-      cropStatus.textContent = "⏳ Processing image...";
-      uploadProgress.style.display = "block";
-      progressBar.style.width = "30%";
-      
-      // Step 1: Simple image cropping (fixed size 300x300)
-      let blob;
-      try {
-        blob = await cropImageSimply(file, 300);
-        progressBar.style.width = "60%";
-        cropStatus.textContent = "📤 Uploading to server...";
-      } catch (cropError) {
-        // Fallback: If cropping fails, use the original file
-        console.warn("Cropping failed, using original file:", cropError);
-        blob = file;
-      }
-      
-      // Step 2: Upload to Firebase Storage
-      const imageRef = ref(storage, `profileImages/${user.uid}/profile.jpg`);
-      const metadata = { 
-        contentType: 'image/jpeg',
-        customMetadata: {
-          uploadedBy: user.uid,
-          timestamp: Date.now().toString()
-        }
-      };
-      
-      // Upload the blob/file
-      progressBar.style.width = "80%";
-      const uploadResult = await uploadBytes(imageRef, blob, metadata);
-      
-      // Step 3: Get download URL
-      progressBar.style.width = "90%";
-      const photoURL = await getDownloadURL(uploadResult.ref);
-      
-      // Step 4: Update user profile
-      cropStatus.textContent = "🔄 Updating profile...";
-      
-      // Update Firebase Auth profile
-      await updateProfile(user, { photoURL });
-      
-      // Update Firestore user document
-      await setDoc(doc(db, "users", user.uid), {
-        photoURL: photoURL,
-        name: user.displayName || userProfileData.name || "",
-        email: user.email || "",
-        phone: user.phoneNumber || "",
-        lastUpdated: new Date().toISOString()
-      }, { merge: true });
-      
-      // Step 5: Update UI
-      progressBar.style.width = "100%";
-      cropStatus.textContent = "✅ Profile image updated successfully!";
-      
-      // Show the new profile photo
-      showProfilePhoto(photoURL);
-      userProfileImage = photoURL;
-      
-      // Close modal after success
-      setTimeout(() => {
-        if (modal && modal.parentNode) {
-          modal.parentNode.removeChild(modal);
-        }
-        e.target.value = ""; // Reset file input
-      }, 1500);
-      
-    } catch (error) {
-      console.error("Upload error details:", error);
-      
-      // Show specific error messages
-      if (error.code === 'storage/unauthorized') {
-        cropStatus.textContent = "❌ Storage permission denied";
-      } else if (error.code === 'storage/canceled') {
-        cropStatus.textContent = "❌ Upload canceled";
-      } else if (error.code === 'storage/unknown') {
-        cropStatus.textContent = "❌ Unknown storage error";
-      } else {
-        cropStatus.textContent = `❌ Error: ${error.message || "Upload failed"}`;
-      }
-      
-      // Re-enable buttons
-      saveBtn.disabled = false;
-      cancelBtn.disabled = false;
-      uploadProgress.style.display = "none";
-      
-      // Auto-close modal after error
-      setTimeout(() => {
-        if (modal && modal.parentNode) {
-          modal.parentNode.removeChild(modal);
-        }
-        e.target.value = "";
-      }, 3000);
+      blob = await cropImageSimply(file, 300);
+    } catch (cropError) {
+      console.warn("Cropping failed, using original file:", cropError);
+      blob = file;
     }
-  };
-
-  // Cancel button handler
-  cancelBtn.onclick = () => {
-    if (modal && modal.parentNode) {
-      modal.parentNode.removeChild(modal);
-    }
+    
+    // Upload to Firebase Storage
+    const imageRef = ref(storage, `profileImages/${user.uid}/profile.jpg`);
+    const metadata = { 
+      contentType: 'image/jpeg',
+      customMetadata: {
+        uploadedBy: user.uid,
+        timestamp: Date.now().toString()
+      }
+    };
+    
+    const uploadResult = await uploadBytes(imageRef, blob, metadata);
+    const photoURL = await getDownloadURL(uploadResult.ref);
+    
+    // Update user profile
+    await updateProfile(user, { photoURL });
+    
+    // Update Firestore user document
+    await setDoc(doc(db, "users", user.uid), {
+      photoURL: photoURL,
+      name: user.displayName || userProfileData.name || "",
+      email: user.email || "",
+      phone: user.phoneNumber || "",
+      lastUpdated: new Date().toISOString()
+    }, { merge: true });
+    
+    // Update UI
+    showProfilePhoto(photoURL);
+    userProfileImage = photoURL;
+    
+    alert("✅ Profile image updated successfully!");
+    
+  } catch (error) {
+    console.error("Upload error:", error);
+    showDefaultProfileIcon();
+    alert("❌ Failed to upload image. Please try again.");
+  } finally {
     e.target.value = "";
-  };
-  
-  // Clean up object URL when modal closes
-  modal.addEventListener('remove', () => {
-    if (cropperImg.src.startsWith('blob:')) {
-      URL.revokeObjectURL(cropperImg.src);
-    }
-  });
+  }
 });
-
-// =========== EVERYTHING BELOW REMAINS EXACTLY THE SAME ===========
 
 window.toggleMenu = () => {
   sideMenu.classList.toggle("active");
@@ -1390,13 +1221,6 @@ window.showSection = (section) => {
     autoFillDeliveryDetails();
   } else if (section === "orderHistory") {
     orderHistorySection.classList.remove("hidden");
-  } else if (section === "settings") {
-    settingsSection.classList.remove("hidden");
-    const user = auth.currentUser;
-    if (user) {
-      settingsName.value = userProfileData.name || user.displayName || loginName.value || "";
-      settingsAddress.value = userProfileData.address || "";
-    }
   } else {
     currentSection = "main";
   }
@@ -1556,17 +1380,6 @@ window.logout = async () => {
   } catch (e) {
     console.error(e);
   }
-};
-
-// profile update (settings)
-window.updateProfile = async () => {
-  const user = auth.currentUser;
-  if (!user) { alert("Please login first"); return; }
-  if (!settingsName.value.trim()) { alert("Please enter your name"); return; }
-  userProfileData.name = settingsName.value.trim();
-  userProfileData.address = settingsAddress.value.trim();
-  alert("Profile updated successfully!");
-  goBackToAllTab();
 };
 
 // auth state
