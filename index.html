@@ -1803,13 +1803,58 @@ window.getLocation = () => {
     { enableHighAccuracy: true, timeout: 10000 }
   );
 };
+	// Home location (center)
+const HOME_LAT = 11.13899;
+const HOME_LNG = 79.54172;
+const MAX_DISTANCE_KM = 10;
+
+// Haversine distance in km between two lat/lng points
+function distanceInKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Earth radius in km
+  const toRad = (v) => v * Math.PI / 180;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 window.placeOrder = async () => {
   if (!nameEl.value || !mobileEl.value || !addressEl.value || !Object.keys(cart).length) {
     alert("Fill all details & add at least one item");
     return;
   }
+
   const user = auth.currentUser;
-  if (!user) { alert("Please login first"); return; }
+  if (!user) { 
+    alert("Please login first"); 
+    return; 
+  }
+
+  // Require location before ordering
+  if (currentLat === null || currentLng === null) {
+    alert("Please share your live location before placing the order.");
+    return;
+  }
+
+  // Check distance from home location
+  const distKm = distanceInKm(HOME_LAT, HOME_LNG, currentLat, currentLng);
+  console.log("Distance from home (km):", distKm);
+
+  if (distKm > MAX_DISTANCE_KM) {
+    alert(
+      "Sorry, delivery not available in your area.\n\n" +
+      "You are approximately " + distKm.toFixed(1) + " km away.\n" +
+      "We currently deliver only within " + MAX_DISTANCE_KM + " km."
+    );
+    return;
+  }
 
   userProfileData.name = nameEl.value.trim();
   userProfileData.phone = mobileEl.value.trim();
@@ -1822,10 +1867,11 @@ window.placeOrder = async () => {
     items: cart,
     status: "NEW",
     createdAt: serverTimestamp(),
-    location: currentLat !== null && currentLng !== null ? { lat: currentLat, lng: currentLng } : null,
+    location: { lat: currentLat, lng: currentLng },
     userId: user.uid,
     userPhone: user.phoneNumber || null,
-    userEmail: user.email || null
+    userEmail: user.email || null,
+    distanceKm: distKm  // store distance for admin info
   });
 
   alert("Order placed successfully!");
@@ -1840,6 +1886,7 @@ window.placeOrder = async () => {
   currentLng = null;
   goBackToAllTab();
 };
+
 
 if (search) search.oninput = render;
 
