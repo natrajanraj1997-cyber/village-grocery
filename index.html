@@ -1051,34 +1051,33 @@ let profileListenerUnsub = null;
 // ✅ FIXED: Simple image cropping without complex processing
 async function cropImageSimply(file, size = 300) {
   return new Promise((resolve, reject) => {
-    const img = new Image();
     const reader = new FileReader();
     
     reader.onload = (e) => {
+      const img = new Image();
+      // CRITICAL: Add timeout to detect if image never loads
+      const timeout = setTimeout(() => {
+        reject(new Error("Image loading timeout"));
+      }, 5000);
+      
       img.onload = () => {
+        clearTimeout(timeout);
         try {
-          // Create canvas
           const canvas = document.createElement('canvas');
           canvas.width = size;
           canvas.height = size;
           const ctx = canvas.getContext('2d');
           
-          // Calculate cropping
           const minSize = Math.min(img.width, img.height);
           const sourceX = (img.width - minSize) / 2;
           const sourceY = (img.height - minSize) / 2;
           
-          // Draw cropped image
           ctx.drawImage(img, sourceX, sourceY, minSize, minSize, 0, 0, size, size);
           
-          // Convert to blob using the most reliable method
           canvas.toBlob(
             (blob) => {
-              if (blob) {
-                resolve(blob);
-              } else {
-                reject(new Error("Failed to create blob from canvas"));
-              }
+              if (blob) resolve(blob);
+              else reject(new Error("Failed to create blob"));
             },
             'image/jpeg',
             0.85
@@ -1087,7 +1086,12 @@ async function cropImageSimply(file, size = 300) {
           reject(err);
         }
       };
-      img.onerror = () => reject(new Error("Failed to load image"));
+      
+      img.onerror = () => {
+        clearTimeout(timeout);
+        reject(new Error("Image failed to load"));
+      };
+      
       img.src = e.target.result;
     };
     
@@ -1095,6 +1099,7 @@ async function cropImageSimply(file, size = 300) {
     reader.readAsDataURL(file);
   });
 }
+
 
 function showDefaultProfileIcon() {
   profileImage.innerHTML = "👤";
@@ -1124,8 +1129,14 @@ document.getElementById("imageUpload").addEventListener("change", async (e) => {
   const file = e.target.files[0];
   const user = auth.currentUser;
   
-  if (!file || !user) {
-    if (file) e.target.value = "";
+  if (!file) {
+    e.target.value = "";
+    return;
+  }
+
+  if (!user) {
+    alert("❌ You must be logged in first. Please login, then try uploading.");
+    e.target.value = "";
     return;
   }
 
@@ -1143,36 +1154,38 @@ document.getElementById("imageUpload").addEventListener("change", async (e) => {
   }
 
   try {
-    // Show loading state
-    const originalContent = profileImage.innerHTML;
-    profileImage.innerHTML = "⏳";
+    console.log("📸 Starting upload for user:", user.uid);
+    profileImage.innerHTML = "⏳ Uploading...";
     
-    // Crop image
-    let blob;
-    try {
-      blob = await cropImageSimply(file, 300);
-    } catch (cropError) {
-      console.warn("Cropping failed, using original file:", cropError);
-      blob = file;
-    }
+    // TRY WITHOUT CROPPING FIRST
+    let blob = file;
+    console.log("📦 Using file directly (no cropping), size:", blob.size, "bytes");
     
     // Upload to Firebase Storage
     const imageRef = ref(storage, `profileImages/${user.uid}/profile.jpg`);
+    console.log("📂 Upload path:", `profileImages/${user.uid}/profile.jpg`);
+    
     const metadata = { 
-      contentType: 'image/jpeg',
+      contentType: file.type || 'image/jpeg',
       customMetadata: {
         uploadedBy: user.uid,
         timestamp: Date.now().toString()
       }
     };
     
+    console.log("⬆️ Uploading to Firebase...");
     const uploadResult = await uploadBytes(imageRef, blob, metadata);
+    console.log("✅ Upload complete:", uploadResult.ref.fullPath);
+    
+    console.log("📥 Getting download URL...");
     const photoURL = await getDownloadURL(uploadResult.ref);
+    console.log("🔗 Download URL:", photoURL);
     
-    // Update user profile
+    console.log("👤 Updating user profile...");
     await updateProfile(user, { photoURL });
+    console.log("✅ User profile updated");
     
-    // Update Firestore user document
+    console.log("💾 Saving to Firestore...");
     await setDoc(doc(db, "users", user.uid), {
       photoURL: photoURL,
       name: user.displayName || userProfileData.name || "",
@@ -1180,6 +1193,7 @@ document.getElementById("imageUpload").addEventListener("change", async (e) => {
       phone: user.phoneNumber || "",
       lastUpdated: new Date().toISOString()
     }, { merge: true });
+    console.log("✅ Firestore saved");
     
     // Update UI
     showProfilePhoto(photoURL);
@@ -1188,13 +1202,24 @@ document.getElementById("imageUpload").addEventListener("change", async (e) => {
     alert("✅ Profile image updated successfully!");
     
   } catch (error) {
-    console.error("Upload error:", error);
+    console.error("❌ UPLOAD ERROR:", error);
+    console.error("Error code:", error.code);
+    console.error("Error message:", error.message);
     showDefaultProfileIcon();
-    alert("❌ Failed to upload image. Please try again.");
+    
+    // Show specific error message
+    if (error.code === 'storage/unauthorized') {
+      alert("❌ Upload blocked. Check Storage rules allow your user.");
+    } else if (error.code === 'storage/retry-limit-exceeded') {
+      alert("❌ Network error. Please try again.");
+    } else {
+      alert("❌ Upload failed: " + error.message);
+    }
   } finally {
     e.target.value = "";
   }
 });
+
 
 window.toggleMenu = () => {
   sideMenu.classList.toggle("active");
@@ -1621,9 +1646,19 @@ if (search) search.oninput = render;
 
 // Initialize recaptcha
 function initRecaptcha() {
-  recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
+  try {
+    recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+      size: "invisible",
+      callback: (token) => {
+        console.log("reCAPTCHA verified");
+      }
+    });
+  } catch (err) {
+    console.error("reCAPTCHA init error:", err);
+  }
 }
 initRecaptcha();
+
 </script>
 
 
