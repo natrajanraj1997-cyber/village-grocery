@@ -842,6 +842,41 @@ header {
     height: 50px;
   }
 }
+
+/* OTP Timer Styles */
+.otp-timer {
+  text-align: center;
+  margin: 10px 0;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(46, 125, 50, 0.08);
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.otp-timer.expired {
+  background: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+}
+
+#resendOtpBtn {
+  background: linear-gradient(135deg, var(--secondary) 0%, var(--secondary-light) 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
+
+#resendOtpBtn:hover {
+  background: linear-gradient(135deg, var(--secondary-light) 0%, var(--secondary) 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255, 152, 0, 0.4);
+}
+
+#resendOtpBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
 </style>
 </head>
 
@@ -916,9 +951,14 @@ header {
       <input id="loginName" placeholder="Your name">
       <input id="loginMobile" placeholder="Phone number (with or without +91)">
       <div id="recaptcha-container"></div>
-      <button class="btn-primary" type="button" onclick="sendOtp()"><span>Send OTP</span></button>
-      <input id="otpCode" placeholder="Enter OTP">
-      <button class="btn-primary" type="button" onclick="verifyOtp()"><span>Verify OTP</span></button>
+      <button class="btn-primary" type="button" onclick="sendOtp()" id="sendOtpBtn"><span>Send OTP</span></button>
+      
+      <!-- OTP Timer Display -->
+      <div id="otpTimer" class="otp-timer" style="display:none;"></div>
+      
+      <input id="otpCode" placeholder="Enter OTP" disabled>
+      <button class="btn-primary" type="button" onclick="verifyOtp()" id="verifyOtpBtn"><span>Verify OTP</span></button>
+      <button class="btn-primary" type="button" onclick="resendOtp()" id="resendOtpBtn" style="display:none;"><span>Resend OTP</span></button>
       <div class="divider"><span>or</span></div>
       <button class="btn-ghost" type="button" onclick="googleLogin()"><span>Sign in with Google</span></button>
     </div>
@@ -1042,12 +1082,96 @@ const menuUserName = document.getElementById("menuUserName");
 const menuUserEmail = document.getElementById("menuUserEmail");
 const profileImage = document.getElementById("profileImage");
 
+// OTP Timer Elements
+const otpTimer = document.getElementById("otpTimer");
+const sendOtpBtn = document.getElementById("sendOtpBtn");
+const verifyOtpBtn = document.getElementById("verifyOtpBtn");
+const resendOtpBtn = document.getElementById("resendOtpBtn");
+
 let currentLat = null;
 let currentLng = null;
 let recaptchaVerifier;
 let confirmationResultGlobal = null;
 let userProfileImage = null;
 let profileListenerUnsub = null;
+
+// OTP Timer Variables
+let otpTimerInterval = null;
+let otpExpiryTime = null;
+let isOtpExpired = false;
+
+// OTP Timer Functions
+function startOtpTimer() {
+  // Clear any existing timer
+  clearOtpTimer();
+  
+  // Set expiry time to 1 minute from now
+  otpExpiryTime = Date.now() + 60000; // 1 minute = 60,000 milliseconds
+  isOtpExpired = false;
+  
+  // Show timer display
+  otpTimer.style.display = "block";
+  otpTimer.classList.remove("expired");
+  
+  // Enable OTP input
+  otpCode.disabled = false;
+  otpCode.placeholder = "Enter OTP";
+  
+  // Hide resend button initially
+  resendOtpBtn.style.display = "none";
+  verifyOtpBtn.style.display = "flex";
+  
+  // Start timer interval
+  otpTimerInterval = setInterval(updateOtpTimer, 1000);
+  updateOtpTimer(); // Initial update
+}
+
+function updateOtpTimer() {
+  const now = Date.now();
+  const timeLeft = otpExpiryTime - now;
+  
+  if (timeLeft <= 0) {
+    // Timer expired
+    clearInterval(otpTimerInterval);
+    otpTimer.innerHTML = "OTP Expired!";
+    otpTimer.classList.add("expired");
+    isOtpExpired = true;
+    
+    // Disable OTP input and verification button
+    otpCode.disabled = true;
+    otpCode.placeholder = "OTP Expired - Resend required";
+    verifyOtpBtn.style.display = "none";
+    
+    // Show resend button
+    resendOtpBtn.style.display = "flex";
+    resendOtpBtn.disabled = false;
+    resendOtpBtn.innerHTML = "Resend OTP";
+  } else {
+    // Update timer display
+    const seconds = Math.floor(timeLeft / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    
+    otpTimer.innerHTML = `OTP valid for: ${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+}
+
+function clearOtpTimer() {
+  if (otpTimerInterval) {
+    clearInterval(otpTimerInterval);
+    otpTimerInterval = null;
+  }
+  otpTimer.style.display = "none";
+}
+
+function resetOtpFields() {
+  otpCode.value = "";
+  otpCode.disabled = true;
+  otpCode.placeholder = "Send OTP first";
+  verifyOtpBtn.style.display = "flex";
+  resendOtpBtn.style.display = "none";
+  clearOtpTimer();
+}
 
 // ✅ FIXED: Simple image cropping without complex processing
 async function cropImageSimply(file, size = 300) {
@@ -1100,7 +1224,6 @@ async function cropImageSimply(file, size = 300) {
     reader.readAsDataURL(file);
   });
 }
-
 
 function showDefaultProfileIcon() {
   profileImage.innerHTML = "👤";
@@ -1225,7 +1348,6 @@ document.getElementById("imageUpload").addEventListener("change", async (e) => {
     e.target.value = "";
   }
 });
-
 
 window.toggleMenu = () => {
   sideMenu.classList.toggle("active");
@@ -1377,19 +1499,86 @@ window.sendOtp = async () => {
   if (!phone.startsWith("+")) phone = "+91" + phone;
   if (phone.length < 12) { alert("Enter valid mobile number"); return; }
   try {
+    // Disable send button during process
+    sendOtpBtn.disabled = true;
+    sendOtpBtn.innerHTML = '<span class="loading"></span> Sending...';
+    
     confirmationResultGlobal = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
-    alert("OTP sent");
+    alert("OTP sent to " + phone);
+    
+    // Start OTP timer
+    startOtpTimer();
+    
   } catch (e) {
     console.error(e);
     alert(e.message);
+  } finally {
+    // Re-enable send button
+    sendOtpBtn.disabled = false;
+    sendOtpBtn.innerHTML = '<span>Send OTP</span>';
   }
 };
-window.verifyOtp = async () => {
-  if (!confirmationResultGlobal) { alert("Click 'Send OTP' first"); return; }
+
+window.resendOtp = async () => {
+  let phone = loginMobile.value.trim();
+  if (!phone.startsWith("+")) phone = "+91" + phone;
+  if (phone.length < 12) { alert("Enter valid mobile number"); return; }
   try {
-    await confirmationResultGlobal.confirm(otpCode.value.trim());
+    // Disable resend button during process
+    resendOtpBtn.disabled = true;
+    resendOtpBtn.innerHTML = '<span class="loading"></span> Resending...';
+    
+    confirmationResultGlobal = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
+    alert("New OTP sent to " + phone);
+    
+    // Start new OTP timer
+    startOtpTimer();
+    
+  } catch (e) {
+    console.error(e);
+    alert(e.message);
+  } finally {
+    // Re-enable resend button
+    resendOtpBtn.disabled = false;
+    resendOtpBtn.innerHTML = '<span>Resend OTP</span>';
+  }
+};
+
+window.verifyOtp = async () => {
+  if (isOtpExpired) {
+    alert("OTP has expired. Please resend a new OTP.");
+    return;
+  }
+  
+  if (!confirmationResultGlobal) { 
+    alert("Click 'Send OTP' first"); 
+    return; 
+  }
+  
+  const otp = otpCode.value.trim();
+  if (!otp) {
+    alert("Please enter the OTP");
+    return;
+  }
+  
+  try {
+    // Disable verify button during process
+    verifyOtpBtn.disabled = true;
+    verifyOtpBtn.innerHTML = '<span class="loading"></span> Verifying...';
+    
+    await confirmationResultGlobal.confirm(otp);
+    alert("Login successful!");
+    
+    // Clear timer on successful verification
+    clearOtpTimer();
+    otpTimer.style.display = "none";
+    
   } catch {
-    alert("Wrong OTP");
+    alert("Wrong OTP. Please try again.");
+  } finally {
+    // Re-enable verify button
+    verifyOtpBtn.disabled = false;
+    verifyOtpBtn.innerHTML = '<span>Verify OTP</span>';
   }
 };
 
@@ -1407,6 +1596,7 @@ window.logout = async () => {
     await signOut(auth);
     cart = {};
     updateCartCount();
+    resetOtpFields(); // Reset OTP fields on logout
     showSection("main");
   } catch (e) {
     console.error(e);
@@ -1428,6 +1618,9 @@ onAuthStateChanged(auth, async (user) => {
     menuUserEmail.textContent = "Login to continue";
     showDefaultProfileIcon();
     orderHistoryList.innerHTML = "<div class='small' style='text-align:center;padding:20px;'>Login to see your orders</div>";
+    
+    // Reset OTP fields when no user
+    resetOtpFields();
     return;
   }
 
@@ -1664,6 +1857,9 @@ function initRecaptcha() {
   }
 }
 initRecaptcha();
+
+// Initialize OTP fields on page load
+resetOtpFields();
 
 </script>
 
