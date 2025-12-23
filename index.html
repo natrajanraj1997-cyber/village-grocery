@@ -1001,7 +1001,8 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const storage = getStorage(app);
+const storage = getStorage(app, "gs://grocery-orders-3ce26.firebasestorage.app");
+
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
