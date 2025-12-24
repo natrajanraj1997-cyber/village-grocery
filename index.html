@@ -954,16 +954,33 @@ header {
       <button class="btn-primary" type="button" onclick="sendOtp()" id="sendOtpBtn"><span>Send OTP</span></button>
       
       <!-- OTP Timer Display -->
-      <div id="otpTimer" class="otp-timer" style="display:none;"></div>
-      
-      <input id="otpCode" placeholder="Enter OTP" disabled>
-      <button class="btn-primary" type="button" onclick="verifyOtp()" id="verifyOtpBtn"><span>Verify OTP</span></button>
-      <button class="btn-primary" type="button" onclick="resendOtp()" id="resendOtpBtn" style="display:none;"><span>Resend OTP</span></button>
+    
+
       <div class="divider"><span>or</span></div>
       <button class="btn-ghost" type="button" onclick="googleLogin()"><span>Sign in with Google</span></button>
     </div>
     <div id="userBox" style="display:none"></div>
   </div>
+	<div class="card cart content-section hidden" id="otpSection">
+  <h4>📲 Enter OTP</h4>
+  <p id="otpInfoText" class="small"></p>
+
+  <!-- OTP Timer Display -->
+  <div id="otpTimer" class="otp-timer" style="display:none;"></div>
+
+  <input id="otpCode" placeholder="Enter OTP">
+  <button class="btn-primary" type="button" onclick="verifyOtp()" id="verifyOtpBtn">
+    <span>Verify OTP</span>
+  </button>
+  <button class="btn-primary" type="button" onclick="resendOtp()" id="resendOtpBtn" style="display:none;">
+    <span>Resend OTP</span>
+  </button>
+
+  <button class="btn-ghost" type="button" onclick="backToLoginFromOtp()">
+    <span>← Change number</span>
+  </button>
+</div>
+
 
   <div id="shopSection" class="content-section hidden">
     <button class="back-button" id="shopBackButton" onclick="goBackFromShop()">← Back</button>
@@ -1088,6 +1105,8 @@ const shopBackButton = document.getElementById("shopBackButton");
 const loginName = document.getElementById("loginName");
 const loginMobile = document.getElementById("loginMobile");
 const otpCode = document.getElementById("otpCode");
+const otpSection = document.getElementById("otpSection");
+const otpInfoText = document.getElementById("otpInfoText");
 const loginBox = document.getElementById("loginBox");
 const userBox = document.getElementById("userBox");
 const shopSection = document.getElementById("shopSection");
@@ -1190,6 +1209,28 @@ function resetOtpFields() {
   resendOtpBtn.style.display = "none";
   clearOtpTimer();
 }
+function showOtpScreen(phone) {
+  // hide login box
+  loginBox.style.display = "none";
+
+  // show OTP section
+  otpSection.classList.remove("hidden");
+
+  // info text
+  otpInfoText.textContent = "OTP sent to " + phone;
+
+  // prepare input and timer UI
+  resetOtpFields();
+  otpCode.disabled = false;
+  otpCode.placeholder = "Enter OTP";
+}
+
+function backToLoginFromOtp() {
+  // hide OTP section and go back to login
+  otpSection.classList.add("hidden");
+  loginBox.style.display = "block";
+}
+window.backToLoginFromOtp = backToLoginFromOtp;
 
 // ✅ FIXED: Simple image cropping without complex processing
 async function cropImageSimply(file, size = 300) {
@@ -1524,17 +1565,19 @@ window.sendOtp = async () => {
   let phone = loginMobile.value.trim();
   if (!phone.startsWith("+")) phone = "+91" + phone;
   if (phone.length < 12) { alert("Enter valid mobile number"); return; }
+
   try {
     // Disable send button during process
     sendOtpBtn.disabled = true;
     sendOtpBtn.innerHTML = '<span class="loading"></span> Sending...';
-    
+
     confirmationResultGlobal = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
     alert("OTP sent to " + phone);
-    
-    // Start OTP timer
+
+    // 👉 move to OTP page and start timer
+    showOtpScreen(phone);
     startOtpTimer();
-    
+
   } catch (e) {
     console.error(e);
     alert(e.message);
@@ -1544,6 +1587,7 @@ window.sendOtp = async () => {
     sendOtpBtn.innerHTML = '<span>Send OTP</span>';
   }
 };
+
 
 window.resendOtp = async () => {
   let phone = loginMobile.value.trim();
