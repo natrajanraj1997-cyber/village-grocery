@@ -1048,6 +1048,24 @@ const googleProvider = new GoogleAuthProvider();
 
 let data = [];
 let cart = {};
+function saveCart() {
+  try {
+    localStorage.setItem("vg_cart", JSON.stringify(cart));
+  } catch (e) {
+    console.error("Save cart failed", e);
+  }
+}
+
+function loadCart() {
+  try {
+    const saved = localStorage.getItem("vg_cart");
+    cart = saved ? JSON.parse(saved) : {};
+  } catch (e) {
+    cart = {};
+  }
+  updateCartCount();
+}
+
 let cat = "All";
 let currentSection = "main";
 let userProfileData = { name: "", phone: "", address: "" };
@@ -1477,21 +1495,29 @@ window.add = (id) => {
   if (!cart[id]) cart[id] = { qty: 1, price: product.price, name: product.name, img: product.img };
   else cart[id].qty += 1;
   updateCartCount();
+  saveCart();
   currentSection === "shop" ? render() : renderCartPage();
 };
+
 window.chg = (id, d) => {
   if (!cart[id]) return;
   cart[id].qty += d;
   if (cart[id].qty <= 0) delete cart[id];
   updateCartCount();
+  saveCart();
   currentSection === "shop" ? render() : renderCartPage();
 };
+
 function updateCartCount() {
   let c = 0;
   for (let i in cart) c += cart[i].qty;
   menuCartCount.textContent = c;
   headerCartCount.textContent = c;
 }
+
+if (search) search.oninput = render;
+loadCart();
+
 
 // phone auth
 window.sendOtp = async () => {
@@ -1874,11 +1900,12 @@ window.placeOrder = async () => {
     distanceKm: distKm  // store distance for admin info
   });
 
-  alert("Order placed successfully!");
-  cart = {};
-  updateCartCount();
-  renderCartPage();
-  nameEl.value = "";
+ alert("Order placed successfully!");
+cart = {};
+updateCartCount();
+saveCart();
+renderCartPage();
+nameEl.value = "";
   mobileEl.value = "";
   addressEl.value = "";
   locStatus.textContent = "";
@@ -1888,7 +1915,7 @@ window.placeOrder = async () => {
 };
 
 
-if (search) search.oninput = render;
+
 
 // Initialize recaptcha
 function initRecaptcha() {
