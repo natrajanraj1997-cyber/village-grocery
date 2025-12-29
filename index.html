@@ -1076,13 +1076,34 @@ function saveCart() {
     console.error("Save cart failed", e);
   }
 }
-
-function loadCart() {
+	function saveState() {
   try {
-    const saved = localStorage.getItem("vg_cart");
-    cart = saved ? JSON.parse(saved) : {};
+    localStorage.setItem("vg_state", JSON.stringify({ 
+      section: currentSection, 
+      cat: cat 
+    }));
+  } catch (e) {
+    console.error("Save state failed", e);
+  }
+}
+
+function loadState() {
+  try {
+    // Load cart
+    const savedCart = localStorage.getItem("vg_cart");
+    cart = savedCart ? JSON.parse(savedCart) : {};
+    
+    // Load section & category
+    const savedState = localStorage.getItem("vg_state");
+    if (savedState) {
+      const state = JSON.parse(savedState);
+      currentSection = state.section || "main";
+      cat = state.cat || "All";
+    }
   } catch (e) {
     cart = {};
+    currentSection = "main";
+    cat = "All";
   }
   updateCartCount();
 }
@@ -1427,6 +1448,7 @@ window.showSection = (section) => {
   document.querySelectorAll(".content-section").forEach((el) => el.classList.add("hidden"));
   cartBar.classList.toggle("active", section === "cart");
   currentSection = section;
+	saveState();
   if (section === "shop") {
     shopSection.classList.remove("hidden");
     updateShopBackButtonVisibility();
@@ -1533,6 +1555,7 @@ window.setCat = (c) => {
   document.querySelectorAll(".cats button").forEach((b) => b.classList.toggle("active", b.textContent === c));
   render();
   updateShopBackButtonVisibility();
+	saveState();
 };
 window.add = (id) => {
   const product = data.find((p) => p.id === id);
@@ -1561,7 +1584,7 @@ function updateCartCount() {
 }
 
 if (search) search.oninput = render;
-loadCart();
+loadState();
 
 
 // phone auth
@@ -1669,6 +1692,7 @@ window.logout = async () => {
     if (profileListenerUnsub) { profileListenerUnsub(); profileListenerUnsub = null; }
     await signOut(auth);
     cart = {};
+	  localStorage.removeItem("vg_state");
     updateCartCount();
     resetOtpFields(); // Reset OTP fields on logout
     showSection("main");
