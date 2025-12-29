@@ -42,6 +42,10 @@ body {
   padding-bottom: 100px;
   min-height: 100vh;
 }
+/* Hide the whole app while auth is initializing */
+body.auth-loading #appRoot {
+  display: none;
+}
 
 /* Header */
 header {
@@ -880,8 +884,8 @@ header {
 </style>
 </head>
 
-<body>
-
+<body class="auth-loading">
+<div id="appRoot">
 <div class="side-menu" id="sideMenu">
   <div class="user-profile">
     <div class="profile-image-container">
@@ -1031,7 +1035,7 @@ header {
 <div class="cart-bar" id="cartBar">
   <button id="placeBtn" onclick="placeOrder()">Place Order</button>
 </div>
-
+</div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
@@ -1672,9 +1676,15 @@ window.logout = async () => {
     console.error(e);
   }
 };
-
+let authInitialized = false; // put this near your other top-level lets
 // auth state
 onAuthStateChanged(auth, async (user) => {
+	 if (!authInitialized) {
+    // first time auth state is known: show the app
+    document.body.classList.remove("auth-loading");
+    authInitialized = true;
+  }
+	
   if (profileListenerUnsub) { profileListenerUnsub(); profileListenerUnsub = null; }
 
   if (!user) {
