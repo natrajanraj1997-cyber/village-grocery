@@ -1588,7 +1588,51 @@ function updateCartCount() {
   menuCartCount.textContent = c;
   headerCartCount.textContent = c;
 }
+	
+function showToast(message, type = "info", duration = 2000) {
+  // Remove existing toast
+  const existing = document.getElementById("toast");
+  if (existing) existing.remove();
+  
+  // Create toast
+  const toast = document.createElement("div");
+  toast.id = "toast";
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: ${type === "success" ? "var(--primary)" : "#ff9800"};
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 10000;
+    font-weight: 500;
+    font-size: 14px;
+    max-width: 300px;
+    word-wrap: break-word;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+  `;
+  toast.textContent = message;
+  
+  document.body.appendChild(toast);
+  
+  // Animate in
+  requestAnimationFrame(() => {
+    toast.style.transform = "translateX(0)";
+  });
+  
+  // Auto remove after 2 seconds
+  setTimeout(() => {
+    toast.style.transform = "translateX(400px)";
+    setTimeout(() => {
+      if (toast.parentNode) toast.remove();
+    }, 300);
+  }, duration);
+}
 
+	
 if (search) search.oninput = render;
 loadState();
 
@@ -1605,7 +1649,7 @@ window.sendOtp = async () => {
     sendOtpBtn.innerHTML = '<span class="loading"></span> Sending...';
 
     confirmationResultGlobal = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
-    alert("OTP sent to " + phone);
+  showToast("OTP sent to " + phone, "success", 2000);
 
     // 👉 move to OTP page and start timer
     showOtpScreen(phone);
@@ -1632,7 +1676,7 @@ window.resendOtp = async () => {
     resendOtpBtn.innerHTML = '<span class="loading"></span> Resending...';
     
     confirmationResultGlobal = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
-    alert("New OTP sent to " + phone);
+   showToast("New OTP sent to " + phone, "success", 2000);
     
     // Start new OTP timer
     startOtpTimer();
@@ -1670,7 +1714,7 @@ window.verifyOtp = async () => {
     verifyOtpBtn.innerHTML = '<span class="loading"></span> Verifying...';
     
     await confirmationResultGlobal.confirm(otp);
-    alert("Login successful!");
+    showToast("Login successful!", "success", 2000);
     
     // Clear timer on successful verification
     clearOtpTimer();
