@@ -1013,6 +1013,37 @@ header {
         <span style="font-size:1.6rem;font-weight:700;color:var(--primary);margin-left:10px;">₹<span id="cartTotal">0</span></span>
       </div>
     </div>
+	  <div class="card" style="margin-bottom: 20px;">
+    <div id="timeStatus" style="
+      padding: 12px;
+      border-radius: var(--radius-sm);
+      background: rgba(46, 125, 50, 0.08);
+      font-size: 14px;
+      font-weight: 500;
+      text-align: center;
+      margin-bottom: 8px;
+      transition: all 0.3s ease;
+    ">
+      Loading time status...
+    </div>
+    <div style="
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--text-light);
+      padding-top: 8px;
+      border-top: 1px dashed var(--border);
+    ">
+      <div>
+        <strong>Order Hours:</strong><br>
+        7:00 AM - 11:00 PM
+      </div>
+      <div style="text-align: right;">
+        <strong>Delivery:</strong><br>
+        After 8:00 PM → Next day
+      </div>
+    </div>
+  </div>
     <div class="card cart">
       <h4>📦 Delivery details</h4>
       <input id="name" placeholder="Name *">
@@ -1059,6 +1090,8 @@ const firebaseConfig = {
   messagingSenderId: "786501136156",
   appId: "1:786501136156:web:9277a2f7ef937deff1d4d9"
 };
+	
+
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
@@ -1074,6 +1107,129 @@ function saveCart() {
     localStorage.setItem("vg_cart", JSON.stringify(cart));
   } catch (e) {
     console.error("Save cart failed", e);
+  }
+}
+	const BUSINESS_HOURS = {
+  OPEN_HOUR: 7,    // 7:00 AM
+  CLOSE_HOUR: 23,  // 11:00 PM (23:00 in 24-hour format)
+  NEXT_DAY_THRESHOLD: 20  // 8:00 PM
+};
+	// ========== TIME UTILITY FUNCTIONS ==========
+
+// 1. Check if current time is within business hours (7 AM - 11 PM)
+function isWithinBusinessHours() {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const currentTimeInMinutes = currentHour * 60 + currentMinute;
+  
+  const openingMinutes = BUSINESS_HOURS.OPEN_HOUR * 60;    // 7:00 AM = 420 minutes
+  const closingMinutes = BUSINESS_HOURS.CLOSE_HOUR * 60;   // 11:00 PM = 1380 minutes
+  
+  return currentTimeInMinutes >= openingMinutes && currentTimeInMinutes < closingMinutes;
+}
+
+// 2. Check if order is placed after 8 PM
+function isAfter8PM() {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const currentTimeInMinutes = currentHour * 60 + currentMinute;
+  
+  const thresholdMinutes = BUSINESS_HOURS.NEXT_DAY_THRESHOLD * 60; // 8:00 PM = 1200 minutes
+  
+  return currentTimeInMinutes >= thresholdMinutes;
+}
+
+// 3. Calculate delivery date (next day if after 8 PM)
+function getDeliveryDate() {
+  const now = new Date();
+  const deliveryDate = new Date(now);
+  
+  // If order is placed after 8 PM, deliver next day
+  if (isAfter8PM()) {
+    deliveryDate.setDate(deliveryDate.getDate() + 1);
+  }
+  
+  return deliveryDate;
+}
+
+// 4. Format date nicely for display
+function formatDeliveryDate(date) {
+  return date.toLocaleDateString('en-IN', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+
+// 5. Create formatted time string (e.g., "9:30 PM")
+function formatTimeMessage() {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes().toString().padStart(2, '0');
+  const ampm = currentHour >= 12 ? 'PM' : 'AM';
+  const displayHour = currentHour % 12 || 12;
+  
+  return `${displayHour}:${currentMinute} ${ampm}`;
+}
+
+// 6. Get hours until opening (for closed status)
+function getHoursUntilOpening() {
+  const now = new Date();
+  const currentHour = now.getHours();
+  
+  if (currentHour < BUSINESS_HOURS.OPEN_HOUR) {
+    return BUSINESS_HOURS.OPEN_HOUR - currentHour;
+  }
+  return 0;
+}
+
+// 7. Get formatted business hours string
+function getBusinessHoursString() {
+  return "7:00 AM - 11:00 PM";
+}
+
+// 8. Get delivery policy message
+function getDeliveryPolicyMessage() {
+  return "Orders placed after 8:00 PM are delivered the next day";
+}
+	// 9. Update time status display in UI
+function updateTimeStatus() {
+  const timeInfoElement = document.getElementById('timeStatus');
+  if (!timeInfoElement) return;
+  
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const currentTimeInMinutes = currentHour * 60 + currentMinute;
+  
+  const openingMinutes = BUSINESS_HOURS.OPEN_HOUR * 60;
+  const closingMinutes = BUSINESS_HOURS.CLOSE_HOUR * 60;
+  const thresholdMinutes = BUSINESS_HOURS.NEXT_DAY_THRESHOLD * 60;
+  
+  if (currentTimeInMinutes < openingMinutes) {
+    // Before 7 AM
+    const hoursUntilOpen = Math.ceil((openingMinutes - currentTimeInMinutes) / 60);
+    timeInfoElement.innerHTML = `⏰ Opening in ${hoursUntilOpen} hour${hoursUntilOpen > 1 ? 's' : ''}`;
+    timeInfoElement.style.color = '#ff9800';
+    timeInfoElement.style.backgroundColor = 'rgba(255, 152, 0, 0.1)';
+  } else if (currentTimeInMinutes >= closingMinutes) {
+    // After 11 PM
+    timeInfoElement.innerHTML = '⏰ Closed for today';
+    timeInfoElement.style.color = '#f44336';
+    timeInfoElement.style.backgroundColor = 'rgba(244, 67, 54, 0.1)';
+  } else if (currentTimeInMinutes >= thresholdMinutes) {
+    // After 8 PM
+    timeInfoElement.innerHTML = `🕐 ${formatTimeMessage()} | 📦 Orders now = Next day delivery`;
+    timeInfoElement.style.color = '#2196f3';
+    timeInfoElement.style.backgroundColor = 'rgba(33, 150, 243, 0.1)';
+  } else {
+    // Normal hours (7 AM - 8 PM)
+    timeInfoElement.innerHTML = `🕐 ${formatTimeMessage()} | ✅ Open for orders`;
+    timeInfoElement.style.color = '#4caf50';
+    timeInfoElement.style.backgroundColor = 'rgba(76, 175, 80, 0.1)';
   }
 }
 	function saveState() {
@@ -1832,7 +1988,10 @@ onAuthStateChanged(auth, async (user) => {
 	
 	document.querySelector(".card.cart").style.display = "none";  // Hide entire login card
 document.getElementById("userBox").innerHTML = "✅ Logged in"; // Show user status
-
+updateTimeStatus();                    // Line 1
+  setInterval(updateTimeStatus, 30000);  // Line 2
+  console.log("⏰ Time updates started");
+	
   const userName =
     loginName.value.trim() ||
     user.displayName ||
@@ -2048,6 +2207,12 @@ function distanceInKm(lat1, lon1, lat2, lon2) {
 }
 
 window.placeOrder = async () => {
+	  if (!isWithinBusinessHours()) {
+    alert("Sorry, we're currently closed.\n\n" +
+          "Order Hours: 7:00 AM - 11:00 PM\n" +
+          "Please place your order during business hours.");
+    return;
+  }
   if (!nameEl.value || !mobileEl.value || !addressEl.value || !Object.keys(cart).length) {
     alert("Fill all details & add at least one item");
     return;
@@ -2089,7 +2254,11 @@ window.placeOrder = async () => {
   userProfileData.name = nameEl.value.trim();
   userProfileData.phone = mobileEl.value.trim();
   userProfileData.address = addressEl.value.trim();
-
+	
+ const deliveryMessage = isAfter8PM() ? 
+    `Delivery Date: ${formatDeliveryDate(getDeliveryDate())}` :
+    'Delivery: Today';
+	
   await addDoc(collection(db, "orders"), {
     name: nameEl.value,
     mobile: mobileEl.value,
@@ -2104,13 +2273,16 @@ window.placeOrder = async () => {
     userId: user.uid,
     userPhone: user.phoneNumber || null,
     userEmail: user.email || null,
-    distanceKm: distKm  // store distance for admin info
+    distanceKm: distKm,  // store distance for admin info
+	  deliveryDate: getDeliveryDate().toISOString(),
+    orderedAfter8PM: isAfter8PM()
   });
 
-  alert("Order placed successfully!\n\n" +
+ alert(`Order placed successfully!\n\n` +
         `Subtotal: ₹${subtotal}\n` +
         `Delivery Fee: ₹${deliveryFee}\n` +
-        `Total: ₹${grandTotal}`);
+        `Total: ₹${grandTotal}\n\n` +
+        `${deliveryMessage}`);
   
   cart = {};
   updateCartCount();
