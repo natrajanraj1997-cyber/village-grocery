@@ -898,6 +898,26 @@ function updateStats() {
     const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date();
     return orderDate >= today;
   });
+	// Add this in updateStats() function
+const totalRevenue = allOrders.reduce((sum, order) => {
+  // Use stored total if available, otherwise calculate
+  if (order.total !== undefined) {
+    return sum + order.total;
+  } else {
+    // Calculate from items for old orders
+    let subtotal = 0;
+    if (order.items) {
+      for (let key in order.items) {
+        const item = order.items[key];
+        subtotal += item.qty * (item.price || 0);
+      }
+    }
+    const deliveryFee = subtotal >= 200 ? 0 : 40;
+    return sum + subtotal + deliveryFee;
+  }
+}, 0);
+
+// Then you can display this in a new stat card if you want
   
   const pending = allOrders.filter(o => o.status === 'NEW' || o.status === 'INPROGRESS');
   const delivered = allOrders.filter(o => o.status === 'DELIVERED');
@@ -930,22 +950,27 @@ function renderOrders() {
   filteredOrders.forEach((order, index) => {
     const items = order.items || {};
     let itemsHtml = '';
-    let totalAmount = 0;
-    
-    for (let key in items){
-      const it = items[key];
-      const itemName = it.name || key;
-      const itemTotal = it.qty * (it.price || 0);
-      totalAmount += itemTotal;
-      
-      itemsHtml += `
-        <li>
-          <div class="item-name">${itemName}</div>
-          <div class="item-details">${it.qty} × ₹${it.price}</div>
-          <div class="item-price">₹${itemTotal}</div>
-        </li>
-      `;
-    }
+  let subtotal = 0;
+
+for (let key in items){
+  const it = items[key];
+  const itemName = it.name || key;
+  const itemTotal = it.qty * (it.price || 0);
+  subtotal += itemTotal;
+  
+  itemsHtml += `
+    <li>
+      <div class="item-name">${itemName}</div>
+      <div class="item-details">${it.qty} × ₹${it.price}</div>
+      <div class="item-price">₹${itemTotal}</div>
+    </li>
+  `;
+}
+
+// Calculate total with delivery fee
+// Check if the order has stored delivery fee (for new orders)
+const deliveryFee = order.deliveryFee !== undefined ? order.deliveryFee : (subtotal >= 200 ? 0 : 40);
+const grandTotal = order.total !== undefined ? order.total : (subtotal + deliveryFee);
     
     const created = order.createdAt?.toDate ? order.createdAt.toDate() : new Date();
     const formattedDate = created.toLocaleDateString('en-IN', {
@@ -986,7 +1011,23 @@ function renderOrders() {
         </div>
         
         <div class="order-items">
-          <h4>Order Items (Total: ₹${totalAmount})</h4>
+         <h4>Order Details</h4>
+<div style="background: rgba(46, 125, 50, 0.08); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 15px;">
+  <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+    <span>Product Subtotal:</span>
+    <span style="font-weight: 600;">₹${subtotal}</span>
+  </div>
+  <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+    <span>Delivery Fee:</span>
+    <span style="font-weight: 600; color: ${deliveryFee > 0 ? '#f44336' : 'var(--primary)'}">
+      ${deliveryFee > 0 ? '₹' + deliveryFee : 'FREE'}
+    </span>
+  </div>
+  <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">
+    <span style="font-weight: 700;">Total Amount:</span>
+    <span style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">₹${grandTotal}</span>
+  </div>
+</div>
           <ul>${itemsHtml}</ul>
         </div>
       </div>
