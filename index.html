@@ -1006,7 +1006,7 @@ header {
   <div id="cartSection" class="content-section hidden">
     <button class="back-button" onclick="goBackToAllTab()">← Back</button>
     <div class="card cart">
-      <h4>🛒 Your Cart</h4>
+      <h4>🛒 Order Summary</h4>
       <div id="cartDetails"></div>
       <div style="text-align:right;margin-top:16px;padding-top:16px;border-top:2px solid var(--border);">
         <span style="color:var(--text-light);font-weight:600;">Total:</span>
@@ -1531,6 +1531,8 @@ function renderCartPage() {
   if (!cartDetails) return;
   cartDetails.innerHTML = "";
   let t = 0;
+  
+  // Calculate subtotal
   for (let i in cart) {
     const item = cart[i];
     const itemTotal = item.qty * item.price;
@@ -1550,10 +1552,52 @@ function renderCartPage() {
         </div>
       </div>`;
   }
+  
+  // Calculate delivery fee and totals
+  const subtotal = t;
+  const deliveryFee = subtotal >= 200 ? 0 : 40;
+  const amountNeeded = subtotal < 200 ? (200 - subtotal) : 0;
+  const grandTotal = subtotal + deliveryFee;
+  
+  // Display empty cart message
   if (Object.keys(cart).length === 0) {
     cartDetails.innerHTML = '<p class="small" style="text-align:center;padding:20px;">Your cart is empty</p>';
   }
-  cartTotal.textContent = t;
+  
+  // Add subtotal, delivery fee, and grand total to display
+  cartDetails.innerHTML += `
+    <div style="margin-top: 20px; padding-top: 15px; border-top: 2px dashed var(--border);">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="color: var(--text-light);">Subtotal:</span>
+        <span style="font-weight: 600;">₹${subtotal}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="color: var(--text-light);">Delivery Fee:</span>
+        <span style="font-weight: 600; color: ${deliveryFee > 0 ? '#f44336' : 'var(--primary)'};">
+          ${deliveryFee > 0 ? '₹' + deliveryFee : 'FREE'}
+        </span>
+      </div>
+      ${amountNeeded > 0 ? `
+        <div style="background: rgba(255, 152, 0, 0.1); color: #ff9800; padding: 10px; border-radius: var(--radius-sm); 
+                    margin: 10px 0; font-size: 13px; text-align: center; border-left: 4px solid #ff9800;">
+          <strong>Add ₹${amountNeeded} more to avoid delivery fee!</strong>
+        </div>
+      ` : `
+        <div style="background: rgba(46, 125, 50, 0.1); color: var(--primary); padding: 10px; border-radius: var(--radius-sm); 
+                    margin: 10px 0; font-size: 13px; text-align: center; border-left: 4px solid var(--primary);">
+          <strong>🎉 You've earned FREE delivery!</strong>
+        </div>
+      `}
+      <div style="display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; 
+                  border-top: 2px solid var(--primary); font-size: 1.1rem;">
+        <span style="color: var(--text); font-weight: 700;">Total:</span>
+        <span style="font-size: 1.4rem; font-weight: 700; color: var(--primary);">₹${grandTotal}</span>
+      </div>
+    </div>
+  `;
+  
+  // Update the cart total display at the top
+  cartTotal.textContent = grandTotal;
 }
 
 window.setCat = (c) => {
@@ -1918,8 +1962,18 @@ function loadOrderHistory(userId) {
           </div>
           <div id="orderItems-${orderId}"></div>
           <div style="text-align:right;margin-top:15px;padding-top:15px;border-top:1px solid var(--border);">
-            <strong>Total: ₹${calculateOrderTotal(o.items)}</strong>
-          </div>`;
+  ${o.subtotal !== undefined ? `
+    <div style="margin-bottom: 5px; font-size: 13px;">
+      Subtotal: ₹${o.subtotal}
+    </div>
+    <div style="margin-bottom: 5px; font-size: 13px; color: ${o.deliveryFee > 0 ? '#f44336' : 'var(--primary)'};">
+      Delivery Fee: ${o.deliveryFee > 0 ? '₹' + o.deliveryFee : 'FREE'}
+    </div>
+    <strong>Total: ₹${o.total || calculateOrderTotal(o.items)}</strong>
+  ` : `
+    <strong>Total: ₹${calculateOrderTotal(o.items)}</strong>
+  `}
+</div>`;
         orderHistoryList.appendChild(card);
         const container = document.getElementById(`orderItems-${orderId}`);
         if (o.items) {
@@ -2024,6 +2078,14 @@ window.placeOrder = async () => {
     return;
   }
 
+  // Calculate order total with delivery fee
+  let subtotal = 0;
+  for (let i in cart) {
+    subtotal += cart[i].qty * cart[i].price;
+  }
+  const deliveryFee = subtotal >= 200 ? 0 : 40;
+  const grandTotal = subtotal + deliveryFee;
+
   userProfileData.name = nameEl.value.trim();
   userProfileData.phone = mobileEl.value.trim();
   userProfileData.address = addressEl.value.trim();
@@ -2033,6 +2095,9 @@ window.placeOrder = async () => {
     mobile: mobileEl.value,
     address: addressEl.value,
     items: cart,
+    subtotal: subtotal, // Store subtotal
+    deliveryFee: deliveryFee, // Store delivery fee
+    total: grandTotal, // Store grand total
     status: "NEW",
     createdAt: serverTimestamp(),
     location: { lat: currentLat, lng: currentLng },
@@ -2042,12 +2107,16 @@ window.placeOrder = async () => {
     distanceKm: distKm  // store distance for admin info
   });
 
- alert("Order placed successfully!");
-cart = {};
-updateCartCount();
-saveCart();
-renderCartPage();
-nameEl.value = "";
+  alert("Order placed successfully!\n\n" +
+        `Subtotal: ₹${subtotal}\n` +
+        `Delivery Fee: ₹${deliveryFee}\n` +
+        `Total: ₹${grandTotal}`);
+  
+  cart = {};
+  updateCartCount();
+  saveCart();
+  renderCartPage();
+  nameEl.value = "";
   mobileEl.value = "";
   addressEl.value = "";
   locStatus.textContent = "";
