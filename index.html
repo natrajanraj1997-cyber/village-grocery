@@ -1048,8 +1048,9 @@ import {
 import {
   getAuth, RecaptchaVerifier, signInWithPhoneNumber,
   signOut, onAuthStateChanged, GoogleAuthProvider,
-  signInWithPopup, updateProfile
+  signInWithRedirect, getRedirectResult, updateProfile  // ❌ Remove signInWithPopup
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
 
 const firebaseConfig = {
   apiKey: "AIzaSyCYDLsQLFvuTV1N0mXtZFVYcSQqOkGfCrE",
@@ -1066,6 +1067,17 @@ const storage = getStorage(app, "gs://grocery-orders-3ce26.firebasestorage.app")
 
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
+	// ✅ HANDLE GOOGLE REDIRECT (add this immediately after googleProvider)
+getRedirectResult(auth)
+  .then((result) => {
+    if (result) {
+      showToast("Google login successful!", "success");
+    }
+  })
+  .catch((error) => {
+    console.error("Google redirect error:", error);
+  });
+
 
 let data = [];
 let cart = {};
@@ -1730,13 +1742,17 @@ window.verifyOtp = async () => {
 };
 
 // google auth
+// ✅ NEW - redirect works perfectly
 window.googleLogin = async () => {
   try {
-    await signInWithPopup(auth, googleProvider);
+    await signInWithRedirect(auth, googleProvider);
   } catch (e) {
-    alert(e.message);
+    alert("Google login failed: " + e.message);
   }
 };
+
+// Handle redirect result on page load
+
 window.logout = async () => {
   try {
     if (profileListenerUnsub) { profileListenerUnsub(); profileListenerUnsub = null; }
