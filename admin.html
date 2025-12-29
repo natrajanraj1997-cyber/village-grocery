@@ -50,6 +50,7 @@ header {
   color: white;
   padding: 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 header div {
@@ -63,6 +64,39 @@ header div {
 
 header div::before {
   content: "👨‍💼";
+}
+
+/* Sound Toggle Button */
+#soundToggleBtn {
+  position: absolute;
+  right: 120px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+#soundToggleBtn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-50%) scale(1.1);
+}
+
+#soundToggleBtn.muted::after {
+  content: "🔕";
+}
+
+#soundToggleBtn:not(.muted)::after {
+  content: "🔔";
 }
 
 /* Login Box */
@@ -669,6 +703,125 @@ code {
   to { transform: translateX(0); opacity: 1; }
 }
 
+/* Sound Notification Modal */
+.sound-notification {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  border-radius: var(--radius);
+  padding: 30px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  z-index: 2000;
+  display: none;
+  text-align: center;
+  max-width: 400px;
+  width: 90%;
+  border: 4px solid var(--secondary);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { border-color: var(--secondary); box-shadow: 0 0 20px rgba(255, 152, 0, 0.5); }
+  50% { border-color: #ff5722; box-shadow: 0 0 40px rgba(255, 87, 34, 0.7); }
+  100% { border-color: var(--secondary); box-shadow: 0 0 20px rgba(255, 152, 0, 0.5); }
+}
+
+.sound-icon {
+  font-size: 4rem;
+  margin-bottom: 15px;
+  animation: bounce 0.8s infinite alternate;
+  display: block;
+}
+
+@keyframes bounce {
+  from { transform: translateY(0); }
+  to { transform: translateY(-15px); }
+}
+
+.sound-notification h3 {
+  color: var(--primary);
+  margin-bottom: 10px;
+  font-size: 1.5rem;
+}
+
+.sound-notification p {
+  color: var(--text);
+  margin-bottom: 25px;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+.sound-notification-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+.sound-notification-buttons button {
+  padding: 12px 30px;
+  border-radius: var(--radius-full);
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: var(--transition);
+  min-width: 120px;
+}
+
+#confirmSoundBtn {
+  background: var(--primary);
+  color: white;
+  box-shadow: 0 4px 15px rgba(46, 125, 50, 0.4);
+}
+
+#confirmSoundBtn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(46, 125, 50, 0.6);
+}
+
+#viewOrderBtn {
+  background: var(--secondary);
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);
+}
+
+#viewOrderBtn:hover {
+  background: #e68900;
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.6);
+}
+
+/* New Order Counter */
+.new-order-counter {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  background: #ff5722;
+  color: white;
+  padding: 12px 25px;
+  border-radius: var(--radius-full);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  box-shadow: 0 6px 20px rgba(255, 87, 34, 0.5);
+  animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.new-order-counter::before {
+  content: "🛎️";
+  font-size: 1.2rem;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .order-header {
@@ -692,6 +845,21 @@ code {
   .code-panel {
     width: 100%;
   }
+  
+  #soundToggleBtn {
+    position: static;
+    transform: none;
+    margin-left: auto;
+    display: block;
+  }
+  
+  .sound-notification-buttons {
+    flex-direction: column;
+  }
+  
+  .sound-notification-buttons button {
+    width: 100%;
+  }
 }
 </style>
 </head>
@@ -699,11 +867,28 @@ code {
 
 <header>
   <div>Village Grocery – Admin Dashboard</div>
+  <button id="soundToggleBtn" title="Toggle Sound Notifications"></button>
 </header>
 
 <!-- Status Update Feedback -->
 <div id="statusFeedback" class="status-update-feedback">
   <span>✅ Status updated successfully!</span>
+</div>
+
+<!-- New Order Counter -->
+<div id="newOrderCounter" class="new-order-counter">
+  <span id="newOrderCount">0</span> New Order(s)!
+</div>
+
+<!-- Sound Notification Modal -->
+<div id="soundNotification" class="sound-notification">
+  <div class="sound-icon">🛎️</div>
+  <h3>New Order Received!</h3>
+  <p>A new order has been placed and requires your attention.</p>
+  <div class="sound-notification-buttons">
+    <button id="confirmSoundBtn">OK</button>
+    <button id="viewOrderBtn">View Order</button>
+  </div>
 </div>
 
 <!-- Google login -->
@@ -776,33 +961,6 @@ code {
   <span class="string">appId</span>: <span class="string">"1:786501136156:web:9277a2f7ef937deff1d4d9"</span>
 };</code></pre>
   </div>
-  
-  <div class="code-block">
-    <h4>Fixed Update Order Status Function</h4>
-    <pre><code><span class="keyword">async function</span> <span class="function">updateOrderStatus</span>(<span class="variable">orderId</span>, <span class="variable">newStatus</span>, <span class="variable">button</span>) {
-  <span class="keyword">try</span> {
-    <span class="keyword">await</span> <span class="function">updateDoc</span>(<span class="function">doc</span>(db, <span class="string">"orders"</span>, orderId), { 
-      <span class="string">status</span>: newStatus 
-    });
-    
-    <span class="comment">// Show success feedback on the clicked button</span>
-    <span class="keyword">const</span> <span class="variable">originalText</span> = button.textContent;
-    button.textContent = <span class="string">'✓ Updated'</span>;
-    button.style.opacity = <span class="string">'0.8'</span>;
-    
-    <span class="comment">// Show global feedback</span>
-    <span class="function">showStatusFeedback</span>(<span class="string">'✅ Status updated successfully!'</span>);
-    
-    <span class="function">setTimeout</span>(() => {
-      button.textContent = originalText;
-      button.style.opacity = <span class="string">'1'</span>;
-    }, <span class="number">1500</span>);
-  } <span class="keyword">catch</span> (<span class="variable">error</span>) {
-    <span class="variable">console</span>.<span class="function">error</span>(<span class="string">"Update error:"</span>, error);
-    <span class="function">showStatusFeedback</span>(<span class="string">'❌ Failed to update. Please try again.'</span>, <span class="string">'error'</span>);
-  }
-}</code></pre>
-  </div>
 </div>
 
 <!-- Code Toggle Button -->
@@ -842,6 +1000,12 @@ const ordersList = document.getElementById("ordersList");
 const googleBtn = document.getElementById("googleBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const statusFeedback = document.getElementById("statusFeedback");
+const soundToggleBtn = document.getElementById("soundToggleBtn");
+const soundNotification = document.getElementById("soundNotification");
+const confirmSoundBtn = document.getElementById("confirmSoundBtn");
+const viewOrderBtn = document.getElementById("viewOrderBtn");
+const newOrderCounter = document.getElementById("newOrderCounter");
+const newOrderCount = document.getElementById("newOrderCount");
 
 // Stats elements
 const totalOrdersEl = document.getElementById("totalOrders");
@@ -852,11 +1016,167 @@ const todayOrdersEl = document.getElementById("todayOrders");
 let unsub = null;
 let allOrders = [];
 let currentFilter = 'ALL';
+let soundEnabled = true;
+let audioContext = null;
+let oscillator = null;
+let gainNode = null;
+let isPlayingSound = false;
+let newOrderQueue = [];
+let currentOrderId = null;
+let previousOrderCount = 0;
 
 // Only allow specific admin email(s)
 const ALLOWED_EMAILS = [
   "natrajanraj1997@gmail.com"
 ];
+
+// Initialize audio for notification sound
+function initAudio() {
+  try {
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  } catch (e) {
+    console.log("Web Audio API not supported:", e);
+    soundEnabled = false;
+    soundToggleBtn.classList.add('muted');
+  }
+}
+
+// Play notification sound (continuous until stopped)
+function playNotificationSound() {
+  if (!soundEnabled || !audioContext || isPlayingSound) return;
+  
+  try {
+    oscillator = audioContext.createOscillator();
+    gainNode = audioContext.createGain();
+    
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(1000, audioContext.currentTime + 0.5);
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.start();
+    isPlayingSound = true;
+    
+    // Change frequency every second for attention
+    let time = audioContext.currentTime;
+    for (let i = 0; i < 20; i++) {
+      oscillator.frequency.setValueAtTime(800 + (i % 2) * 200, time + i * 1);
+    }
+    
+  } catch (e) {
+    console.log("Sound playback error:", e);
+  }
+}
+
+// Stop notification sound
+function stopNotificationSound() {
+  if (!isPlayingSound || !oscillator) return;
+  
+  try {
+    gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+    oscillator.stop(audioContext.currentTime + 0.5);
+    isPlayingSound = false;
+    oscillator = null;
+    gainNode = null;
+  } catch (e) {
+    console.log("Sound stop error:", e);
+  }
+}
+
+// Toggle sound on/off
+soundToggleBtn.onclick = () => {
+  soundEnabled = !soundEnabled;
+  
+  if (soundEnabled) {
+    soundToggleBtn.classList.remove('muted');
+    initAudio();
+    showStatusFeedback("🔔 Sound notifications enabled");
+  } else {
+    soundToggleBtn.classList.add('muted');
+    stopNotificationSound();
+    soundNotification.style.display = 'none';
+    showStatusFeedback("🔕 Sound notifications muted");
+  }
+  
+  // Save preference to localStorage
+  localStorage.setItem('soundEnabled', soundEnabled);
+};
+
+// Show notification for new order
+function showNewOrderNotification(order) {
+  currentOrderId = order.id;
+  newOrderQueue.push(order);
+  updateNewOrderCounter();
+  
+  if (soundEnabled) {
+    playNotificationSound();
+    soundNotification.style.display = 'block';
+    document.querySelector('.sound-notification p').innerHTML = 
+      `New order from <strong>${order.name || 'Customer'}</strong><br>
+      Amount: <strong>₹${order.total || 'N/A'}</strong><br>
+      Status: <span class="badge new">NEW</span>`;
+  }
+  
+  // Show counter
+  newOrderCounter.style.display = 'flex';
+}
+
+// Update new order counter
+function updateNewOrderCounter() {
+  const newOrders = allOrders.filter(order => order.status === 'NEW');
+  newOrderCount.textContent = newOrders.length;
+  
+  if (newOrders.length > 0) {
+    newOrderCounter.style.display = 'flex';
+  } else {
+    newOrderCounter.style.display = 'none';
+  }
+}
+
+// Handle confirm button click
+confirmSoundBtn.onclick = () => {
+  stopNotificationSound();
+  soundNotification.style.display = 'none';
+  newOrderQueue = newOrderQueue.filter(order => order.id !== currentOrderId);
+  updateNewOrderCounter();
+  currentOrderId = null;
+};
+
+// Handle view order button click
+viewOrderBtn.onclick = () => {
+  stopNotificationSound();
+  soundNotification.style.display = 'none';
+  
+  if (currentOrderId) {
+    // Scroll to the new order
+    const orderElement = document.getElementById(`order-${currentOrderId}`);
+    if (orderElement) {
+      orderElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      orderElement.style.animation = 'none';
+      orderElement.style.boxShadow = '0 0 0 3px var(--secondary)';
+      setTimeout(() => {
+        orderElement.style.boxShadow = '';
+      }, 3000);
+    }
+    
+    // Filter to show only new orders
+    filterOrders('NEW');
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+      btn.classList.remove('active');
+    });
+    document.querySelectorAll('.filter-btn')[1].classList.add('active');
+  }
+  
+  newOrderQueue = newOrderQueue.filter(order => order.id !== currentOrderId);
+  updateNewOrderCounter();
+  currentOrderId = null;
+};
 
 // Toggle code panel
 window.toggleCodePanel = function() {
@@ -898,26 +1218,6 @@ function updateStats() {
     const orderDate = order.createdAt?.toDate ? order.createdAt.toDate() : new Date();
     return orderDate >= today;
   });
-	// Add this in updateStats() function
-const totalRevenue = allOrders.reduce((sum, order) => {
-  // Use stored total if available, otherwise calculate
-  if (order.total !== undefined) {
-    return sum + order.total;
-  } else {
-    // Calculate from items for old orders
-    let subtotal = 0;
-    if (order.items) {
-      for (let key in order.items) {
-        const item = order.items[key];
-        subtotal += item.qty * (item.price || 0);
-      }
-    }
-    const deliveryFee = subtotal >= 200 ? 0 : 40;
-    return sum + subtotal + deliveryFee;
-  }
-}, 0);
-
-// Then you can display this in a new stat card if you want
   
   const pending = allOrders.filter(o => o.status === 'NEW' || o.status === 'INPROGRESS');
   const delivered = allOrders.filter(o => o.status === 'DELIVERED');
@@ -926,6 +1226,17 @@ const totalRevenue = allOrders.reduce((sum, order) => {
   pendingOrdersEl.textContent = pending.length;
   deliveredOrdersEl.textContent = delivered.length;
   todayOrdersEl.textContent = todayOrders.length;
+  
+  // Check for new orders
+  const currentNewOrders = allOrders.filter(order => order.status === 'NEW');
+  if (currentNewOrders.length > previousOrderCount) {
+    // New order detected
+    const newOrder = currentNewOrders[0]; // Get the latest new order
+    showNewOrderNotification(newOrder);
+  }
+  previousOrderCount = currentNewOrders.length;
+  
+  updateNewOrderCounter();
 }
 
 // Render orders based on current filter
@@ -950,27 +1261,26 @@ function renderOrders() {
   filteredOrders.forEach((order, index) => {
     const items = order.items || {};
     let itemsHtml = '';
-  let subtotal = 0;
+    let subtotal = 0;
 
-for (let key in items){
-  const it = items[key];
-  const itemName = it.name || key;
-  const itemTotal = it.qty * (it.price || 0);
-  subtotal += itemTotal;
-  
-  itemsHtml += `
-    <li>
-      <div class="item-name">${itemName}</div>
-      <div class="item-details">${it.qty} × ₹${it.price}</div>
-      <div class="item-price">₹${itemTotal}</div>
-    </li>
-  `;
-}
+    for (let key in items){
+      const it = items[key];
+      const itemName = it.name || key;
+      const itemTotal = it.qty * (it.price || 0);
+      subtotal += itemTotal;
+      
+      itemsHtml += `
+        <li>
+          <div class="item-name">${itemName}</div>
+          <div class="item-details">${it.qty} × ₹${it.price}</div>
+          <div class="item-price">₹${itemTotal}</div>
+        </li>
+      `;
+    }
 
-// Calculate total with delivery fee
-// Check if the order has stored delivery fee (for new orders)
-const deliveryFee = order.deliveryFee !== undefined ? order.deliveryFee : (subtotal >= 200 ? 0 : 40);
-const grandTotal = order.total !== undefined ? order.total : (subtotal + deliveryFee);
+    // Calculate total with delivery fee
+    const deliveryFee = order.deliveryFee !== undefined ? order.deliveryFee : (subtotal >= 200 ? 0 : 40);
+    const grandTotal = order.total !== undefined ? order.total : (subtotal + deliveryFee);
     
     const created = order.createdAt?.toDate ? order.createdAt.toDate() : new Date();
     const formattedDate = created.toLocaleDateString('en-IN', {
@@ -1006,28 +1316,29 @@ const grandTotal = order.total !== undefined ? order.total : (subtotal + deliver
               <button class="status-btn new" onclick="setStatus('${order.id}','NEW', this)">New</button>
               <button class="status-btn inprogress" onclick="setStatus('${order.id}','INPROGRESS', this)">In Progress</button>
               <button class="status-btn delivered" onclick="setStatus('${order.id}','DELIVERED', this)">Delivered</button>
+              <button class="status-btn cancelled" onclick="setStatus('${order.id}','CANCELLED', this)">Cancel</button>
             </div>
           </div>
         </div>
         
         <div class="order-items">
-         <h4>Order Details</h4>
-<div style="background: rgba(46, 125, 50, 0.08); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 15px;">
-  <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-    <span>Product Subtotal:</span>
-    <span style="font-weight: 600;">₹${subtotal}</span>
-  </div>
-  <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-    <span>Delivery Fee:</span>
-    <span style="font-weight: 600; color: ${deliveryFee > 0 ? '#f44336' : 'var(--primary)'}">
-      ${deliveryFee > 0 ? '₹' + deliveryFee : 'FREE'}
-    </span>
-  </div>
-  <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">
-    <span style="font-weight: 700;">Total Amount:</span>
-    <span style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">₹${grandTotal}</span>
-  </div>
-</div>
+          <h4>Order Details</h4>
+          <div style="background: rgba(46, 125, 50, 0.08); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 15px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span>Product Subtotal:</span>
+              <span style="font-weight: 600;">₹${subtotal}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <span>Delivery Fee:</span>
+              <span style="font-weight: 600; color: ${deliveryFee > 0 ? '#f44336' : 'var(--primary)'}">
+                ${deliveryFee > 0 ? '₹' + deliveryFee : 'FREE'}
+              </span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid rgba(0,0,0,0.1);">
+              <span style="font-weight: 700;">Total Amount:</span>
+              <span style="font-size: 1.2rem; font-weight: 700; color: var(--primary);">₹${grandTotal}</span>
+            </div>
+          </div>
           <ul>${itemsHtml}</ul>
         </div>
       </div>
@@ -1059,27 +1370,52 @@ googleBtn.onclick = async () => {
 
 // logout
 logoutBtn.onclick = async () => {
+  stopNotificationSound();
   await signOut(auth);
 };
 
 function showAdmin(){
   loginBox.style.display = "none";
   adminContent.style.display = "block";
+  
+  // Load sound preference
+  const savedSoundPref = localStorage.getItem('soundEnabled');
+  if (savedSoundPref !== null) {
+    soundEnabled = savedSoundPref === 'true';
+  }
+  
+  soundToggleBtn.classList.toggle('muted', !soundEnabled);
+  initAudio();
+  
   subscribeOrders();
 }
 
 function hideAdmin(){
   loginBox.style.display = "block";
   adminContent.style.display = "none";
+  stopNotificationSound();
+  soundNotification.style.display = 'none';
+  newOrderCounter.style.display = 'none';
   if (unsub) { unsub(); unsub = null; }
   ordersList.innerHTML = '<div class="empty-state">Please sign in with Google.</div>';
   ordersList.classList.remove('loading');
 }
 
-// helper to update status - FIXED VERSION
+// helper to update status
 async function updateOrderStatus(orderId, newStatus, button){
   try {
     await updateDoc(doc(db, "orders", orderId), { status: newStatus });
+    
+    // If order status changed from NEW, remove from notification queue
+    if (newStatus !== 'NEW') {
+      newOrderQueue = newOrderQueue.filter(order => order.id !== orderId);
+      if (currentOrderId === orderId) {
+        stopNotificationSound();
+        soundNotification.style.display = 'none';
+        currentOrderId = null;
+      }
+      updateNewOrderCounter();
+    }
     
     // Show success feedback on the clicked button
     const originalText = button.textContent;
@@ -1099,13 +1435,12 @@ async function updateOrderStatus(orderId, newStatus, button){
     return true;
   } catch (e) {
     console.error("Update status error:", e);
-    console.error("Error details:", e.message, e.code);
     showStatusFeedback('❌ Failed to update. Please try again.', 'error');
     return false;
   }
 }
 
-// make accessible from HTML - FIXED: Now passes the button element
+// make accessible from HTML
 window.setStatus = (id, status, button) => {
   updateOrderStatus(id, status, button);
 };
@@ -1120,6 +1455,7 @@ function subscribeOrders(){
   ordersList.classList.add('loading');
   
   unsub = onSnapshot(q, (snapshot) => {
+    const oldOrders = [...allOrders];
     allOrders = [];
     snapshot.forEach(docSnap => {
       const orderData = docSnap.data();
@@ -1128,6 +1464,21 @@ function subscribeOrders(){
         ...orderData
       });
     });
+    
+    // Check for new orders by comparing with old orders
+    if (oldOrders.length > 0) {
+      const newOrders = allOrders.filter(newOrder => 
+        newOrder.status === 'NEW' && 
+        !oldOrders.some(oldOrder => oldOrder.id === newOrder.id)
+      );
+      
+      if (newOrders.length > 0) {
+        // Show notification for each new order
+        newOrders.forEach(order => {
+          showNewOrderNotification(order);
+        });
+      }
+    }
     
     updateStats();
     renderOrders();
