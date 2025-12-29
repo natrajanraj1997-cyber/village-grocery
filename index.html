@@ -60,7 +60,34 @@ header {
   z-index: 100;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
+/* Google button loading animation */
+.btn-ghost.loading {
+  position: relative;
+  color: transparent !important;
+}
 
+.btn-ghost.loading::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(46, 125, 50, 0.3);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Popup blocker warning */
+.popup-warning {
+  background: rgba(255, 152, 0, 0.1);
+  border: 1px solid var(--secondary);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin: 10px 0;
+  font-size: 13px;
+  color: #e65100;
+  text-align: center;
+}
 .app-name {
   font-weight: 700;
   font-size: 1.4rem;
@@ -1046,9 +1073,14 @@ import {
   getStorage, ref, uploadBytes, getDownloadURL
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 import {
-  getAuth, RecaptchaVerifier, signInWithPhoneNumber,
-  signOut, onAuthStateChanged, GoogleAuthProvider,
-  signInWithRedirect, getRedirectResult, updateProfile  // ❌ Remove signInWithPopup
+  getAuth, 
+  RecaptchaVerifier, 
+  signInWithPhoneNumber,
+  signOut, 
+  onAuthStateChanged, 
+  GoogleAuthProvider,
+  signInWithPopup,  // ← Use Popup instead of Redirect
+  updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 
@@ -1067,16 +1099,14 @@ const storage = getStorage(app, "gs://grocery-orders-3ce26.firebasestorage.app")
 
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
-	// ✅ HANDLE GOOGLE REDIRECT (add this immediately after googleProvider)
-getRedirectResult(auth)
-  .then((result) => {
-    if (result) {
-      showToast("Google login successful!", "success");
-    }
-  })
-  .catch((error) => {
-    console.error("Google redirect error:", error);
-  });
+// Add these scopes for better user experience
+googleProvider.addScope('profile');
+googleProvider.addScope('email');
+googleProvider.setCustomParameters({
+  'prompt': 'select_account'  // Always show account selector
+});
+
+
 
 
 let data = [];
@@ -1601,32 +1631,58 @@ function updateCartCount() {
   headerCartCount.textContent = c;
 }
 	
-function showToast(message, type = "info", duration = 2000) {
+function showToast(message, type = "info", duration = 3000) {
   // Remove existing toast
   const existing = document.getElementById("toast");
   if (existing) existing.remove();
+  
+  // Determine background color based on type
+  let backgroundColor;
+  switch(type) {
+    case "success":
+      backgroundColor = "linear-gradient(135deg, #2e7d32 0%, #4caf50 100%)";
+      break;
+    case "error":
+      backgroundColor = "linear-gradient(135deg, #f44336 0%, #ff5722 100%)";
+      break;
+    case "warning":
+      backgroundColor = "linear-gradient(135deg, #ff9800 0%, #ffb74d 100%)";
+      break;
+    default: // info
+      backgroundColor = "linear-gradient(135deg, #2196f3 0%, #03a9f4 100%)";
+  }
   
   // Create toast
   const toast = document.createElement("div");
   toast.id = "toast";
   toast.style.cssText = `
     position: fixed;
-    top: 20px;
+    top: 80px;
     right: 20px;
-    background: ${type === "success" ? "var(--primary)" : "#ff9800"};
+    background: ${backgroundColor};
     color: white;
-    padding: 12px 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    padding: 14px 24px;
+    border-radius: 12px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.2);
     z-index: 10000;
-    font-weight: 500;
+    font-weight: 600;
     font-size: 14px;
-    max-width: 300px;
+    max-width: 350px;
     word-wrap: break-word;
     transform: translateX(400px);
     transition: transform 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   `;
-  toast.textContent = message;
+  
+  // Add icon based on type
+  let icon = "ℹ️";
+  if (type === "success") icon = "✅";
+  if (type === "error") icon = "❌";
+  if (type === "warning") icon = "⚠️";
+  
+  toast.innerHTML = `${icon} <span>${message}</span>`;
   
   document.body.appendChild(toast);
   
@@ -1635,7 +1691,7 @@ function showToast(message, type = "info", duration = 2000) {
     toast.style.transform = "translateX(0)";
   });
   
-  // Auto remove after 2 seconds
+  // Auto remove
   setTimeout(() => {
     toast.style.transform = "translateX(400px)";
     setTimeout(() => {
@@ -1643,7 +1699,6 @@ function showToast(message, type = "info", duration = 2000) {
     }, 300);
   }, duration);
 }
-
 	
 if (search) search.oninput = render;
 loadState();
@@ -1745,9 +1800,36 @@ window.verifyOtp = async () => {
 // ✅ NEW - redirect works perfectly
 window.googleLogin = async () => {
   try {
-    await signInWithRedirect(auth, googleProvider);
-  } catch (e) {
-    alert("Google login failed: " + e.message);
+    // Show loading state
+    const originalText = document.querySelector('#loginBox .btn-ghost span').textContent;
+    document.querySelector('#loginBox .btn-ghost span').textContent = "Redirecting to Google...";
+    
+    // Use popup method (more reliable for SPAs)
+    const result = await signInWithPopup(auth, googleProvider);
+    
+    // Success!
+    console.log("Google login successful:", result.user.email);
+    showToast("Welcome " + (result.user.displayName || result.user.email) + "!", "success", 2000);
+    
+  } catch (error) {
+    console.error("Google login error:", error);
+    
+    // Reset button text
+    document.querySelector('#loginBox .btn-ghost span').textContent = "Sign in with Google";
+    
+    // Handle specific errors
+    if (error.code === 'auth/popup-closed-by-user') {
+      // User closed the popup - no need to show error
+      console.log("User closed the popup");
+    } else if (error.code === 'auth/cancelled-popup-request') {
+      console.log("Popup request cancelled");
+    } else if (error.code === 'auth/popup-blocked') {
+      showToast("Popup blocked! Please allow popups for this site.", "error", 4000);
+    } else if (error.code === 'auth/unauthorized-domain') {
+      showToast("This domain is not authorized. Please check Firebase console.", "error", 4000);
+    } else {
+      showToast("Google login failed: " + error.message, "error", 3000);
+    }
   }
 };
 
