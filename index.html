@@ -1701,6 +1701,8 @@ window.logout = async () => {
 	  localStorage.removeItem("vg_state");
     updateCartCount();
     resetOtpFields(); // Reset OTP fields on logout
+	  document.querySelector(".card.cart").style.display = "block";  // Show login card
+    document.getElementById("userBox").innerHTML = "";   
     showSection("main");
   } catch (e) {
     console.error(e);
@@ -1739,6 +1741,9 @@ onAuthStateChanged(auth, async (user) => {
   loginBox.style.display = "none";
   userBox.style.display = "block";
   hamburgerBtn.style.display = "block";
+	
+	document.querySelector(".card.cart").style.display = "none";  // Hide entire login card
+document.getElementById("userBox").innerHTML = "✅ Logged in"; // Show user status
 
   const userName =
     loginName.value.trim() ||
