@@ -1471,6 +1471,12 @@ function updateShopBackButtonVisibility() {
   if (!shopBackButton) return;
   shopBackButton.style.display = cat === "All" ? "none" : "flex";
 }
+	function updateCategoryButtons() {
+  document.querySelectorAll(".cats button").forEach((b) => {
+    b.classList.toggle("active", b.textContent === cat);
+  });
+}
+
 function autoFillDeliveryDetails() {
   const user = auth.currentUser;
   if (!user) return;
@@ -1552,7 +1558,7 @@ function renderCartPage() {
 
 window.setCat = (c) => {
   cat = c;
-  document.querySelectorAll(".cats button").forEach((b) => b.classList.toggle("active", b.textContent === c));
+   updateCategoryButtons();
   render();
   updateShopBackButtonVisibility();
 	saveState();
@@ -1749,8 +1755,17 @@ onAuthStateChanged(auth, async (user) => {
   menuUserName.textContent = userName;
   menuUserEmail.textContent = userEmail || "Logged in";
 
-  showSection("shop");
+  // Restore saved section OR default to shop
+  if (currentSection === "cart") {
+    showSection("cart");
+  } else if (currentSection === "orderHistory") {
+    showSection("orderHistory");
+  } else {
+    showSection("shop");
+	   updateCategoryButtons();
+  }
   loadOrderHistory(user.uid);
+
 
   const userDocRef = doc(db, "users", user.uid);
   const snap = await getDoc(userDocRef);
