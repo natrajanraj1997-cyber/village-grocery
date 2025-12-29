@@ -2213,7 +2213,11 @@ window.placeOrder = async () => {
           "Please place your order during business hours.");
     return;
   }
-  if (!nameEl.value || !mobileEl.value || !addressEl.value || !Object.keys(cart).length) {
+	 let subtotal = 0;
+  for (let i in cart) {
+    subtotal += cart[i].qty * cart[i].price;
+  }
+  if (!nameEl.value || !mobileEl.value || !addressEl.value || Object.keys(cart).length === 0 || subtotal === 0) {
     alert("Fill all details & add at least one item");
     return;
   }
@@ -2244,10 +2248,8 @@ window.placeOrder = async () => {
   }
 
   // Calculate order total with delivery fee
-  let subtotal = 0;
-  for (let i in cart) {
-    subtotal += cart[i].qty * cart[i].price;
-  }
+   // Calculate order total with delivery fee
+ 
   const deliveryFee = subtotal >= 200 ? 0 : 40;
   const grandTotal = subtotal + deliveryFee;
 
