@@ -1709,16 +1709,22 @@ function renderCartPage() {
       </div>`;
   }
   
-  // Calculate delivery fee and totals
+  // Display empty cart message
+  if (Object.keys(cart).length === 0) {
+    cartDetails.innerHTML = '<p class="small" style="text-align:center;padding:20px;">Your cart is empty</p>';
+    
+    // Set totals to 0 for empty cart
+    cartTotal.textContent = "0";
+    
+    // Don't show any pricing info for empty cart
+    return;
+  }
+  
+  // Calculate delivery fee and totals (only if cart is not empty)
   const subtotal = t;
   const deliveryFee = subtotal >= 200 ? 0 : 40;
   const amountNeeded = subtotal < 200 ? (200 - subtotal) : 0;
   const grandTotal = subtotal + deliveryFee;
-  
-  // Display empty cart message
-  if (Object.keys(cart).length === 0) {
-    cartDetails.innerHTML = '<p class="small" style="text-align:center;padding:20px;">Your cart is empty</p>';
-  }
   
   // Add subtotal, delivery fee, and grand total to display
   cartDetails.innerHTML += `
@@ -1754,6 +1760,12 @@ function renderCartPage() {
   
   // Update the cart total display at the top
   cartTotal.textContent = grandTotal;
+	// At the end of renderCartPage() function, add:
+if (Object.keys(cart).length === 0) {
+  cartBar.classList.remove("active");
+} else {
+  cartBar.classList.add("active");
+}
 }
 
 window.setCat = (c) => {
