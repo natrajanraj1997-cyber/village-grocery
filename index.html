@@ -846,6 +846,25 @@ header {
     height: 50px;
   }
 }
+	/* Address card buttons */
+.address-card button {
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.address-card button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.address-card button:active {
+  transform: translateY(0);
+}
 
 /* OTP Timer Styles */
 .otp-timer {
@@ -1682,15 +1701,16 @@ window.showSection = (section) => {
     shopSection.classList.remove("hidden");
     updateShopBackButtonVisibility();
     render();
-  } else if (section === "cart") {
+ } else if (section === "cart") {
     cartSection.classList.remove("hidden");
     renderCartPage();
-   // Auto-fill delivery details when user logs in
-setTimeout(() => {
-  if (user) {
-    autoFillDeliveryDetails();
-  }
-}, 500); // Small delay to ensure DOM is ready
+    // Auto-fill delivery details when user logs in
+    setTimeout(() => {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        autoFillDeliveryDetails();
+      }
+    }, 100); // Small delay to ensure DOM is ready
   } else if (section === "orderHistory") {
     orderHistorySection.classList.remove("hidden");
   } else {
@@ -1711,19 +1731,27 @@ function updateShopBackButtonVisibility() {
   });
 }
 // Show new address form
+// Show new address form
 window.showNewAddressForm = function() {
-  document.getElementById('addressForm').style.display = 'block';
-  document.getElementById('savedAddresses').style.display = 'none';
+  console.log("Showing new address form");
+  const addressForm = document.getElementById('addressForm');
+  const savedAddresses = document.getElementById('savedAddresses');
   
-  // Clear form
-  document.getElementById('deliveryName').value = "";
-  document.getElementById('deliveryMobile').value = "";
-  document.getElementById('houseNo').value = "";
-  document.getElementById('street').value = "";
-  document.getElementById('landmark').value = "";
-  document.getElementById('pincode').value = "";
-  document.getElementById('city').value = "";
-  document.getElementById('state').value = "";
+  if (addressForm && savedAddresses) {
+    addressForm.style.display = 'block';
+    savedAddresses.style.display = 'none';
+    
+    // Clear form
+    document.getElementById('deliveryName').value = "";
+    document.getElementById('deliveryMobile').value = "";
+    document.getElementById('houseNo').value = "";
+    document.getElementById('street').value = "";
+    document.getElementById('landmark').value = "";
+    document.getElementById('pincode').value = "";
+    document.getElementById('city').value = "";
+    document.getElementById('state').value = "";
+    document.getElementById('saveAddress').checked = false;
+  }
 };
 
 // Use saved address
@@ -1795,19 +1823,27 @@ window.deleteAddress = async function(index) {
 };
 function autoFillDeliveryDetails() {
   const user = auth.currentUser;
-  if (!user) return;
+  if (!user) {
+    // If no user, show new address form directly
+    document.getElementById('addressForm').style.display = 'block';
+    document.getElementById('savedAddresses').style.display = 'none';
+    return;
+  }
+  
+  console.log("Auto-filling for user:", user.uid); // Debug log
   
   // Fill basic user info
   document.getElementById('deliveryName').value = userProfileData.name || user.displayName || loginName.value || "";
   document.getElementById('deliveryMobile').value = userProfileData.phone || user.phoneNumber || loginMobile.value || "";
   
-  // Clear other fields for new address
+  // Clear other fields for new address (only if no saved addresses)
   document.getElementById('houseNo').value = "";
   document.getElementById('street').value = "";
   document.getElementById('landmark').value = "";
   document.getElementById('pincode').value = "";
   document.getElementById('city').value = "";
   document.getElementById('state').value = "";
+  document.getElementById('saveAddress').checked = false;
   
   // Show saved addresses if user is logged in
   loadSavedAddresses(user.uid);
@@ -1815,18 +1851,31 @@ function autoFillDeliveryDetails() {
 
 // Load saved addresses from Firestore
 async function loadSavedAddresses(userId) {
-  if (!userId) return;
+  if (!userId) {
+    console.log("No user ID provided to load addresses");
+    return;
+  }
   
   try {
+    console.log("Loading addresses for user:", userId);
     const userDoc = await getDoc(doc(db, "users", userId));
+    
     if (userDoc.exists()) {
       const userData = userDoc.data();
       const addresses = userData.addresses || [];
+      console.log("Found addresses:", addresses.length);
       
       const addressList = document.getElementById('addressList');
       const savedAddresses = document.getElementById('savedAddresses');
+      const addressForm = document.getElementById('addressForm');
+      
+      if (!addressList || !savedAddresses || !addressForm) {
+        console.error("Address elements not found in DOM");
+        return;
+      }
       
       if (addresses.length > 0) {
+        console.log("Displaying saved addresses");
         addressList.innerHTML = '';
         addresses.forEach((addr, index) => {
           addressList.innerHTML += `
@@ -1846,14 +1895,22 @@ async function loadSavedAddresses(userId) {
           `;
         });
         savedAddresses.style.display = 'block';
-        document.getElementById('addressForm').style.display = 'none';
+        addressForm.style.display = 'none';
       } else {
+        console.log("No saved addresses, showing form");
         savedAddresses.style.display = 'none';
-        document.getElementById('addressForm').style.display = 'block';
+        addressForm.style.display = 'block';
       }
+    } else {
+      console.log("User document doesn't exist");
+      document.getElementById('savedAddresses').style.display = 'none';
+      document.getElementById('addressForm').style.display = 'block';
     }
   } catch (error) {
     console.error("Error loading addresses:", error);
+    // On error, show the form
+    document.getElementById('savedAddresses').style.display = 'none';
+    document.getElementById('addressForm').style.display = 'block';
   }
 }
 
@@ -2515,9 +2572,13 @@ window.placeOrder = async () => {
     // NEW: Construct full address from split fields
   const fullAddress = `${houseNo}, ${street}${landmark ? ', ' + landmark : ''}, ${city}, ${state} - ${pincode}`;
 
-  // NEW: Save address if checkbox is checked
+   // NEW: Save address if checkbox is checked
+	 console.log("🔘 Save address checkbox checked?", saveAddress);
+  console.log("👤 Current user:", user?.uid);
+  console.log("📱 Mobile number:", mobile);
+  console.log("🏠 Address data:", { name, houseNo, street, city, state, pincode });
   if (saveAddress && user) {
-    saveUserAddress(user.uid, {
+    await saveUserAddress(user.uid, {
       name: name,
       mobile: mobile,
       houseNo: houseNo,
@@ -2528,6 +2589,9 @@ window.placeOrder = async () => {
       state: state,
       createdAt: new Date().toISOString()
     });
+  } else {
+    console.log("📝 Address not saved. Reason:", 
+      !saveAddress ? "Checkbox not checked" : "No user logged in");
   }
 
   userProfileData.name = name;
@@ -2606,12 +2670,20 @@ window.placeOrder = async () => {
 // Add this function AFTER the placeOrder() function ends
 async function saveUserAddress(userId, addressData) {
   try {
+    console.log("🔄 saveUserAddress called for user:", userId);
+    console.log("📝 Address data to save:", addressData);
+    
     const userDoc = await getDoc(doc(db, "users", userId));
+    
     if (userDoc.exists()) {
       const userData = userDoc.data();
-      const addresses = userData.addresses || [];
+      console.log("📄 Current user data:", userData);
       
-      // Check if address already exists (simple check by houseNo + street)
+      // ✅ CRITICAL: Ensure addresses array exists
+      const addresses = userData.addresses || [];
+      console.log("🏠 Current addresses array:", addresses);
+      
+      // Check if address already exists
       const exists = addresses.some(addr => 
         addr.houseNo === addressData.houseNo && 
         addr.street === addressData.street && 
@@ -2620,16 +2692,35 @@ async function saveUserAddress(userId, addressData) {
       
       if (!exists) {
         addresses.push(addressData);
+        console.log("✅ Adding new address to array:", addresses);
         
+        // ✅ Save the ENTIRE user document with the updated addresses array
         await setDoc(doc(db, "users", userId), {
-          addresses: addresses
+          ...userData, // Keep existing user data
+          addresses: addresses // Update addresses array
         }, { merge: true });
         
-        console.log("Address saved successfully");
+        console.log("✅ Address saved successfully to Firestore");
+        showToast("✅ Address saved successfully", "success");
+      } else {
+        console.log("ℹ️ Address already exists, not saving duplicate");
       }
+    } else {
+      // Create user document with addresses array
+      console.log("📝 Creating new user document with address");
+      await setDoc(doc(db, "users", userId), {
+        addresses: [addressData],
+        name: addressData.name,
+        phone: addressData.mobile,
+        createdAt: new Date().toISOString()
+      }, { merge: true });
+      console.log("✅ Created new user document with address");
     }
   } catch (error) {
-    console.error("Error saving address:", error);
+    console.error("❌ Error saving address:", error);
+    console.error("Error code:", error.code);
+    console.error("Error message:", error.message);
+    showToast("❌ Failed to save address: " + error.message, "error");
   }
 }
 
