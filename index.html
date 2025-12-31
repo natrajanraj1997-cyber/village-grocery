@@ -1782,11 +1782,7 @@ window.showNewAddressForm = function() {
     }
 	  // Show appropriate message
 
-if (isEditing) {
-  showToast("✏️ Editing address. Click 'Save Address' to save changes, or 'Place Order' to save with order.");
-} else {
-  showToast("➕ Adding new address. Click 'Save Address' to save, or 'Place Order' to save with order.");
-}
+
   }
 };
 	
@@ -1818,8 +1814,7 @@ window.closeAddressForm = function() {
     // Show saved addresses, hide form
     savedAddresses.style.display = 'block';
     addressForm.style.display = 'none';
-    
-    showToast("Returned to saved addresses");
+  
   }
 };
 	// Save address without placing an order
@@ -1925,7 +1920,7 @@ window.useAddress = function(index) {
             mobileField.style.borderColor = "#4caf50";
           }
           
-         showToast("✅ Address loaded. Click 'Save Address' to update, 'Place Order' to use, or 'Back' to cancel.");
+        
         } else {
           console.error("Address not found at index:", index);
         }
@@ -1980,7 +1975,7 @@ window.editAddress = function(index) {
             mobileField.style.borderColor = "#4caf50";
           }
           
-         showToast("✏️ Editing address. Make changes and click 'Save Address' to save.");
+       
         }
       }
     })
