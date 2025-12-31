@@ -1718,7 +1718,15 @@ window.showSection = (section) => {
   }
 };
 
-window.goBackToAllTab = () => { setCat("All"); showSection("shop"); };
+window.goBackToAllTab = () => { 
+  // Clear address form edit index
+  const addressForm = document.getElementById('addressForm');
+  if (addressForm) {
+    addressForm.removeAttribute('data-edit-index');
+  }
+  setCat("All"); 
+  showSection("shop"); 
+};
 window.goBackFromShop = () => { if (cat === "All") showSection("main"); else setCat("All"); };
 
 function updateShopBackButtonVisibility() {
@@ -1730,8 +1738,9 @@ function updateShopBackButtonVisibility() {
     b.classList.toggle("active", b.textContent === cat);
   });
 }
-// Show new address form
-// Show new address form
+
+
+// Show new address form - CORRECTED VERSION
 window.showNewAddressForm = function() {
   console.log("Showing new address form");
   const addressForm = document.getElementById('addressForm');
@@ -1741,20 +1750,31 @@ window.showNewAddressForm = function() {
     addressForm.style.display = 'block';
     savedAddresses.style.display = 'none';
     
-    // Clear form
-    document.getElementById('deliveryName').value = "";
-    document.getElementById('deliveryMobile').value = "";
-    document.getElementById('houseNo').value = "";
-    document.getElementById('street').value = "";
-    document.getElementById('landmark').value = "";
-    document.getElementById('pincode').value = "";
-    document.getElementById('city').value = "";
-    document.getElementById('state').value = "";
-    document.getElementById('saveAddress').checked = false;
+    // IMPORTANT: DO NOT clear edit index here
+    // Only clear form if we're NOT in edit mode
+    const isEditing = addressForm.hasAttribute('data-edit-index');
+    
+    if (!isEditing) {
+      // Only clear form when creating a brand new address
+      document.getElementById('deliveryName').value = "";
+      document.getElementById('deliveryMobile').value = "";
+      document.getElementById('houseNo').value = "";
+      document.getElementById('street').value = "";
+      document.getElementById('landmark').value = "";
+      document.getElementById('pincode').value = "";
+      document.getElementById('city').value = "";
+      document.getElementById('state').value = "";
+      document.getElementById('saveAddress').checked = false;
+      
+      // Reset mobile validation
+      const mobileError = document.getElementById('mobileError');
+      const mobileField = document.getElementById('deliveryMobile');
+      if (mobileError) mobileError.style.display = "none";
+      if (mobileField) mobileField.style.borderColor = "#e0e0e0";
+    }
   }
 };
-
-// Use saved address
+// Use saved address - FIXED VERSION
 window.useAddress = function(index) {
   const user = auth.currentUser;
   if (!user) return;
@@ -1767,6 +1787,8 @@ window.useAddress = function(index) {
         const addr = addresses[index];
         
         if (addr) {
+          console.log("📝 Using address:", addr); // Debug log
+          
           // Fill form with selected address
           document.getElementById('deliveryName').value = addr.name || "";
           document.getElementById('deliveryMobile').value = addr.mobile || "";
@@ -1777,18 +1799,86 @@ window.useAddress = function(index) {
           document.getElementById('city').value = addr.city || "";
           document.getElementById('state').value = addr.state || "";
           
-          // Show address form
+          // IMPORTANT: Store the current address index for editing
+          document.getElementById('addressForm').setAttribute('data-edit-index', index);
+          
+          // Show address form (hides saved addresses)
           showNewAddressForm();
+          
+          // Check save address checkbox since we're using a saved address
           document.getElementById('saveAddress').checked = true;
+          
+          // Update mobile field validation
+          const mobileField = document.getElementById('deliveryMobile');
+          const mobileError = document.getElementById('mobileError');
+          if (mobileField && validatePhoneNumber(addr.mobile || "")) {
+            mobileError.style.display = "none";
+            mobileField.style.borderColor = "#4caf50";
+          }
+          
+          showToast("✅ Address loaded. Click 'Place Order' or edit as needed.");
+        } else {
+          console.error("Address not found at index:", index);
         }
       }
     })
-    .catch(error => console.error("Error loading address:", error));
+    .catch(error => {
+      console.error("Error loading address:", error);
+      showToast("❌ Failed to load address", "error");
+    });
 };
 
-// Edit address
+// Edit address - FIXED VERSION
 window.editAddress = function(index) {
-  useAddress(index); // Same as use, but we're editing
+  // This works the same as useAddress but we're in "edit mode"
+  const user = auth.currentUser;
+  if (!user) return;
+  
+  getDoc(doc(db, "users", user.uid))
+    .then((docSnap) => {
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        const addresses = userData.addresses || [];
+        const addr = addresses[index];
+        
+        if (addr) {
+          console.log("✏️ Editing address:", addr); // Debug log
+          
+          // Fill form with selected address
+          document.getElementById('deliveryName').value = addr.name || "";
+          document.getElementById('deliveryMobile').value = addr.mobile || "";
+          document.getElementById('houseNo').value = addr.houseNo || "";
+          document.getElementById('street').value = addr.street || "";
+          document.getElementById('landmark').value = addr.landmark || "";
+          document.getElementById('pincode').value = addr.pincode || "";
+          document.getElementById('city').value = addr.city || "";
+          document.getElementById('state').value = addr.state || "";
+          
+          // Store the current address index for editing
+          document.getElementById('addressForm').setAttribute('data-edit-index', index);
+          
+          // Show address form (hides saved addresses)
+          showNewAddressForm();
+          
+          // Check save address checkbox since we're editing
+          document.getElementById('saveAddress').checked = true;
+          
+          // Update mobile field validation
+          const mobileField = document.getElementById('deliveryMobile');
+          const mobileError = document.getElementById('mobileError');
+          if (mobileField && validatePhoneNumber(addr.mobile || "")) {
+            mobileError.style.display = "none";
+            mobileField.style.borderColor = "#4caf50";
+          }
+          
+          showToast("✏️ Edit the address below, then click 'Place Order'");
+        }
+      }
+    })
+    .catch(error => {
+      console.error("Error loading address for edit:", error);
+      showToast("❌ Failed to load address for editing", "error");
+    });
 };
 
 // Delete address
@@ -1830,20 +1920,28 @@ function autoFillDeliveryDetails() {
     return;
   }
   
-  console.log("Auto-filling for user:", user.uid); // Debug log
+  console.log("Auto-filling for user:", user.uid);
   
-  // Fill basic user info
-  document.getElementById('deliveryName').value = userProfileData.name || user.displayName || loginName.value || "";
-  document.getElementById('deliveryMobile').value = userProfileData.phone || user.phoneNumber || loginMobile.value || "";
+  // Check if form already has data (from previous edit/use)
+  const addressForm = document.getElementById('addressForm');
+  const isEditing = addressForm.hasAttribute('data-edit-index');
   
-  // Clear other fields for new address (only if no saved addresses)
-  document.getElementById('houseNo').value = "";
-  document.getElementById('street').value = "";
-  document.getElementById('landmark').value = "";
-  document.getElementById('pincode').value = "";
-  document.getElementById('city').value = "";
-  document.getElementById('state').value = "";
-  document.getElementById('saveAddress').checked = false;
+  if (!isEditing) {
+    // Only fill basic info if we're not editing an existing address
+    document.getElementById('deliveryName').value = userProfileData.name || user.displayName || loginName.value || "";
+    document.getElementById('deliveryMobile').value = userProfileData.phone || user.phoneNumber || loginMobile.value || "";
+    
+    // Clear other fields only if empty
+    if (!document.getElementById('houseNo').value) {
+      document.getElementById('houseNo').value = "";
+      document.getElementById('street').value = "";
+      document.getElementById('landmark').value = "";
+      document.getElementById('pincode').value = "";
+      document.getElementById('city').value = "";
+      document.getElementById('state').value = "";
+      document.getElementById('saveAddress').checked = false;
+    }
+  }
   
   // Show saved addresses if user is logged in
   loadSavedAddresses(user.uid);
@@ -2233,11 +2331,18 @@ window.logout = async () => {
     if (profileListenerUnsub) { profileListenerUnsub(); profileListenerUnsub = null; }
     await signOut(auth);
     cart = {};
-	  localStorage.removeItem("vg_state");
+    localStorage.removeItem("vg_state");
     updateCartCount();
     resetOtpFields(); // Reset OTP fields on logout
-	  document.querySelector(".card.cart").style.display = "block";  // Show login card
+    document.querySelector(".card.cart").style.display = "block";  // Show login card
     document.getElementById("userBox").innerHTML = "";   
+    
+    // Clear address form edit index
+    const addressForm = document.getElementById('addressForm');
+    if (addressForm) {
+      addressForm.removeAttribute('data-edit-index');
+    }
+    
     showSection("main");
   } catch (e) {
     console.error(e);
@@ -2674,6 +2779,9 @@ async function saveUserAddress(userId, addressData) {
     console.log("📝 Address data to save:", addressData);
     
     const userDoc = await getDoc(doc(db, "users", userId));
+    const addressForm = document.getElementById('addressForm');
+    const isEditing = addressForm && addressForm.hasAttribute('data-edit-index');
+    const editIndex = isEditing ? parseInt(addressForm.getAttribute('data-edit-index')) : -1;
     
     if (userDoc.exists()) {
       const userData = userDoc.data();
@@ -2683,28 +2791,36 @@ async function saveUserAddress(userId, addressData) {
       const addresses = userData.addresses || [];
       console.log("🏠 Current addresses array:", addresses);
       
-      // Check if address already exists
-      const exists = addresses.some(addr => 
-        addr.houseNo === addressData.houseNo && 
-        addr.street === addressData.street && 
-        addr.pincode === addressData.pincode
-      );
-      
-      if (!exists) {
-        addresses.push(addressData);
-        console.log("✅ Adding new address to array:", addresses);
-        
-        // ✅ Save the ENTIRE user document with the updated addresses array
-        await setDoc(doc(db, "users", userId), {
-          ...userData, // Keep existing user data
-          addresses: addresses // Update addresses array
-        }, { merge: true });
-        
-        console.log("✅ Address saved successfully to Firestore");
-        showToast("✅ Address saved successfully", "success");
+      if (isEditing && editIndex >= 0 && editIndex < addresses.length) {
+        // UPDATE EXISTING ADDRESS
+        console.log("✏️ Updating address at index:", editIndex);
+        addresses[editIndex] = addressData;
+        console.log("✅ Updated address at index:", editIndex, addresses[editIndex]);
       } else {
-        console.log("ℹ️ Address already exists, not saving duplicate");
+        // ADD NEW ADDRESS (check for duplicates)
+        const exists = addresses.some(addr => 
+          addr.houseNo === addressData.houseNo && 
+          addr.street === addressData.street && 
+          addr.pincode === addressData.pincode
+        );
+        
+        if (!exists) {
+          addresses.push(addressData);
+          console.log("✅ Adding new address to array:", addresses);
+        } else {
+          console.log("ℹ️ Address already exists, not saving duplicate");
+          return; // Don't save duplicate
+        }
       }
+      
+      // ✅ Save the ENTIRE user document with the updated addresses array
+      await setDoc(doc(db, "users", userId), {
+        ...userData, // Keep existing user data
+        addresses: addresses // Update addresses array
+      }, { merge: true });
+      
+      console.log("✅ Address saved successfully to Firestore");
+      showToast("✅ Address saved successfully", "success");
     } else {
       // Create user document with addresses array
       console.log("📝 Creating new user document with address");
