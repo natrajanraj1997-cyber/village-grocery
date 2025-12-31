@@ -1695,23 +1695,23 @@ function renderCartPage() {
     t += itemTotal;
     
     // Create cart item with image
-    cartDetails.innerHTML += `
-      <div class="cart-item">
-        <img src="${item.img || 'https://via.placeholder.com/60x60?text=Product'}" 
-             alt="${item.name}" 
-             style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover; margin-right: 12px; border: 1px solid var(--border);">
-        <div class="cart-item-info" style="flex: 1;">
-          <strong>${item.name}</strong>
-          <div>₹${item.price} × ${item.qty} = ₹${itemTotal}</div>
-        </div>
-        <div class="cart-item-actions">
-          <button class="qty" style="display:flex">
-            <button onclick="chg('${i}',-1)">−</button>
-            <span>${item.qty}</span>
-            <button onclick="chg('${i}',1)">+</button>
-          </button>
-        </div>
-      </div>`;
+   cartDetails.innerHTML += `
+  <div class="cart-item" style="display: flex; align-items: center; padding: 12px; border-bottom: 1px solid var(--border);">
+    <img src="${item.img || 'https://via.placeholder.com/60x60?text=Product'}" 
+         alt="${item.name}" 
+         style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover; margin-right: 12px; border: 1px solid #e0e0e0;">
+    <div style="flex: 1;">
+      <strong style="display: block; margin-bottom: 4px; font-size: 15px; color: var(--text);">${item.name}</strong>
+      <div style="color: var(--primary); font-weight: 600; font-size: 14px;">₹${item.price} × ${item.qty} = ₹${itemTotal}</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="display: flex; align-items: center; background: rgba(46, 125, 50, 0.08); border-radius: 999px; padding: 4px;">
+        <button onclick="chg('${i}',-1)" style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; border: none; background: white; color: var(--primary); font-weight: bold; font-size: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-radius: 50%; cursor: pointer;">−</button>
+        <span style="margin: 0 12px; font-size: 15px; font-weight: 600; color: var(--text); min-width: 20px; text-align: center;">${item.qty}</span>
+        <button onclick="chg('${i}',1)" style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; border: none; background: white; color: var(--primary); font-weight: bold; font-size: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border-radius: 50%; cursor: pointer;">+</button>
+      </div>
+    </div>
+  </div>`;
   }
   
   // Display empty cart message
