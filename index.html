@@ -1105,11 +1105,14 @@ header {
       <input type="checkbox" id="saveAddress" style="width: 18px; height: 18px;">
       <label for="saveAddress" style="font-size: 14px; color: var(--text);">Save this address for future orders</label>
     </div>
-	  <div style="display: flex; gap: 10px; margin-top: 20px;">
-    <button type="button" onclick="closeAddressForm()" style="flex: 1; background: #f5f5f5; color: var(--text-light); border: 1px solid #ddd; padding: 12px; border-radius: var(--radius-full); font-size: 14px; font-weight: 500; cursor: pointer;">
-      ← Back to Saved Addresses
-    </button>
-  </div>
+	<div style="display: flex; gap: 10px; margin-top: 20px;">
+  <button type="button" onclick="saveAddressOnly()" style="flex: 1; background: var(--primary); color: white; border: none; padding: 12px; border-radius: var(--radius-full); font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 8px rgba(46, 125, 50, 0.3);">
+    💾 Save Address
+  </button>
+  <button type="button" onclick="closeAddressForm()" style="flex: 1; background: #f5f5f5; color: var(--text-light); border: 1px solid #ddd; padding: 12px; border-radius: var(--radius-full); font-size: 14px; font-weight: 500; cursor: pointer;">
+    ← Back
+  </button>
+</div>
   </div>
 </div>
   </div>
@@ -1778,11 +1781,12 @@ window.showNewAddressForm = function() {
       if (mobileField) mobileField.style.borderColor = "#e0e0e0";
     }
 	  // Show appropriate message
-    if (isEditing) {
-      showToast("Editing address. Click 'Place Order' to save changes, or 'Back to Saved Addresses' to cancel.");
-    } else {
-      showToast("Adding new address. Fill the form and click 'Place Order' to save.");
-    }
+
+if (isEditing) {
+  showToast("✏️ Editing address. Click 'Save Address' to save changes, or 'Place Order' to save with order.");
+} else {
+  showToast("➕ Adding new address. Click 'Save Address' to save, or 'Place Order' to save with order.");
+}
   }
 };
 	
@@ -1818,7 +1822,67 @@ window.closeAddressForm = function() {
     showToast("Returned to saved addresses");
   }
 };
-	
+	// Save address without placing an order
+window.saveAddressOnly = async function() {
+  const user = auth.currentUser;
+  if (!user) {
+    alert("Please login first to save addresses");
+    return;
+  }
+  
+  // Get form values
+  const name = document.getElementById('deliveryName').value.trim();
+  const mobile = document.getElementById('deliveryMobile').value.trim();
+  const houseNo = document.getElementById('houseNo').value.trim();
+  const street = document.getElementById('street').value.trim();
+  const landmark = document.getElementById('landmark').value.trim();
+  const pincode = document.getElementById('pincode').value.trim();
+  const city = document.getElementById('city').value.trim();
+  const state = document.getElementById('state').value.trim();
+  const saveAddress = document.getElementById('saveAddress').checked;
+
+  // Validate phone number
+  if (!validatePhoneNumber(mobile)) {
+    alert("Please enter a valid 10-digit Indian mobile number\nExample: 9876543210");
+    return;
+  }
+
+  // Validate all mandatory fields
+  if (!name || !mobile || !houseNo || !street || !pincode || !city || !state) {
+    alert("Please fill all mandatory fields (*)");
+    return;
+  }
+
+  try {
+    // Save address to Firestore
+    await saveUserAddress(user.uid, {
+      name: name,
+      mobile: mobile,
+      houseNo: houseNo,
+      street: street,
+      landmark: landmark,
+      pincode: pincode,
+      city: city,
+      state: state,
+      createdAt: new Date().toISOString()
+    });
+
+    // Clear edit index
+    const addressForm = document.getElementById('addressForm');
+    if (addressForm) {
+      addressForm.removeAttribute('data-edit-index');
+    }
+
+    // Show saved addresses
+    loadSavedAddresses(user.uid);
+    
+    showToast("✅ Address saved successfully!", "success");
+    
+  } catch (error) {
+    console.error("Error saving address:", error);
+    alert("Failed to save address: " + error.message);
+  }
+};
 // Use saved address - FIXED VERSION
 window.useAddress = function(index) {
   const user = auth.currentUser;
@@ -1861,7 +1925,7 @@ window.useAddress = function(index) {
             mobileField.style.borderColor = "#4caf50";
           }
           
-          showToast("✅ Address loaded. Click 'Place Order' or edit as needed.");
+         showToast("✅ Address loaded. Click 'Save Address' to update, 'Place Order' to use, or 'Back' to cancel.");
         } else {
           console.error("Address not found at index:", index);
         }
@@ -1916,7 +1980,7 @@ window.editAddress = function(index) {
             mobileField.style.borderColor = "#4caf50";
           }
           
-          showToast("✏️ Edit the address below, then click 'Place Order'");
+         showToast("✏️ Editing address. Make changes and click 'Save Address' to save.");
         }
       }
     })
@@ -2849,6 +2913,7 @@ async function saveUserAddress(userId, addressData) {
         console.log("✏️ Updating address at index:", editIndex);
         addresses[editIndex] = addressData;
         console.log("✅ Updated address at index:", editIndex, addresses[editIndex]);
+        showToast("✅ Address updated successfully!", "success");
       } else {
         // ADD NEW ADDRESS (check for duplicates)
         const exists = addresses.some(addr => 
@@ -2860,9 +2925,11 @@ async function saveUserAddress(userId, addressData) {
         if (!exists) {
           addresses.push(addressData);
           console.log("✅ Adding new address to array:", addresses);
+          showToast("✅ New address added!", "success");
         } else {
           console.log("ℹ️ Address already exists, not saving duplicate");
-          return; // Don't save duplicate
+          showToast("ℹ️ Address already exists", "info");
+          return false; // Don't save duplicate
         }
       }
       
@@ -2873,7 +2940,7 @@ async function saveUserAddress(userId, addressData) {
       }, { merge: true });
       
       console.log("✅ Address saved successfully to Firestore");
-      showToast("✅ Address saved successfully", "success");
+      return true;
     } else {
       // Create user document with addresses array
       console.log("📝 Creating new user document with address");
@@ -2884,15 +2951,17 @@ async function saveUserAddress(userId, addressData) {
         createdAt: new Date().toISOString()
       }, { merge: true });
       console.log("✅ Created new user document with address");
+      showToast("✅ Address saved successfully!", "success");
+      return true;
     }
   } catch (error) {
     console.error("❌ Error saving address:", error);
     console.error("Error code:", error.code);
     console.error("Error message:", error.message);
     showToast("❌ Failed to save address: " + error.message, "error");
+    return false;
   }
 }
-
 // Initialize recaptcha
 function initRecaptcha() {
   try {
