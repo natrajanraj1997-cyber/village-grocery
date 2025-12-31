@@ -1693,9 +1693,14 @@ function renderCartPage() {
     const item = cart[i];
     const itemTotal = item.qty * item.price;
     t += itemTotal;
+    
+    // Create cart item with image
     cartDetails.innerHTML += `
       <div class="cart-item">
-        <div class="cart-item-info">
+        <img src="${item.img || 'https://via.placeholder.com/60x60?text=Product'}" 
+             alt="${item.name}" 
+             style="width: 60px; height: 60px; border-radius: 8px; object-fit: cover; margin-right: 12px; border: 1px solid var(--border);">
+        <div class="cart-item-info" style="flex: 1;">
           <strong>${item.name}</strong>
           <div>₹${item.price} × ${item.qty} = ₹${itemTotal}</div>
         </div>
@@ -1760,12 +1765,13 @@ function renderCartPage() {
   
   // Update the cart total display at the top
   cartTotal.textContent = grandTotal;
-	// At the end of renderCartPage() function, add:
-if (Object.keys(cart).length === 0) {
-  cartBar.classList.remove("active");
-} else {
-  cartBar.classList.add("active");
-}
+  
+  // Show/hide cart bar
+  if (Object.keys(cart).length === 0) {
+    cartBar.classList.remove("active");
+  } else {
+    cartBar.classList.add("active");
+  }
 }
 
 window.setCat = (c) => {
