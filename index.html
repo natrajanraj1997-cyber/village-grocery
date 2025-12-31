@@ -1044,14 +1044,50 @@ header {
       </div>
     </div>
   </div>
-    <div class="card cart">
-      <h4>📦 Delivery details</h4>
-      <input id="name" placeholder="Name *">
-      <input id="mobile" placeholder="Mobile *">
-      <button class="btn-ghost" type="button" onclick="getLocation()"><span>📍 Share live location</span></button>
-      <div id="locStatus"></div>
-      <textarea id="address" placeholder="Address * (house / street / landmark)"></textarea>
+   <div class="card cart" id="deliverySection">
+  <h4>📦 Delivery Details</h4>
+  
+  <!-- Saved Addresses Section -->
+  <div id="savedAddresses" style="display:none; margin-bottom: 20px;">
+    <div style="font-size: 14px; color: var(--text-light); margin-bottom: 10px; font-weight: 600;">Saved Addresses</div>
+    <div id="addressList"></div>
+    <button class="btn-ghost" type="button" onclick="showNewAddressForm()" style="width: auto; padding: 8px 16px; margin-top: 10px;">
+      <span>+ Add New Address</span>
+    </button>
+  </div>
+  
+  <!-- New Address Form -->
+  <div id="addressForm">
+    <input id="deliveryName" placeholder="Full Name *">
+    <input id="deliveryMobile" type="tel" placeholder="Phone Number * (10 digits)">
+    <div id="mobileError" style="color: #f44336; font-size: 12px; display: none; margin: -5px 0 10px 0;"></div>
+    
+    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+      <input id="houseNo" placeholder="House No *" style="flex: 1;">
+      <input id="street" placeholder="Street *" style="flex: 2;">
     </div>
+    
+    <input id="landmark" placeholder="Landmark (optional)">
+    
+    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+      <input id="pincode" placeholder="Pincode *" style="flex: 1;">
+      <input id="city" placeholder="Town/City *" style="flex: 2;">
+    </div>
+    
+    <input id="state" placeholder="State *">
+    
+    <button class="btn-ghost" type="button" onclick="getLocation()" style="margin-top: 15px;">
+      <span>📍 Share Live Location</span>
+    </button>
+    <div id="locStatus"></div>
+    
+    <!-- Save Address Checkbox -->
+    <div style="margin: 15px 0; display: flex; align-items: center; gap: 8px;">
+      <input type="checkbox" id="saveAddress" style="width: 18px; height: 18px;">
+      <label for="saveAddress" style="font-size: 14px; color: var(--text);">Save this address for future orders</label>
+    </div>
+  </div>
+</div>
   </div>
 
   <div id="orderHistorySection" class="content-section hidden">
@@ -1232,6 +1268,43 @@ function updateTimeStatus() {
     timeInfoElement.style.backgroundColor = 'rgba(76, 175, 80, 0.1)';
   }
 }
+	// Phone number validation
+function validatePhoneNumber(phone) {
+  // Remove any spaces, dashes, or plus signs
+  const cleanPhone = phone.replace(/[\s\-+]/g, '');
+  
+  // Check if it's exactly 10 digits
+  if (!/^\d{10}$/.test(cleanPhone)) {
+    return false;
+  }
+  
+  // Check if it starts with 6,7,8,9 (valid Indian mobile prefixes)
+  if (!/^[6-9]/.test(cleanPhone)) {
+    return false;
+  }
+  
+  return true;
+}
+
+// Real-time phone validation
+document.getElementById('deliveryMobile')?.addEventListener('input', function(e) {
+  const mobileError = document.getElementById('mobileError');
+  const phone = e.target.value.trim();
+  
+  if (phone.length > 0) {
+    if (!validatePhoneNumber(phone)) {
+      mobileError.textContent = 'Please enter a valid 10-digit Indian mobile number';
+      mobileError.style.display = 'block';
+      e.target.style.borderColor = '#f44336';
+    } else {
+      mobileError.style.display = 'none';
+      e.target.style.borderColor = '#4caf50';
+    }
+  } else {
+    mobileError.style.display = 'none';
+    e.target.style.borderColor = '#e0e0e0';
+  }
+});
 	function saveState() {
   try {
     localStorage.setItem("vg_state", JSON.stringify({ 
@@ -1274,9 +1347,9 @@ const cartDetails = document.getElementById("cartDetails");
 const cartTotal = document.getElementById("cartTotal");
 const menuCartCount = document.getElementById("menuCartCount");
 const headerCartCount = document.getElementById("headerCartCount");
-const nameEl = document.getElementById("name");
-const mobileEl = document.getElementById("mobile");
-const addressEl = document.getElementById("address");
+//const nameEl = document.getElementById("name");
+//const mobileEl = document.getElementById("mobile");
+//const addressEl = document.getElementById("address");
 const locStatus = document.getElementById("locStatus");
 const cartBar = document.getElementById("cartBar");
 const hamburgerBtn = document.getElementById("hamburgerBtn");
@@ -1612,7 +1685,12 @@ window.showSection = (section) => {
   } else if (section === "cart") {
     cartSection.classList.remove("hidden");
     renderCartPage();
+   // Auto-fill delivery details when user logs in
+setTimeout(() => {
+  if (user) {
     autoFillDeliveryDetails();
+  }
+}, 500); // Small delay to ensure DOM is ready
   } else if (section === "orderHistory") {
     orderHistorySection.classList.remove("hidden");
   } else {
@@ -1632,13 +1710,151 @@ function updateShopBackButtonVisibility() {
     b.classList.toggle("active", b.textContent === cat);
   });
 }
+// Show new address form
+window.showNewAddressForm = function() {
+  document.getElementById('addressForm').style.display = 'block';
+  document.getElementById('savedAddresses').style.display = 'none';
+  
+  // Clear form
+  document.getElementById('deliveryName').value = "";
+  document.getElementById('deliveryMobile').value = "";
+  document.getElementById('houseNo').value = "";
+  document.getElementById('street').value = "";
+  document.getElementById('landmark').value = "";
+  document.getElementById('pincode').value = "";
+  document.getElementById('city').value = "";
+  document.getElementById('state').value = "";
+};
 
+// Use saved address
+window.useAddress = function(index) {
+  const user = auth.currentUser;
+  if (!user) return;
+  
+  getDoc(doc(db, "users", user.uid))
+    .then((docSnap) => {
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        const addresses = userData.addresses || [];
+        const addr = addresses[index];
+        
+        if (addr) {
+          // Fill form with selected address
+          document.getElementById('deliveryName').value = addr.name || "";
+          document.getElementById('deliveryMobile').value = addr.mobile || "";
+          document.getElementById('houseNo').value = addr.houseNo || "";
+          document.getElementById('street').value = addr.street || "";
+          document.getElementById('landmark').value = addr.landmark || "";
+          document.getElementById('pincode').value = addr.pincode || "";
+          document.getElementById('city').value = addr.city || "";
+          document.getElementById('state').value = addr.state || "";
+          
+          // Show address form
+          showNewAddressForm();
+          document.getElementById('saveAddress').checked = true;
+        }
+      }
+    })
+    .catch(error => console.error("Error loading address:", error));
+};
+
+// Edit address
+window.editAddress = function(index) {
+  useAddress(index); // Same as use, but we're editing
+};
+
+// Delete address
+window.deleteAddress = async function(index) {
+  if (!confirm("Are you sure you want to delete this address?")) return;
+  
+  const user = auth.currentUser;
+  if (!user) return;
+  
+  try {
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const addresses = userData.addresses || [];
+      
+      // Remove the address at index
+      addresses.splice(index, 1);
+      
+      // Update Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        addresses: addresses
+      }, { merge: true });
+      
+      // Reload addresses
+      loadSavedAddresses(user.uid);
+      showToast("Address deleted successfully", "success");
+    }
+  } catch (error) {
+    console.error("Error deleting address:", error);
+    alert("Failed to delete address");
+  }
+};
 function autoFillDeliveryDetails() {
   const user = auth.currentUser;
   if (!user) return;
-  nameEl.value = userProfileData.name || user.displayName || loginName.value || "";
-  mobileEl.value = userProfileData.phone || user.phoneNumber || loginMobile.value || "";
-  addressEl.value = userProfileData.address || "";
+  
+  // Fill basic user info
+  document.getElementById('deliveryName').value = userProfileData.name || user.displayName || loginName.value || "";
+  document.getElementById('deliveryMobile').value = userProfileData.phone || user.phoneNumber || loginMobile.value || "";
+  
+  // Clear other fields for new address
+  document.getElementById('houseNo').value = "";
+  document.getElementById('street').value = "";
+  document.getElementById('landmark').value = "";
+  document.getElementById('pincode').value = "";
+  document.getElementById('city').value = "";
+  document.getElementById('state').value = "";
+  
+  // Show saved addresses if user is logged in
+  loadSavedAddresses(user.uid);
+}
+
+// Load saved addresses from Firestore
+async function loadSavedAddresses(userId) {
+  if (!userId) return;
+  
+  try {
+    const userDoc = await getDoc(doc(db, "users", userId));
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const addresses = userData.addresses || [];
+      
+      const addressList = document.getElementById('addressList');
+      const savedAddresses = document.getElementById('savedAddresses');
+      
+      if (addresses.length > 0) {
+        addressList.innerHTML = '';
+        addresses.forEach((addr, index) => {
+          addressList.innerHTML += `
+            <div class="address-card" style="background: rgba(46, 125, 50, 0.05); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px; border-left: 3px solid var(--primary);">
+              <div style="font-weight: 600; margin-bottom: 5px;">${addr.name} | ${addr.mobile}</div>
+              <div style="font-size: 13px; color: var(--text-light); margin-bottom: 8px;">
+                ${addr.houseNo}, ${addr.street}<br>
+                ${addr.landmark ? addr.landmark + '<br>' : ''}
+                ${addr.city}, ${addr.state} - ${addr.pincode}
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button onclick="useAddress(${index})" style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">Use</button>
+                <button onclick="editAddress(${index})" style="background: #ff9800; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">Edit</button>
+                <button onclick="deleteAddress(${index})" style="background: #f44336; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">Delete</button>
+              </div>
+            </div>
+          `;
+        });
+        savedAddresses.style.display = 'block';
+        document.getElementById('addressForm').style.display = 'none';
+      } else {
+        savedAddresses.style.display = 'none';
+        document.getElementById('addressForm').style.display = 'block';
+      }
+    }
+  } catch (error) {
+    console.error("Error loading addresses:", error);
+  }
 }
 
 // products
@@ -2136,6 +2352,12 @@ function loadOrderHistory(userId) {
             <strong>Order #${orderId.substring(0, 8)}</strong>
             <div class="small">${created}</div>
             <div style="color:var(--primary);font-weight:600;margin-top:5px;">${o.status || "PROCESSING"}</div>
+${o.addressDetails ? 
+      `<div style="margin-top:8px;font-size:13px;color:var(--text-light);">
+        📍 ${o.addressDetails.houseNo}, ${o.addressDetails.street}, ${o.addressDetails.city} - ${o.addressDetails.pincode}
+      </div>` : 
+      o.address ? `<div style="margin-top:8px;font-size:13px;color:var(--text-light);">📍 ${o.address}</div>` : ''
+    }
           </div>
           <div id="orderItems-${orderId}"></div>
           <div style="text-align:right;margin-top:15px;padding-top:15px;border-top:1px solid var(--border);">
@@ -2231,12 +2453,31 @@ window.placeOrder = async () => {
           "Please place your order during business hours.");
     return;
   }
-	 let subtotal = 0;
+	  let subtotal = 0;
   for (let i in cart) {
     subtotal += cart[i].qty * cart[i].price;
   }
-  if (!nameEl.value || !mobileEl.value || !addressEl.value || Object.keys(cart).length === 0 || subtotal === 0) {
-    alert("Fill all details & add at least one item");
+  
+  // NEW: Get form values from new address fields
+  const name = document.getElementById('deliveryName').value.trim();
+  const mobile = document.getElementById('deliveryMobile').value.trim();
+  const houseNo = document.getElementById('houseNo').value.trim();
+  const street = document.getElementById('street').value.trim();
+  const landmark = document.getElementById('landmark').value.trim();
+  const pincode = document.getElementById('pincode').value.trim();
+  const city = document.getElementById('city').value.trim();
+  const state = document.getElementById('state').value.trim();
+  const saveAddress = document.getElementById('saveAddress').checked;
+
+  // NEW: Validate phone number
+  if (!validatePhoneNumber(mobile)) {
+    alert("Please enter a valid 10-digit Indian mobile number\nExample: 9876543210");
+    return;
+  }
+
+  // NEW: Validate all mandatory fields
+  if (!name || !mobile || !houseNo || !street || !pincode || !city || !state || Object.keys(cart).length === 0 || subtotal === 0) {
+    alert("Please fill all mandatory fields (*) and add at least one item");
     return;
   }
 
@@ -2271,31 +2512,58 @@ window.placeOrder = async () => {
   const deliveryFee = subtotal >= 200 ? 0 : 40;
   const grandTotal = subtotal + deliveryFee;
 
-  userProfileData.name = nameEl.value.trim();
-  userProfileData.phone = mobileEl.value.trim();
-  userProfileData.address = addressEl.value.trim();
+    // NEW: Construct full address from split fields
+  const fullAddress = `${houseNo}, ${street}${landmark ? ', ' + landmark : ''}, ${city}, ${state} - ${pincode}`;
+
+  // NEW: Save address if checkbox is checked
+  if (saveAddress && user) {
+    saveUserAddress(user.uid, {
+      name: name,
+      mobile: mobile,
+      houseNo: houseNo,
+      street: street,
+      landmark: landmark,
+      pincode: pincode,
+      city: city,
+      state: state,
+      createdAt: new Date().toISOString()
+    });
+  }
+
+  userProfileData.name = name;
+  userProfileData.phone = mobile;
+  userProfileData.address = fullAddress;
 	
  const deliveryMessage = isAfter8PM() ? 
     `Delivery Date: ${formatDeliveryDate(getDeliveryDate())}` :
     'Delivery: Today';
 	
-  await addDoc(collection(db, "orders"), {
-    name: nameEl.value,
-    mobile: mobileEl.value,
-    address: addressEl.value,
+   await addDoc(collection(db, "orders"), {
+    name: name,
+    mobile: mobile,
+    address: fullAddress,
+    addressDetails: {
+      houseNo: houseNo,
+      street: street,
+      landmark: landmark,
+      pincode: pincode,
+      city: city,
+      state: state
+    },
     items: cart,
-    subtotal: subtotal, // Store subtotal
-    deliveryFee: deliveryFee, // Store delivery fee
-    total: grandTotal, // Store grand total
+    subtotal: subtotal,
+    deliveryFee: deliveryFee,
+    total: grandTotal,
     status: "NEW",
     createdAt: serverTimestamp(),
     location: { lat: currentLat, lng: currentLng },
     userId: user.uid,
     userPhone: user.phoneNumber || null,
     userEmail: user.email || null,
-    distanceKm: distKm,  // store distance for admin info
-	  deliveryDate: getDeliveryDate().toISOString(),
-    orderedAfter8PM: isAfter8PM()
+    distanceKm: distKm,
+    deliveryDate: getDeliveryDate().toISOString(),
+    orderedAfter8PM: isAfter8PM(),
+    saveAddress: saveAddress
   });
 
  alert(`Order placed successfully!\n\n` +
@@ -2308,9 +2576,26 @@ window.placeOrder = async () => {
   updateCartCount();
   saveCart();
   renderCartPage();
-  nameEl.value = "";
-  mobileEl.value = "";
-  addressEl.value = "";
+  
+  // NEW: Clear all address fields
+  document.getElementById('deliveryName').value = "";
+  document.getElementById('deliveryMobile').value = "";
+  document.getElementById('houseNo').value = "";
+  document.getElementById('street').value = "";
+  document.getElementById('landmark').value = "";
+  document.getElementById('pincode').value = "";
+  document.getElementById('city').value = "";
+  document.getElementById('state').value = "";
+  document.getElementById('saveAddress').checked = false;
+  
+  // Hide mobile error if visible
+  const mobileError = document.getElementById('mobileError');
+  if (mobileError) mobileError.style.display = "none";
+  
+  // Reset border color for mobile field
+  const mobileField = document.getElementById('deliveryMobile');
+  if (mobileField) mobileField.style.borderColor = "#e0e0e0";
+  
   locStatus.textContent = "";
   currentLat = null;
   currentLng = null;
@@ -2318,7 +2603,35 @@ window.placeOrder = async () => {
 };
 
 
-
+// Add this function AFTER the placeOrder() function ends
+async function saveUserAddress(userId, addressData) {
+  try {
+    const userDoc = await getDoc(doc(db, "users", userId));
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const addresses = userData.addresses || [];
+      
+      // Check if address already exists (simple check by houseNo + street)
+      const exists = addresses.some(addr => 
+        addr.houseNo === addressData.houseNo && 
+        addr.street === addressData.street && 
+        addr.pincode === addressData.pincode
+      );
+      
+      if (!exists) {
+        addresses.push(addressData);
+        
+        await setDoc(doc(db, "users", userId), {
+          addresses: addresses
+        }, { merge: true });
+        
+        console.log("Address saved successfully");
+      }
+    }
+  } catch (error) {
+    console.error("Error saving address:", error);
+  }
+}
 
 // Initialize recaptcha
 function initRecaptcha() {
