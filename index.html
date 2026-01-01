@@ -583,7 +583,46 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
   border: none;
   box-shadow: 0 4px 15px rgba(12, 131, 31, 0.3);
 }
+/* =========================================
+   SEARCH BAR ENHANCEMENTS (Clear Button)
+   ========================================= */
+.search-wrapper {
+  position: relative;
+  width: 100%;
+}
 
+/* Add space on right so text doesn't hit the X button */
+.search-wrapper input {
+  padding-right: 40px;
+  margin-bottom: 0; /* Remove margin from input, wrapper handles it */
+}
+
+.clear-search-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: var(--text-placeholder);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 50%;
+  display: none; /* Hidden by default */
+  transition: all 0.2s;
+  z-index: 10;
+}
+
+.clear-search-btn:hover {
+  background-color: rgba(0,0,0,0.05);
+  color: var(--primary);
+}
+
+/* Wrapper margin matches original input margin */
+.card.search .search-wrapper {
+  margin-bottom: 0;
+}
 /* =========================================
    STATUS & ALERTS
    ========================================= */
@@ -801,9 +840,12 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
 
   <div id="shopSection" class="content-section hidden">
     <button class="back-button" id="shopBackButton" onclick="goBackFromShop()">← Back</button>
-    <div class="card search">
-      <input id="search" placeholder="Search products...">
-    </div>
+   <div class="card search">
+  <div class="search-wrapper">
+    <input id="search" placeholder="Search products...">
+    <button id="clearSearchBtn" class="clear-search-btn" onclick="clearSearch()">✕</button>
+  </div>
+</div>
     <div class="card" style="background:transparent; padding:0; box-shadow:none;">
       <div class="cats">
         <button class="active" onclick="setCat('All')">All</button>
@@ -2416,6 +2458,21 @@ window.chg = (id, d) => {
   currentSection === "shop" ? render() : renderCartPage();
 };
 
+	window.clearSearch = () => {
+  const searchInput = document.getElementById("search");
+  const clearBtn = document.getElementById("clearSearchBtn");
+  
+  if (searchInput) {
+    searchInput.value = "";
+    searchInput.focus();
+    render(); // Re-render list to show all products
+  }
+  
+  if (clearBtn) {
+    clearBtn.style.display = "none";
+  }
+};
+	
 function updateCartCount() {
   let c = 0;
   for (let i in cart) c += cart[i].qty;
@@ -2467,7 +2524,16 @@ function showToast(message, type = "info", duration = 2000) {
 }
 
     
-if (search) search.oninput = render;
+if (search) {
+  search.oninput = (e) => {
+    // Show/Hide X button based on text
+    const clearBtn = document.getElementById("clearSearchBtn");
+    if (clearBtn) {
+      clearBtn.style.display = e.target.value.length > 0 ? "block" : "none";
+    }
+    render(); // Filter products
+  };
+}
 loadState();
 
 
