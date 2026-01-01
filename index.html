@@ -1237,35 +1237,40 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
 </div>
 </div>
 <script type="module">
-/* =================================================================
-   1. IMPORTS & CONFIGURATION
-   ================================================================= */
+	// Remove Splash Screen after 2.5 seconds
+// SMART SPLASH SCREEN LOGIC
+document.addEventListener('DOMContentLoaded', () => {
+  const splash = document.getElementById('splashScreen');
+  
+  // Check if splash has already been shown in this session
+  if (sessionStorage.getItem('splashShown') === 'true') {
+    // If yes, remove it IMMEDIATELY (no animation)
+    if(splash) splash.style.display = 'none';
+  } else {
+    // If no, play the animation and save the flag
+    setTimeout(() => {
+      if(splash) {
+        splash.classList.add('splash-hidden');
+        setTimeout(() => splash.remove(), 500);
+        // Mark as shown for this session
+        sessionStorage.setItem('splashShown', 'true');
+      }
+    }, 2000); // 2 seconds duration
+  }
+});
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, collection, addDoc, serverTimestamp, onSnapshot, query, where, orderBy, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
-// --- SPLASH SCREEN LOGIC (Runs Immediately) ---
-const splash = document.getElementById('splashScreen');
-
-// FOR TESTING: I have commented out the "sessionStorage" check so you can see the animation every time you refresh.
-// When you are ready to publish, UNCOMMENT the lines below to show it only once.
-
-// if (sessionStorage.getItem('splashShown') === 'true') {
-//   if(splash) splash.style.display = 'none';
-// } else {
-  
-  // Play Animation
-  setTimeout(() => {
-    if(splash) {
-      splash.classList.add('splash-hidden');
-      setTimeout(() => splash.remove(), 500); // Remove from DOM
-      sessionStorage.setItem('splashShown', 'true'); // Remember it was shown
-    }
-  }, 2800); // 2.8 seconds to allow full split animation
-  
-// }
-// ----------------------------------------------
+import {
+  getFirestore, collection, addDoc, serverTimestamp,
+  onSnapshot, query, where, orderBy, doc, setDoc, getDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getStorage, ref, uploadBytes, getDownloadURL
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import {
+  getAuth, RecaptchaVerifier, signInWithPhoneNumber,
+  signOut, onAuthStateChanged, GoogleAuthProvider,
+  signInWithPopup, updateProfile
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCYDLsQLFvuTV1N0mXtZFVYcSQqOkGfCrE",
@@ -1275,54 +1280,550 @@ const firebaseConfig = {
   messagingSenderId: "786501136156",
   appId: "1:786501136156:web:9277a2f7ef937deff1d4d9"
 };
+    
+
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app, "gs://grocery-orders-3ce26.firebasestorage.app");
+
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
-/* =================================================================
-   2. GLOBAL VARIABLES & UTILS
-   ================================================================= */
 let data = [];
 let cart = {};
-let currentLat = null;
-let currentLng = null;
-let recaptchaVerifier;
-let confirmationResultGlobal = null;
-let userProfileImage = null;
-let profileListenerUnsub = null;
+function saveCart() {
+  try {
+    localStorage.setItem("vg_cart", JSON.stringify(cart));
+  } catch (e) {
+    console.error("Save cart failed", e);
+  }
+}
+    const BUSINESS_HOURS = {
+  OPEN_HOUR: 7,    // 7:00 AM
+  CLOSE_HOUR: 23,  // 11:00 PM (23:00 in 24-hour format)
+  NEXT_DAY_THRESHOLD: 20  // 8:00 PM
+};
+    // ========== TIME UTILITY FUNCTIONS ==========
+// Function to clear all validation styles
+function clearAllValidationStyles() {
+  const fields = [
+    'deliveryName', 'deliveryMobile', 'houseNo', 
+    'street', 'pincode', 'city', 'state'
+  ];
+  
+  fields.forEach(fieldId => {
+    const field = document.getElementById(fieldId);
+    if (field) {
+      field.classList.remove('invalid', 'valid');
+      field.style.borderColor = ''; // Reset border color
+    }
+    
+    const errorElement = document.getElementById(fieldId + 'Error');
+    if (errorElement) {
+      errorElement.style.display = 'none';
+    }
+  });
+  
+  // Also clear the old mobileError element
+  const oldMobileError = document.getElementById('mobileError');
+  if (oldMobileError) {
+    oldMobileError.style.display = 'none';
+  }
+}
+// 1. Check if current time is within business hours (7 AM - 11 PM)
+function isWithinBusinessHours() {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const currentTimeInMinutes = currentHour * 60 + currentMinute;
+  
+  const openingMinutes = BUSINESS_HOURS.OPEN_HOUR * 60;    // 7:00 AM = 420 minutes
+  const closingMinutes = BUSINESS_HOURS.CLOSE_HOUR * 60;   // 11:00 PM = 1380 minutes
+  
+  return currentTimeInMinutes >= openingMinutes && currentTimeInMinutes < closingMinutes;
+}
+
+// 2. Check if order is placed after 8 PM
+function isAfter8PM() {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const currentTimeInMinutes = currentHour * 60 + currentMinute;
+  
+  const thresholdMinutes = BUSINESS_HOURS.NEXT_DAY_THRESHOLD * 60; // 8:00 PM = 1200 minutes
+  
+  return currentTimeInMinutes >= thresholdMinutes;
+}
+
+// 3. Calculate delivery date (next day if after 8 PM)
+function getDeliveryDate() {
+  const now = new Date();
+  const deliveryDate = new Date(now);
+  
+  // If order is placed after 8 PM, deliver next day
+  if (isAfter8PM()) {
+    deliveryDate.setDate(deliveryDate.getDate() + 1);
+  }
+  
+  return deliveryDate;
+}
+
+// 4. Format date nicely for display
+function formatDeliveryDate(date) {
+  return date.toLocaleDateString('en-IN', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
+
+// 5. Create formatted time string (e.g., "9:30 PM")
+function formatTimeMessage() {
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes().toString().padStart(2, '0');
+  const ampm = currentHour >= 12 ? 'PM' : 'AM';
+  const displayHour = currentHour % 12 || 12;
+  
+  return `${displayHour}:${currentMinute} ${ampm}`;
+}
+
+// 6. Get hours until opening (for closed status)
+function getHoursUntilOpening() {
+  const now = new Date();
+  const currentHour = now.getHours();
+  
+  if (currentHour < BUSINESS_HOURS.OPEN_HOUR) {
+    return BUSINESS_HOURS.OPEN_HOUR - currentHour;
+  }
+  return 0;
+}
+
+// 7. Get formatted business hours string
+function getBusinessHoursString() {
+  return "7:00 AM - 11:00 PM";
+}
+
+// 8. Get delivery policy message
+function getDeliveryPolicyMessage() {
+  return "Orders placed after 8:00 PM are delivered the next day";
+}
+    // 9. Update time status display in UI
+function updateTimeStatus() {
+  const timeInfoElement = document.getElementById('timeStatus');
+  if (!timeInfoElement) return;
+  
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  const currentTimeInMinutes = currentHour * 60 + currentMinute;
+  
+  const openingMinutes = BUSINESS_HOURS.OPEN_HOUR * 60;
+  const closingMinutes = BUSINESS_HOURS.CLOSE_HOUR * 60;
+  const thresholdMinutes = BUSINESS_HOURS.NEXT_DAY_THRESHOLD * 60;
+  
+  if (currentTimeInMinutes < openingMinutes) {
+    // Before 7 AM
+    const hoursUntilOpen = Math.ceil((openingMinutes - currentTimeInMinutes) / 60);
+    timeInfoElement.innerHTML = `⏰ Opening in ${hoursUntilOpen} hour${hoursUntilOpen > 1 ? 's' : ''}`;
+    timeInfoElement.style.color = '#ff9800';
+    timeInfoElement.style.backgroundColor = 'rgba(255, 152, 0, 0.1)';
+  } else if (currentTimeInMinutes >= closingMinutes) {
+    // After 11 PM
+    timeInfoElement.innerHTML = '⏰ Closed for today';
+    timeInfoElement.style.color = '#ff4757';
+    timeInfoElement.style.backgroundColor = 'rgba(244, 67, 54, 0.1)';
+  } else if (currentTimeInMinutes >= thresholdMinutes) {
+    // After 8 PM
+    timeInfoElement.innerHTML = `🕐 ${formatTimeMessage()} | 📦 Orders now = Next day delivery`;
+    timeInfoElement.style.color = '#2196f3';
+    timeInfoElement.style.backgroundColor = 'rgba(33, 150, 243, 0.1)';
+  } else {
+    // Normal hours (7 AM - 8 PM)
+    timeInfoElement.innerHTML = `🕐 ${formatTimeMessage()} | ✅ Open for orders`;
+    timeInfoElement.style.color = '#0C831F';
+    timeInfoElement.style.backgroundColor = 'rgba(12, 131, 31, 0.1)';
+  }
+}
+    // Phone number validation
+function validatePhoneNumber(phone) {
+  // Remove any spaces, dashes, or plus signs
+  const cleanPhone = phone.replace(/[\s\-+]/g, '');
+  
+  // Check if it's exactly 10 digits
+  if (!/^\d{10}$/.test(cleanPhone)) {
+    return false;
+  }
+  
+  // Check if it starts with 6,7,8,9 (valid Indian mobile prefixes)
+  if (!/^[6-9]/.test(cleanPhone)) {
+    return false;
+  }
+  
+  return true;
+}
+
+// Add real-time validation for all fields (add this AFTER the phone validation)
+document.addEventListener('DOMContentLoaded', function() {
+  // Wait a bit for DOM to be fully loaded
+  setTimeout(() => {
+    // Full name validation
+    const nameField = document.getElementById('deliveryName');
+    if (nameField) {
+      nameField.addEventListener('input', function(e) {
+        const validation = validateFullName(e.target.value);
+        updateFieldValidation('deliveryName', validation);
+      });
+      
+      nameField.addEventListener('blur', function(e) {
+        const validation = validateFullName(e.target.value);
+        updateFieldValidation('deliveryName', validation);
+      });
+    }
+    
+    // House number validation
+    const houseNoField = document.getElementById('houseNo');
+    if (houseNoField) {
+      houseNoField.addEventListener('input', function(e) {
+        const validation = validateHouseNumber(e.target.value);
+        updateFieldValidation('houseNo', validation);
+      });
+      
+      houseNoField.addEventListener('blur', function(e) {
+        const validation = validateHouseNumber(e.target.value);
+        updateFieldValidation('houseNo', validation);
+      });
+    }
+    
+    // Street validation
+    const streetField = document.getElementById('street');
+    if (streetField) {
+      streetField.addEventListener('input', function(e) {
+        const validation = validateStreet(e.target.value);
+        updateFieldValidation('street', validation);
+      });
+      
+      streetField.addEventListener('blur', function(e) {
+        const validation = validateStreet(e.target.value);
+        updateFieldValidation('street', validation);
+      });
+    }
+    
+    // Pincode validation
+    const pincodeField = document.getElementById('pincode');
+    if (pincodeField) {
+      pincodeField.addEventListener('input', function(e) {
+        const validation = validatePincode(e.target.value);
+        updateFieldValidation('pincode', validation);
+      });
+      
+      pincodeField.addEventListener('blur', function(e) {
+        const validation = validatePincode(e.target.value);
+        updateFieldValidation('pincode', validation);
+      });
+      
+      // Allow only numbers in pincode
+      pincodeField.addEventListener('keypress', function(e) {
+        const char = String.fromCharCode(e.which);
+        if (!/^\d$/.test(char)) {
+          e.preventDefault();
+        }
+      });
+    }
+    
+    // City validation
+    const cityField = document.getElementById('city');
+    if (cityField) {
+      cityField.addEventListener('input', function(e) {
+        const validation = validateCity(e.target.value);
+        updateFieldValidation('city', validation);
+      });
+      
+      cityField.addEventListener('blur', function(e) {
+        const validation = validateCity(e.target.value);
+        updateFieldValidation('city', validation);
+      });
+      
+      // Prevent numbers in city
+      cityField.addEventListener('keypress', function(e) {
+        const char = String.fromCharCode(e.which);
+        if (/\d/.test(char)) {
+          e.preventDefault();
+        }
+      });
+    }
+    
+    // State validation
+    const stateField = document.getElementById('state');
+    if (stateField) {
+      stateField.addEventListener('change', function(e) {
+        const validation = validateState(e.target.value);
+        updateFieldValidation('state', validation);
+      });
+      
+      stateField.addEventListener('blur', function(e) {
+        const validation = validateState(e.target.value);
+        updateFieldValidation('state', validation);
+      });
+    }
+  }, 500); // Small delay to ensure DOM is ready
+});
+
+// 1. Full name - no numbers allowed
+function validateFullName(name) {
+  if (!name.trim()) {
+    return { valid: false, message: "Full name is required" };
+  }
+  
+  // Check if name contains numbers
+  if (/\d/.test(name)) {
+    return { valid: false, message: "Full name cannot contain numbers" };
+  }
+  
+  // Check if name has at least 2 characters
+  if (name.trim().length < 2) {
+    return { valid: false, message: "Full name must be at least 2 characters" };
+  }
+  
+  // Check if name contains at least one letter
+  if (!/[a-zA-Z]/.test(name)) {
+
+    return { valid: false, message: "Please enter a valid name" };
+  }
+  
+  return { valid: true, message: "" };
+}
+    // Function to update field validation UI
+function updateFieldValidation(fieldId, validation) {
+  const field = document.getElementById(fieldId);
+  if (!field) return;
+  
+  const errorId = fieldId + 'Error';
+  let errorElement = document.getElementById(errorId);
+  
+  // Create error element if it doesn't exist
+  if (!errorElement) {
+    errorElement = document.createElement('div');
+    errorElement.id = errorId;
+    errorElement.className = 'field-error';
+    errorElement.style.cssText = 'color: #f44336; font-size: 12px; margin: 4px 0 10px 0; display: none;';
+    
+    // Insert after the field
+    field.parentNode.insertBefore(errorElement, field.nextSibling);
+  }
+  
+  if (!validation.valid) {
+    field.classList.add('invalid');
+    field.classList.remove('valid');
+    errorElement.textContent = validation.message;
+    errorElement.style.display = 'block';
+  } else {
+    field.classList.add('valid');
+    field.classList.remove('invalid');
+    errorElement.style.display = 'none';
+  }
+}
+
+// 2. House number - allow letters, numbers, and common symbols
+function validateHouseNumber(houseNo) {
+  if (!houseNo.trim()) {
+    return { valid: false, message: "House number is required" };
+  }
+  
+  // Allow numbers, letters, space, slash, dash, dot, comma, hash
+  if (!/^[a-zA-Z0-9\s\/\-.,#]+$/.test(houseNo)) {
+    return { valid: false, message: "House number can only contain letters, numbers, spaces, and symbols like /, -, #" };
+  }
+  
+  return { valid: true, message: "" };
+}
+
+// 3. Street - must contain text, not just numbers
+function validateStreet(street) {
+  if (!street.trim()) {
+    return { valid: false, message: "Street is required" };
+  }
+  
+  // Check if street contains at least some letters
+  if (!/[a-zA-Z]/.test(street)) {
+    return { valid: false, message: "Street must contain text (not just numbers)" };
+  }
+  
+  return { valid: true, message: "" };
+}
+
+// 4. Pincode - exactly 6 digits, no text
+function validatePincode(pincode) {
+  if (!pincode.trim()) {
+    return { valid: false, message: "Pincode is required" };
+  }
+  
+  // Check for exactly 6 digits
+  if (!/^\d{6}$/.test(pincode)) {
+    return { valid: false, message: "6 digits" };
+  }
+  
+  return { valid: true, message: "" };
+}
+
+// 5. City - no numbers allowed
+function validateCity(city) {
+  if (!city.trim()) {
+    return { valid: false, message: "" };
+  }
+  
+  // Check if city contains numbers
+  if (/\d/.test(city)) {
+    return { valid: false, message: "City cannot contain numbers" };
+  }
+  
+  // Check minimum length
+  if (city.trim().length < 2) {
+    return { valid: false, message: "City must be at least 2 characters" };
+  }
+  
+  return { valid: true, message: "" };
+}
+
+// 6. State - must be selected from dropdown
+function validateState(state) {
+  if (!state.trim()) {
+    return { valid: false, message: "State is required" };
+  }
+  
+  return { valid: true, message: "" };
+}
+
+// Real-time phone validation - Integrated with validation system
+document.getElementById('deliveryMobile')?.addEventListener('input', function(e) {
+  const phone = e.target.value.trim();
+  const validation = validatePhoneNumber(phone);
+  
+  // Get or create error element
+  const errorId = 'deliveryMobileError';
+  let errorElement = document.getElementById(errorId);
+  
+  // Create error element if it doesn't exist
+  if (!errorElement) {
+    errorElement = document.createElement('div');
+    errorElement.id = errorId;
+    errorElement.className = 'field-error';
+    errorElement.style.cssText = 'color: #f44336; font-size: 12px; margin: 4px 0 10px 0; display: none;';
+    
+    // Insert after the mobile field
+    e.target.parentNode.insertBefore(errorElement, e.target.nextSibling);
+  }
+  
+  // Hide the old mobileError div to avoid duplication
+  const oldMobileError = document.getElementById('mobileError');
+  if (oldMobileError) {
+    oldMobileError.style.display = 'none';
+  }
+  
+  if (phone.length > 0) {
+    if (!validation) {
+      // Invalid phone
+      e.target.classList.add('invalid');
+      e.target.classList.remove('valid');
+      errorElement.textContent = 'Please enter a valid 10-digit Indian mobile number';
+      errorElement.style.display = 'block';
+    } else {
+      // Valid phone
+      e.target.classList.add('valid');
+      e.target.classList.remove('invalid');
+      errorElement.style.display = 'none';
+    }
+  } else {
+    // Empty field
+    e.target.classList.remove('invalid', 'valid');
+    errorElement.style.display = 'none';
+  }
+});
+    function saveState() {
+  try {
+    localStorage.setItem("vg_state", JSON.stringify({ 
+      section: currentSection, 
+      cat: cat 
+    }));
+  } catch (e) {
+    console.error("Save state failed", e);
+  }
+}
+
+function loadState() {
+  try {
+    // Load cart
+    const savedCart = localStorage.getItem("vg_cart");
+    cart = savedCart ? JSON.parse(savedCart) : {};
+    
+    // Load section & category
+    const savedState = localStorage.getItem("vg_state");
+    if (savedState) {
+      const state = JSON.parse(savedState);
+      currentSection = state.section || "main";
+      cat = state.cat || "All";
+    }
+  } catch (e) {
+    cart = {};
+    currentSection = "main";
+    cat = "All";
+  }
+  updateCartCount();
+}
+
 let cat = "All";
 let currentSection = "main";
 let userProfileData = { name: "", phone: "", address: "" };
 
-const BUSINESS_HOURS = {
-  OPEN_HOUR: 7,
-  CLOSE_HOUR: 23,
-  NEXT_DAY_THRESHOLD: 20
+	const BANNER_DATA = {
+  'All': {
+    title: "Fresh Savings!",
+    sub: "Up to 50% OFF on daily essentials",
+    gradient: "linear-gradient(135deg, #0C831F 0%, #25a541 100%)", /* Green */
+    icon: "🛍️"
+  },
+  'Grocery': {
+    title: "Farm Fresh",
+    sub: "Direct from the village fields",
+    gradient: "linear-gradient(135deg, #43a047 0%, #66bb6a 100%)", /* Leaf Green */
+    icon: "🥦"
+  },
+  'Kitchen': {
+    title: "Chef's Choice",
+    sub: "Spices, Oils & Masalas",
+    gradient: "linear-gradient(135deg, #FF9800 0%, #FFC107 100%)", /* Orange/Yellow */
+    icon: "🍳"
+  },
+  'Bathroom': {
+    title: "Hygiene First",
+    sub: "Soaps, Cleaners & more",
+    gradient: "linear-gradient(135deg, #0288d1 0%, #29b6f6 100%)", /* Blue */
+    icon: "🧼"
+  },
+  'Dress': {
+    title: "New Arrivals",
+    sub: "Trendy styles for the season",
+    gradient: "linear-gradient(135deg, #e91e63 0%, #f48fb1 100%)", /* Pink */
+    icon: "👗"
+  }
 };
-
-const BANNER_DATA = {
-  'All': { title: "Fresh Savings!", sub: "Up to 50% OFF on daily essentials", gradient: "linear-gradient(135deg, #0C831F 0%, #25a541 100%)", icon: "🛍️" },
-  'Grocery': { title: "Farm Fresh", sub: "Direct from the village fields", gradient: "linear-gradient(135deg, #43a047 0%, #66bb6a 100%)", icon: "🥦" },
-  'Kitchen': { title: "Chef's Choice", sub: "Spices, Oils & Masalas", gradient: "linear-gradient(135deg, #FF9800 0%, #FFC107 100%)", icon: "🍳" },
-  'Bathroom': { title: "Hygiene First", sub: "Soaps, Cleaners & more", gradient: "linear-gradient(135deg, #0288d1 0%, #29b6f6 100%)", icon: "🧼" },
-  'Dress': { title: "New Arrivals", sub: "Trendy styles for the season", gradient: "linear-gradient(135deg, #e91e63 0%, #f48fb1 100%)", icon: "👗" }
-};
-
-// DOM Elements
 const list = document.getElementById("products");
 const search = document.getElementById("search");
 const cartDetails = document.getElementById("cartDetails");
 const cartTotal = document.getElementById("cartTotal");
 const menuCartCount = document.getElementById("menuCartCount");
 const headerCartCount = document.getElementById("headerCartCount");
+//const nameEl = document.getElementById("name");
+//const mobileEl = document.getElementById("mobile");
+//const addressEl = document.getElementById("address");
 const locStatus = document.getElementById("locStatus");
 const cartBar = document.getElementById("cartBar");
 const hamburgerBtn = document.getElementById("hamburgerBtn");
 const orderHistoryList = document.getElementById("orderHistoryList");
 const shopBackButton = document.getElementById("shopBackButton");
+
 const loginName = document.getElementById("loginName");
 const loginMobile = document.getElementById("loginMobile");
 const otpCode = document.getElementById("otpCode");
@@ -1333,166 +1834,315 @@ const userBox = document.getElementById("userBox");
 const shopSection = document.getElementById("shopSection");
 const cartSection = document.getElementById("cartSection");
 const orderHistorySection = document.getElementById("orderHistorySection");
+
 const sideMenu = document.getElementById("sideMenu");
 const menuOverlay = document.getElementById("menuOverlay");
 const menuUserName = document.getElementById("menuUserName");
 const menuUserEmail = document.getElementById("menuUserEmail");
 const profileImage = document.getElementById("profileImage");
 
-// State Management
-function saveCart() { try { localStorage.setItem("vg_cart", JSON.stringify(cart)); } catch (e) { console.error("Save cart failed", e); } }
-function saveState() { try { localStorage.setItem("vg_state", JSON.stringify({ section: currentSection, cat: cat })); } catch (e) { console.error("Save state failed", e); } }
+// OTP Timer Elements
+const otpTimer = document.getElementById("otpTimer");
+const sendOtpBtn = document.getElementById("sendOtpBtn");
+const verifyOtpBtn = document.getElementById("verifyOtpBtn");
+const resendOtpBtn = document.getElementById("resendOtpBtn");
 
-function loadState() {
-  try {
-    const savedCart = localStorage.getItem("vg_cart");
-    cart = savedCart ? JSON.parse(savedCart) : {};
-    const savedState = localStorage.getItem("vg_state");
-    if (savedState) {
-      const st = JSON.parse(savedState);
-      currentSection = st.section || "main";
-      cat = st.cat || "All";
-    }
-  } catch { cart = {}; currentSection = "main"; cat = "All"; }
-  updateCartCount();
+let currentLat = null;
+let currentLng = null;
+let recaptchaVerifier;
+let confirmationResultGlobal = null;
+let userProfileImage = null;
+let profileListenerUnsub = null;
+
+// OTP Timer Variables
+let otpTimerInterval = null;
+let otpExpiryTime = null;
+let isOtpExpired = false;
+
+// OTP Timer Functions
+function startOtpTimer() {
+  // Clear any existing timer
+  clearOtpTimer();
+  
+  // Set expiry time to 1 minute from now
+  otpExpiryTime = Date.now() + 60000; // 1 minute = 60,000 milliseconds
+  isOtpExpired = false;
+  
+  // Show timer display
+  otpTimer.style.display = "block";
+  otpTimer.classList.remove("expired");
+  
+  // Enable OTP input
+  otpCode.disabled = false;
+  otpCode.placeholder = "Enter OTP";
+  
+  // Hide resend button initially
+  resendOtpBtn.style.display = "none";
+  verifyOtpBtn.style.display = "flex";
+  
+  // Start timer interval
+  otpTimerInterval = setInterval(updateOtpTimer, 1000);
+  updateOtpTimer(); // Initial update
 }
 
-/* =================================================================
-   3. TIME & VALIDATION FUNCTIONS
-   ================================================================= */
-function clearAllValidationStyles() {
-  const fields = ['deliveryName', 'deliveryMobile', 'houseNo', 'street', 'pincode', 'city', 'state'];
-  fields.forEach(id => {
-    const el = document.getElementById(id);
-    if(el) { el.classList.remove('invalid', 'valid'); el.style.borderColor = ''; }
-    const err = document.getElementById(id + 'Error');
-    if(err) err.style.display = 'none';
+function updateOtpTimer() {
+  const now = Date.now();
+  const timeLeft = otpExpiryTime - now;
+  
+  if (timeLeft <= 0) {
+    // Timer expired
+    clearInterval(otpTimerInterval);
+    otpTimer.innerHTML = "OTP Expired!";
+    otpTimer.classList.add("expired");
+    isOtpExpired = true;
+    
+    // Disable OTP input and verification button
+    otpCode.disabled = true;
+    otpCode.placeholder = "OTP Expired - Resend required";
+    verifyOtpBtn.style.display = "none";
+    
+    // Show resend button
+    resendOtpBtn.style.display = "flex";
+    resendOtpBtn.disabled = false;
+    resendOtpBtn.innerHTML = "Resend OTP";
+  } else {
+    // Update timer display
+    const seconds = Math.floor(timeLeft / 1000);
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    
+    otpTimer.innerHTML = `OTP valid for: ${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  }
+}
+
+function clearOtpTimer() {
+  if (otpTimerInterval) {
+    clearInterval(otpTimerInterval);
+    otpTimerInterval = null;
+  }
+  otpTimer.style.display = "none";
+}
+
+function resetOtpFields() {
+  otpCode.value = "";
+  otpCode.disabled = true;
+  otpCode.placeholder = "Send OTP first";
+  verifyOtpBtn.style.display = "flex";
+  resendOtpBtn.style.display = "none";
+  clearOtpTimer();
+}
+function showOtpScreen(phone) {
+  // hide login box
+  loginBox.style.display = "none";
+
+  // show OTP section
+  otpSection.classList.remove("hidden");
+
+  // info text
+  otpInfoText.textContent = "OTP sent to " + phone;
+
+  // prepare input and timer UI
+  resetOtpFields();
+  otpCode.disabled = false;
+  otpCode.placeholder = "Enter OTP";
+}
+
+function backToLoginFromOtp() {
+  // hide OTP section and go back to login
+  otpSection.classList.add("hidden");
+  loginBox.style.display = "block";
+}
+window.backToLoginFromOtp = backToLoginFromOtp;
+
+// ✅ FIXED: Simple image cropping without complex processing
+async function cropImageSimply(file, size = 300) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      const img = new Image();
+      // CRITICAL: Add timeout to detect if image never loads
+      const timeout = setTimeout(() => {
+        reject(new Error("Image loading timeout"));
+      }, 5000);
+      
+      img.onload = () => {
+        clearTimeout(timeout);
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          
+          const minSize = Math.min(img.width, img.height);
+          const sourceX = (img.width - minSize) / 2;
+          const sourceY = (img.height - minSize) / 2;
+          
+          ctx.drawImage(img, sourceX, sourceY, minSize, minSize, 0, 0, size, size);
+          
+          canvas.toBlob(
+            (blob) => {
+              if (blob) resolve(blob);
+              else reject(new Error("Failed to create blob"));
+            },
+            'image/jpeg',
+            0.85
+          );
+        } catch (err) {
+          reject(err);
+        }
+      };
+      
+      img.onerror = () => {
+        clearTimeout(timeout);
+        reject(new Error("Image failed to load"));
+      };
+      
+      img.src = e.target.result;
+    };
+    
+    reader.onerror = () => reject(new Error("Failed to read file"));
+    reader.readAsDataURL(file);
   });
-  const mobErr = document.getElementById('mobileError');
-  if(mobErr) mobErr.style.display = 'none';
 }
 
-function isWithinBusinessHours() {
-  const now = new Date();
-  const mins = now.getHours() * 60 + now.getMinutes();
-  return mins >= BUSINESS_HOURS.OPEN_HOUR * 60 && mins < BUSINESS_HOURS.CLOSE_HOUR * 60;
+function showDefaultProfileIcon() {
+  profileImage.innerHTML = "👤";
+  profileImage.style.backgroundImage = "";
+  profileImage.style.backgroundColor = "#f0f0f0";
 }
 
-function isAfter8PM() {
-  const now = new Date();
-  return (now.getHours() * 60 + now.getMinutes()) >= BUSINESS_HOURS.NEXT_DAY_THRESHOLD * 60;
+function showProfilePhoto(url) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    profileImage.innerHTML = "";
+    profileImage.style.backgroundImage = `url(${url})`;
+    profileImage.style.backgroundSize = "cover";
+    profileImage.style.backgroundPosition = "center";
+    profileImage.style.backgroundColor = "transparent";
+  };
+  img.onerror = () => {
+    console.error("Failed to load profile image:", url);
+    showDefaultProfileIcon();
+  };
+  img.src = url;
 }
 
-function getDeliveryDate() {
-  const now = new Date();
-  const d = new Date(now);
-  if (isAfter8PM()) d.setDate(d.getDate() + 1);
-  return d;
-}
-
-function formatDeliveryDate(date) {
-  return date.toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-}
-
-function formatTimeMessage() {
-  const now = new Date();
-  const h = now.getHours();
-  const m = now.getMinutes().toString().padStart(2, '0');
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  return `${h % 12 || 12}:${m} ${ampm}`;
-}
-
-function updateTimeStatus() {
-  const el = document.getElementById('timeStatus');
-  if (!el) return;
-  const now = new Date();
-  const minutes = now.getHours() * 60 + now.getMinutes();
-  const openMin = BUSINESS_HOURS.OPEN_HOUR * 60;
-  const closeMin = BUSINESS_HOURS.CLOSE_HOUR * 60;
-  const threshMin = BUSINESS_HOURS.NEXT_DAY_THRESHOLD * 60;
-
-  if (minutes < openMin) {
-    const h = Math.ceil((openMin - minutes) / 60);
-    el.innerHTML = `⏰ Opening in ${h} hour${h > 1 ? 's' : ''}`;
-    el.style.color = '#ff9800'; el.style.backgroundColor = 'rgba(255, 152, 0, 0.1)';
-  } else if (minutes >= closeMin) {
-    el.innerHTML = '⏰ Closed for today';
-    el.style.color = '#ff4757'; el.style.backgroundColor = 'rgba(244, 67, 54, 0.1)';
-  } else if (minutes >= threshMin) {
-    el.innerHTML = `🕐 ${formatTimeMessage()} | 📦 Orders now = Next day delivery`;
-    el.style.color = '#2196f3'; el.style.backgroundColor = 'rgba(33, 150, 243, 0.1)';
-  } else {
-    el.innerHTML = `🕐 ${formatTimeMessage()} | ✅ Open for orders`;
-    el.style.color = '#0C831F'; el.style.backgroundColor = 'rgba(12, 131, 31, 0.1)';
+// ✅ SIMPLIFIED: Profile image upload without complex modal
+document.getElementById("imageUpload").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  const user = auth.currentUser;
+  
+  if (!file) {
+    e.target.value = "";
+    return;
   }
-}
 
-// Validation Logic
-function validatePhoneNumber(phone) {
-  const clean = phone.replace(/[\s\-+]/g, '');
-  return /^\d{10}$/.test(clean) && /^[6-9]/.test(clean);
-}
-function validateFullName(name) {
-  if (!name.trim()) return { valid: false, message: "Required" };
-  if (/\d/.test(name)) return { valid: false, message: "No numbers" };
-  if (name.trim().length < 2) return { valid: false, message: "Too short" };
-  return { valid: true };
-}
-function validateHouseNumber(v) { return v.trim() ? { valid: true } : { valid: false, message: "Required" }; }
-function validateStreet(v) { return v.trim() ? { valid: true } : { valid: false, message: "Required" }; }
-function validatePincode(v) { return /^\d{6}$/.test(v.trim()) ? { valid: true } : { valid: false, message: "6 digits" }; }
-function validateCity(v) { return v.trim().length > 1 ? { valid: true } : { valid: false, message: "Required" }; }
-function validateState(v) { return v.trim() ? { valid: true } : { valid: false, message: "Required" }; }
-
-function updateFieldValidation(id, res) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const errId = id + 'Error';
-  let errEl = document.getElementById(errId);
-  if (!errEl) {
-    errEl = document.createElement('div'); errEl.id = errId; errEl.className = 'field-error';
-    el.parentNode.insertBefore(errEl, el.nextSibling);
+  if (!user) {
+    alert("❌ You must be logged in first. Please login, then try uploading.");
+    e.target.value = "";
+    return;
   }
-  if (!res.valid) {
-    el.classList.add('invalid'); el.classList.remove('valid');
-    errEl.textContent = res.message; errEl.style.display = 'block';
-  } else {
-    el.classList.add('valid'); el.classList.remove('invalid');
-    errEl.style.display = 'none';
-  }
-}
 
-// Real-time validation listener
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(() => {
-    const ph = document.getElementById('deliveryMobile');
-    if(ph) {
-      ph.addEventListener('input', (e) => {
-         const v = validatePhoneNumber(e.target.value);
-         if(e.target.value.length > 0) {
-           if(!v) { e.target.classList.add('invalid'); e.target.classList.remove('valid'); }
-           else { e.target.classList.add('valid'); e.target.classList.remove('invalid'); }
-         }
-      });
+  // File validation
+  if (file.size < 20 * 1024) { 
+    alert("❌ Image too small. Minimum 20KB required.");
+    e.target.value = "";
+    return;
+  }
+  
+  if (file.size > 5 * 1024 * 1024) {
+    alert("❌ Image too large. Maximum 5MB allowed.");
+    e.target.value = "";
+    return;
+  }
+
+  try {
+    console.log("📸 Starting upload for user:", user.uid);
+  profileImage.innerHTML = `
+  <div style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
+    <span style="display: inline-block; animation: spin 0.8s linear infinite; font-size: 24px;">⟳</span>
+  </div>
+`;
+
+    
+    // TRY WITHOUT CROPPING FIRST
+    let blob = file;
+    console.log("📦 Using file directly (no cropping), size:", blob.size, "bytes");
+    
+    // Upload to Firebase Storage
+    const imageRef = ref(storage, `profileImages/${user.uid}/profile.jpg`);
+    console.log("📂 Upload path:", `profileImages/${user.uid}/profile.jpg`);
+    
+    const metadata = { 
+      contentType: file.type || 'image/jpeg',
+      customMetadata: {
+        uploadedBy: user.uid,
+        timestamp: Date.now().toString()
+      }
+    };
+    
+    console.log("⬆️ Uploading to Firebase...");
+    const uploadResult = await uploadBytes(imageRef, blob, metadata);
+    console.log("✅ Upload complete:", uploadResult.ref.fullPath);
+    
+    console.log("📥 Getting download URL...");
+    const photoURL = await getDownloadURL(uploadResult.ref);
+    console.log("🔗 Download URL:", photoURL);
+    
+    console.log("👤 Updating user profile...");
+    await updateProfile(user, { photoURL });
+    console.log("✅ User profile updated");
+    
+    console.log("💾 Saving to Firestore...");
+    await setDoc(doc(db, "users", user.uid), {
+      photoURL: photoURL,
+      name: user.displayName || userProfileData.name || "",
+      email: user.email || "",
+      phone: user.phoneNumber || "",
+      lastUpdated: new Date().toISOString()
+    }, { merge: true });
+    console.log("✅ Firestore saved");
+    
+    // Update UI
+    showProfilePhoto(photoURL);
+    userProfileImage = photoURL;
+    
+    alert("✅ Profile image updated successfully!");
+    
+  } catch (error) {
+    console.error("❌ UPLOAD ERROR:", error);
+    console.error("Error code:", error.code);
+    console.error("Error message:", error.message);
+    showDefaultProfileIcon();
+    
+    // Show specific error message
+    if (error.code === 'storage/unauthorized') {
+      alert("❌ Upload blocked. Check Storage rules allow your user.");
+    } else if (error.code === 'storage/retry-limit-exceeded') {
+      alert("❌ Network error. Please try again.");
+    } else {
+      alert("❌ Upload failed: " + error.message);
     }
-  }, 500);
+  } finally {
+    e.target.value = "";
+  }
 });
 
-/* =================================================================
-   4. CORE APP LOGIC
-   ================================================================= */
 window.toggleMenu = () => {
   sideMenu.classList.toggle("active");
   menuOverlay.classList.toggle("active");
+  // Toggle the no-scroll class on the body
   document.body.classList.toggle("no-scroll");
 };
 
 window.closeMenu = () => {
   sideMenu.classList.remove("active");
   menuOverlay.classList.remove("active");
+  // Remove the no-scroll class from the body
   document.body.classList.remove("no-scroll");
 };
-
 window.toggleSubmenu = (id) => document.getElementById(id).classList.toggle("active");
 
 window.showSection = (section) => {
@@ -1500,15 +2150,21 @@ window.showSection = (section) => {
   document.querySelectorAll(".content-section").forEach((el) => el.classList.add("hidden"));
   cartBar.classList.toggle("active", section === "cart");
   currentSection = section;
-  saveState();
+    saveState();
   if (section === "shop") {
     shopSection.classList.remove("hidden");
     updateShopBackButtonVisibility();
     render();
-  } else if (section === "cart") {
+ } else if (section === "cart") {
     cartSection.classList.remove("hidden");
     renderCartPage();
-    setTimeout(() => { if (auth.currentUser) autoFillDeliveryDetails(); }, 100);
+    // Auto-fill delivery details when user logs in
+    setTimeout(() => {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        autoFillDeliveryDetails();
+      }
+    }, 100); // Small delay to ensure DOM is ready
   } else if (section === "orderHistory") {
     orderHistorySection.classList.remove("hidden");
   } else {
@@ -1517,9 +2173,13 @@ window.showSection = (section) => {
 };
 
 window.goBackToAllTab = () => { 
-  const form = document.getElementById('addressForm');
-  if(form) form.removeAttribute('data-edit-index');
-  setCat("All"); showSection("shop"); 
+  // Clear address form edit index
+  const addressForm = document.getElementById('addressForm');
+  if (addressForm) {
+    addressForm.removeAttribute('data-edit-index');
+  }
+  setCat("All"); 
+  showSection("shop"); 
 };
 window.goBackFromShop = () => { if (cat === "All") showSection("main"); else setCat("All"); };
 
@@ -1527,56 +2187,453 @@ function updateShopBackButtonVisibility() {
   if (!shopBackButton) return;
   shopBackButton.style.display = cat === "All" ? "none" : "inline-flex";
 }
-
-function updateCategoryButtons() {
+    function updateCategoryButtons() {
   document.querySelectorAll(".cats button").forEach((b) => {
     b.classList.toggle("active", b.textContent === cat);
   });
 }
 
-// Banner & Categories
-window.setCat = (c) => {
-  cat = c;
-  updateCategoryButtons();
+
+// Show new address form - CORRECTED VERSION
+window.showNewAddressForm = function() {
+  console.log("Showing new address form");
+  const addressForm = document.getElementById('addressForm');
+  const savedAddresses = document.getElementById('savedAddresses');
   
-  // Banner Logic
-  const bannerContainer = document.getElementById('categoryBanner');
-  const info = BANNER_DATA[c] || BANNER_DATA['All'];
-  if (bannerContainer) {
-    bannerContainer.innerHTML = `
-      <div class="promo-banner" style="background: ${info.gradient}">
-        <div class="promo-text">
-          <div class="promo-title">${info.title}</div>
-          <div class="promo-sub">${info.sub}</div>
-        </div>
-        <div class="promo-icon">${info.icon}</div>
-      </div>
-    `;
-    bannerContainer.classList.remove('banner-wrapper');
-    void bannerContainer.offsetWidth; 
-    bannerContainer.classList.add('banner-wrapper');
+  if (addressForm && savedAddresses) {
+    addressForm.style.display = 'block';
+    savedAddresses.style.display = 'none';
+    
+    // IMPORTANT: DO NOT clear edit index here
+    // Only clear form if we're NOT in edit mode
+    const isEditing = addressForm.hasAttribute('data-edit-index');
+    
+    if (!isEditing) {
+      // Only clear form when creating a brand new address
+      document.getElementById('deliveryName').value = "";
+      document.getElementById('deliveryMobile').value = "";
+      document.getElementById('houseNo').value = "";
+      document.getElementById('street').value = "";
+      document.getElementById('landmark').value = "";
+      document.getElementById('pincode').value = "";
+      document.getElementById('city').value = "";
+      document.getElementById('state').value = "";
+      document.getElementById('saveAddress').checked = false;
+        // Clear validation styles
+      clearAllValidationStyles();
+      // Reset mobile validation
+      const mobileError = document.getElementById('mobileError');
+      const mobileField = document.getElementById('deliveryMobile');
+      if (mobileError) mobileError.style.display = "none";
+      if (mobileField) mobileField.style.borderColor = "#e0e0e0";
+    }
+      // Show appropriate message
+
+
+  }
+};
+    
+window.closeAddressForm = function() {
+  const addressForm = document.getElementById('addressForm');
+  const savedAddresses = document.getElementById('savedAddresses');
+  
+  if (addressForm && savedAddresses) {
+    // Clear edit index when closing
+    addressForm.removeAttribute('data-edit-index');
+    
+    // Clear form fields
+    document.getElementById('deliveryName').value = "";
+    document.getElementById('deliveryMobile').value = "";
+    document.getElementById('houseNo').value = "";
+    document.getElementById('street').value = "";
+    document.getElementById('landmark').value = "";
+    document.getElementById('pincode').value = "";
+    document.getElementById('city').value = "";
+    document.getElementById('state').value = "";
+    document.getElementById('saveAddress').checked = false;
+    // Clear validation styles
+    clearAllValidationStyles();
+    // Reset mobile validation
+    const mobileError = document.getElementById('mobileError');
+    const mobileField = document.getElementById('deliveryMobile');
+    if (mobileError) mobileError.style.display = "none";
+    if (mobileField) mobileField.style.borderColor = "#e0e0e0";
+    
+    // Show saved addresses, hide form
+    savedAddresses.style.display = 'block';
+    addressForm.style.display = 'none';
+  
+  }
+};
+    // Save address without placing an order
+window.saveAddressOnly = async function() {
+  const user = auth.currentUser;
+  if (!user) {
+    alert("Please login first to save addresses");
+    return;
   }
   
-  render();
-  updateShopBackButtonVisibility();
-  saveState();
-};
+  // Get form values
+  const name = document.getElementById('deliveryName').value.trim();
+  const mobile = document.getElementById('deliveryMobile').value.trim();
+  const houseNo = document.getElementById('houseNo').value.trim();
+  const street = document.getElementById('street').value.trim();
+  const landmark = document.getElementById('landmark').value.trim();
+  const pincode = document.getElementById('pincode').value.trim();
+  const city = document.getElementById('city').value.trim();
+  const state = document.getElementById('state').value.trim();
+  const saveAddress = document.getElementById('saveAddress').checked;
 
-window.clearSearch = () => {
-  if(search) { search.value = ""; search.focus(); render(); }
-  const btn = document.getElementById("clearSearchBtn");
-  if(btn) btn.style.display = "none";
-};
 
-if (search) {
-  search.oninput = (e) => {
-    const btn = document.getElementById("clearSearchBtn");
-    if(btn) btn.style.display = e.target.value.length > 0 ? "block" : "none";
-    render();
-  };
+ 
+// Validate all fields
+let hasErrors = false;
+let errorMessages = [];
+
+// Phone validation
+if (!validatePhoneNumber(mobile)) {
+  hasErrors = true;
+  errorMessages.push("Please enter a valid 10-digit Indian mobile number (Example: 9876543210)");
+  
+  // Update field validation
+  updateFieldValidation('deliveryMobile', { 
+    valid: false, 
+    message: "Please enter a valid 10-digit Indian mobile number" 
+  });
+  
+  // Also hide the old mobileError element if it exists
+  const oldMobileError = document.getElementById('mobileError');
+  if (oldMobileError) {
+    oldMobileError.style.display = 'none';
+  }
+} else {
+  updateFieldValidation('deliveryMobile', { valid: true, message: "" });
+  
+  // Also hide the old mobileError element if it exists
+  const oldMobileError = document.getElementById('mobileError');
+  if (oldMobileError) {
+    oldMobileError.style.display = 'none';
+  }
 }
 
-// Products & Cart
+// New field validations
+const nameValidation = validateFullName(name);
+if (!nameValidation.valid) {
+  hasErrors = true;
+  errorMessages.push(nameValidation.message);
+}
+updateFieldValidation('deliveryName', nameValidation);
+
+const houseNoValidation = validateHouseNumber(houseNo);
+if (!houseNoValidation.valid) {
+  hasErrors = true;
+  errorMessages.push(houseNoValidation.message);
+}
+updateFieldValidation('houseNo', houseNoValidation);
+
+const streetValidation = validateStreet(street);
+if (!streetValidation.valid) {
+  hasErrors = true;
+  errorMessages.push(streetValidation.message);
+}
+updateFieldValidation('street', streetValidation);
+
+const pincodeValidation = validatePincode(pincode);
+if (!pincodeValidation.valid) {
+  hasErrors = true;
+  errorMessages.push(pincodeValidation.message);
+}
+updateFieldValidation('pincode', pincodeValidation);
+
+const cityValidation = validateCity(city);
+if (!cityValidation.valid) {
+  hasErrors = true;
+  errorMessages.push(cityValidation.message);
+}
+updateFieldValidation('city', cityValidation);
+
+const stateValidation = validateState(state);
+if (!stateValidation.valid) {
+  hasErrors = true;
+  errorMessages.push(stateValidation.message);
+}
+updateFieldValidation('state', stateValidation);
+
+if (hasErrors) {
+  alert("Please fix the following errors:\n\n• " + errorMessages.join("\n• "));
+  return;
+}
+
+  try {
+    // Save address to Firestore
+    await saveUserAddress(user.uid, {
+      name: name,
+      mobile: mobile,
+      houseNo: houseNo,
+      street: street,
+      landmark: landmark,
+      pincode: pincode,
+      city: city,
+      state: state,
+      createdAt: new Date().toISOString()
+    });
+
+    // Clear edit index
+    const addressForm = document.getElementById('addressForm');
+    if (addressForm) {
+      addressForm.removeAttribute('data-edit-index');
+    }
+
+    // Show saved addresses
+    loadSavedAddresses(user.uid);
+    
+    showToast("✅ Address saved successfully!", "success");
+    
+  } catch (error) {
+    console.error("Error saving address:", error);
+    alert("Failed to save address: " + error.message);
+  }
+};
+// Use saved address - FIXED VERSION
+window.useAddress = function(index) {
+  const user = auth.currentUser;
+  if (!user) return;
+  
+  getDoc(doc(db, "users", user.uid))
+    .then((docSnap) => {
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        const addresses = userData.addresses || [];
+        const addr = addresses[index];
+        
+        if (addr) {
+          console.log("📝 Using address:", addr); // Debug log
+          
+          // Fill form with selected address
+          document.getElementById('deliveryName').value = addr.name || "";
+          document.getElementById('deliveryMobile').value = addr.mobile || "";
+          document.getElementById('houseNo').value = addr.houseNo || "";
+          document.getElementById('street').value = addr.street || "";
+          document.getElementById('landmark').value = addr.landmark || "";
+          document.getElementById('pincode').value = addr.pincode || "";
+          document.getElementById('city').value = addr.city || "";
+          document.getElementById('state').value = addr.state || "";
+          
+          // IMPORTANT: Store the current address index for editing
+          document.getElementById('addressForm').setAttribute('data-edit-index', index);
+          
+          // Show address form (hides saved addresses)
+          showNewAddressForm();
+          
+          // Check save address checkbox since we're using a saved address
+          document.getElementById('saveAddress').checked = true;
+          
+          // Update mobile field validation
+          const mobileField = document.getElementById('deliveryMobile');
+          const mobileError = document.getElementById('mobileError');
+          if (mobileField && validatePhoneNumber(addr.mobile || "")) {
+            mobileError.style.display = "none";
+            mobileField.style.borderColor = "#0C831F";
+          }
+          
+        
+        } else {
+          console.error("Address not found at index:", index);
+        }
+      }
+    })
+    .catch(error => {
+      console.error("Error loading address:", error);
+      showToast("❌ Failed to load address", "error");
+    });
+};
+
+// Edit address - FIXED VERSION
+window.editAddress = function(index) {
+  // This works the same as useAddress but we're in "edit mode"
+  const user = auth.currentUser;
+  if (!user) return;
+  
+  getDoc(doc(db, "users", user.uid))
+    .then((docSnap) => {
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        const addresses = userData.addresses || [];
+        const addr = addresses[index];
+        
+        if (addr) {
+          console.log("✏️ Editing address:", addr); // Debug log
+          
+          // Fill form with selected address
+          document.getElementById('deliveryName').value = addr.name || "";
+          document.getElementById('deliveryMobile').value = addr.mobile || "";
+          document.getElementById('houseNo').value = addr.houseNo || "";
+          document.getElementById('street').value = addr.street || "";
+          document.getElementById('landmark').value = addr.landmark || "";
+          document.getElementById('pincode').value = addr.pincode || "";
+          document.getElementById('city').value = addr.city || "";
+          document.getElementById('state').value = addr.state || "";
+          
+          // Store the current address index for editing
+          document.getElementById('addressForm').setAttribute('data-edit-index', index);
+          
+          // Show address form (hides saved addresses)
+          showNewAddressForm();
+          
+          // Check save address checkbox since we're editing
+          document.getElementById('saveAddress').checked = true;
+          
+          // Update mobile field validation
+          const mobileField = document.getElementById('deliveryMobile');
+          const mobileError = document.getElementById('mobileError');
+          if (mobileField && validatePhoneNumber(addr.mobile || "")) {
+            mobileError.style.display = "none";
+            mobileField.style.borderColor = "#0C831F";
+          }
+          
+        
+        }
+      }
+    })
+    .catch(error => {
+      console.error("Error loading address for edit:", error);
+      showToast("❌ Failed to load address for editing", "error");
+    });
+};
+
+// Delete address
+window.deleteAddress = async function(index) {
+  if (!confirm("Are you sure you want to delete this address?")) return;
+  
+  const user = auth.currentUser;
+  if (!user) return;
+  
+  try {
+    const userDoc = await getDoc(doc(db, "users", user.uid));
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const addresses = userData.addresses || [];
+      
+      // Remove the address at index
+      addresses.splice(index, 1);
+      
+      // Update Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        addresses: addresses
+      }, { merge: true });
+      
+      // Reload addresses
+      loadSavedAddresses(user.uid);
+      showToast("Address deleted successfully", "success");
+    }
+  } catch (error) {
+    console.error("Error deleting address:", error);
+    alert("Failed to delete address");
+  }
+};
+function autoFillDeliveryDetails() {
+  const user = auth.currentUser;
+  if (!user) {
+    // If no user, show new address form directly
+    document.getElementById('addressForm').style.display = 'block';
+    document.getElementById('savedAddresses').style.display = 'none';
+    return;
+  }
+  
+  console.log("Auto-filling for user:", user.uid);
+  
+  // Check if form already has data (from previous edit/use)
+  const addressForm = document.getElementById('addressForm');
+  const isEditing = addressForm.hasAttribute('data-edit-index');
+  
+  if (!isEditing) {
+    // Only fill basic info if we're not editing an existing address
+    document.getElementById('deliveryName').value = userProfileData.name || user.displayName || loginName.value || "";
+    document.getElementById('deliveryMobile').value = userProfileData.phone || user.phoneNumber || loginMobile.value || "";
+    
+    // Clear other fields only if empty
+    if (!document.getElementById('houseNo').value) {
+      document.getElementById('houseNo').value = "";
+      document.getElementById('street').value = "";
+      document.getElementById('landmark').value = "";
+      document.getElementById('pincode').value = "";
+      document.getElementById('city').value = "";
+      document.getElementById('state').value = "";
+      document.getElementById('saveAddress').checked = false;
+    }
+      // Clear validation styles when auto-filling
+    clearAllValidationStyles();
+  }
+  
+  // Show saved addresses if user is logged in
+  loadSavedAddresses(user.uid);
+}
+
+// Load saved addresses from Firestore
+async function loadSavedAddresses(userId) {
+  if (!userId) {
+    console.log("No user ID provided to load addresses");
+    return;
+  }
+  
+  try {
+    console.log("Loading addresses for user:", userId);
+    const userDoc = await getDoc(doc(db, "users", userId));
+    
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      const addresses = userData.addresses || [];
+      console.log("Found addresses:", addresses.length);
+      
+      const addressList = document.getElementById('addressList');
+      const savedAddresses = document.getElementById('savedAddresses');
+      const addressForm = document.getElementById('addressForm');
+      
+      if (!addressList || !savedAddresses || !addressForm) {
+        console.error("Address elements not found in DOM");
+        return;
+      }
+      
+      if (addresses.length > 0) {
+        console.log("Displaying saved addresses");
+        addressList.innerHTML = '';
+        addresses.forEach((addr, index) => {
+         addressList.innerHTML += `
+  <div class="address-card" style="border-radius: var(--radius-sm); padding: 12px; margin-bottom: 10px;">
+    <div style="font-weight: 600; margin-bottom: 5px; color: var(--text-main);">${addr.name} | ${addr.mobile}</div>
+    <div style="font-size: 13px; color: var(--text-sub); margin-bottom: 8px;">
+      ${addr.houseNo}, ${addr.street}<br>
+      ${addr.landmark ? addr.landmark + '<br>' : ''}
+      ${addr.city}, ${addr.state} - ${addr.pincode}
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button onclick="useAddress(${index})" style="background: var(--primary); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">Use</button>
+      <button onclick="editAddress(${index})" style="background: var(--text-sub); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">Edit</button>
+      <button onclick="deleteAddress(${index})" style="background: #ff4757; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;">Delete</button>
+    </div>
+  </div>`;
+        });
+        savedAddresses.style.display = 'block';
+        addressForm.style.display = 'none';
+      } else {
+        console.log("No saved addresses, showing form");
+        savedAddresses.style.display = 'none';
+        addressForm.style.display = 'block';
+      }
+    } else {
+      console.log("User document doesn't exist");
+      document.getElementById('savedAddresses').style.display = 'none';
+      document.getElementById('addressForm').style.display = 'block';
+    }
+  } catch (error) {
+    console.error("Error loading addresses:", error);
+    // On error, show the form
+    document.getElementById('savedAddresses').style.display = 'none';
+    document.getElementById('addressForm').style.display = 'block';
+  }
+}
+
+// products
 const productsRef = collection(db, "products");
 onSnapshot(productsRef, (snapshot) => {
   data = snapshot.docs.map((d) => {
@@ -1590,7 +2647,8 @@ function render() {
   if (!list) return;
   list.innerHTML = "";
   const txt = (search?.value || "").toLowerCase();
-  data.filter((p) => p.name.toLowerCase().includes(txt) && (cat === "All" || p.cat === cat))
+  data
+    .filter((p) => p.name.toLowerCase().includes(txt) && (cat === "All" || p.cat === cat))
     .forEach((p) => {
       const qty = cart[p.id]?.qty || 0;
       list.innerHTML += `
@@ -1608,21 +2666,146 @@ function render() {
           <div class="qty" style="display:${qty > 0 ? "flex" : "none"}">
             <button onclick="chg('${p.id}',-1)">−</button>
             <span>${qty}</span>
+
             <button onclick="chg('${p.id}',1)">+</button>
           </div>
           ${p.inStock && qty === 0 ? `<button class="add" onclick="add('${p.id}')">Add</button>` : ""}
         </div>
       </div>`;
     });
-  if (data.length === 0) list.innerHTML = '<div class="card small" style="text-align:center;padding:24px; color:var(--text-sub);">No products found.</div>';
+  if (data.length === 0) {
+    list.innerHTML = '<div class="card small" style="text-align:center;padding:24px; color:var(--text-sub);">No products found. Try a different search.</div>';
+  }
 }
 
+function renderCartPage() {
+  if (!cartDetails) return;
+  cartDetails.innerHTML = "";
+  let t = 0;
+  
+  // Calculate subtotal
+  for (let i in cart) {
+    const item = cart[i];
+    const itemTotal = item.qty * item.price;
+    t += itemTotal;
+    
+    // Create cart item with image
+   cartDetails.innerHTML += `
+  <div class="cart-item">
+    <img src="${item.img || 'https://via.placeholder.com/60x60?text=Product'}" 
+         alt="${item.name}">
+    <div style="flex: 1;">
+      <strong style="display: block; margin-bottom: 4px; font-size: 15px; color: var(--text-main);">${item.name}</strong>
+      <div style="color: var(--primary); font-weight: 600; font-size: 14px;">₹${item.price} × ${item.qty} = ₹${itemTotal}</div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 10px;">
+      <div style="display: flex; align-items: center; background: transparent; padding: 0;">
+        <button onclick="chg('${i}',-1)" style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); background: white; color: var(--primary); font-weight: bold; font-size: 18px; border-radius: 8px; cursor: pointer;">−</button>
+        <span style="margin: 0 12px; font-size: 15px; font-weight: 600; color: var(--text-main); min-width: 20px; text-align: center;">${item.qty}</span>
+        <button onclick="chg('${i}',1)" style="width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); background: white; color: var(--primary); font-weight: bold; font-size: 18px; border-radius: 8px; cursor: pointer;">+</button>
+      </div>
+    </div>
+  </div>`;
+  }
+  
+  // Display empty cart message
+  if (Object.keys(cart).length === 0) {
+    cartDetails.innerHTML = '<p class="small" style="text-align:center;padding:40px;color:var(--text-sub);">Your cart is empty</p>';
+    
+    // Set totals to 0 for empty cart
+    cartTotal.textContent = "0";
+    
+    // Don't show any pricing info for empty cart
+    return;
+  }
+  
+  // Calculate delivery fee and totals (only if cart is not empty)
+  const subtotal = t;
+  const deliveryFee = subtotal >= 200 ? 0 : 40;
+  const amountNeeded = subtotal < 200 ? (200 - subtotal) : 0;
+  const grandTotal = subtotal + deliveryFee;
+  
+  // Add subtotal, delivery fee, and grand total to display
+  cartDetails.innerHTML += `
+    <div style="margin-top: 20px; padding-top: 15px; border-top: 2px dashed var(--border-color);">
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="color: var(--text-sub);">Subtotal:</span>
+        <span style="font-weight: 600;">₹${subtotal}</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+        <span style="color: var(--text-sub);">Delivery Fee:</span>
+        <span style="font-weight: 600; color: ${deliveryFee > 0 ? '#ff4757' : 'var(--primary)'};">
+          ${deliveryFee > 0 ? '₹' + deliveryFee : 'FREE'}
+        </span>
+      </div>
+      ${amountNeeded > 0 ? `
+        <div style="background: rgba(255, 193, 7, 0.1); color: #e67e22; padding: 10px; border-radius: var(--radius-sm); 
+                    margin: 10px 0; font-size: 13px; text-align: center;">
+          <strong>Add ₹${amountNeeded} more to avoid delivery fee!</strong>
+        </div>
+      ` : `
+        <div style="background: rgba(12, 131, 31, 0.1); color: var(--primary); padding: 10px; border-radius: var(--radius-sm); 
+                    margin: 10px 0; font-size: 13px; text-align: center;">
+          <strong>🎉 You've earned FREE delivery!</strong>
+        </div>
+      `}
+      <div style="display: flex; justify-content: space-between; margin-top: 15px; padding-top: 15px; 
+                  border-top: 1px solid var(--border-color); font-size: 1.1rem;">
+        <span style="color: var(--text-main); font-weight: 700;">Total:</span>
+        <span style="font-size: 1.4rem; font-weight: 700; color: var(--text-main);">₹${grandTotal}</span>
+      </div>
+    </div>
+  `;
+  
+  // Update the cart total display at the top
+  cartTotal.textContent = grandTotal;
+  
+  // Show/hide cart bar
+  if (Object.keys(cart).length === 0) {
+    cartBar.classList.remove("active");
+  } else {
+    cartBar.classList.add("active");
+  }
+}
+
+window.setCat = (c) => {
+  cat = c;
+  updateCategoryButtons();
+  
+  // --- NEW BANNER LOGIC START ---
+  const bannerContainer = document.getElementById('categoryBanner');
+  const info = BANNER_DATA[c] || BANNER_DATA['All'];
+  
+  if (bannerContainer) {
+    // We re-create the HTML to trigger the 'fadeSlideUp' animation every time
+    bannerContainer.innerHTML = `
+      <div class="promo-banner" style="background: ${info.gradient}">
+        <div class="promo-text">
+          <div class="promo-title">${info.title}</div>
+          <div class="promo-sub">${info.sub}</div>
+        </div>
+        <div class="promo-icon">${info.icon}</div>
+      </div>
+    `;
+    
+    // Trigger Reflow to restart CSS animation (The "Pop" effect)
+    bannerContainer.classList.remove('banner-wrapper');
+    void bannerContainer.offsetWidth; 
+    bannerContainer.classList.add('banner-wrapper');
+  }
+  // --- NEW BANNER LOGIC END ---
+
+  render();
+  updateShopBackButtonVisibility();
+  saveState();
+};
 window.add = (id) => {
-  const p = data.find(x => x.id === id);
-  if (!p) return;
-  if (!cart[id]) cart[id] = { qty: 1, price: p.price, name: p.name, img: p.img };
-  else cart[id].qty++;
-  updateCartCount(); saveCart();
+  const product = data.find((p) => p.id === id);
+  if (!product) return;
+  if (!cart[id]) cart[id] = { qty: 1, price: product.price, name: product.name, img: product.img };
+  else cart[id].qty += 1;
+  updateCartCount();
+  saveCart();
   currentSection === "shop" ? render() : renderCartPage();
 };
 
@@ -1630,373 +2813,241 @@ window.chg = (id, d) => {
   if (!cart[id]) return;
   cart[id].qty += d;
   if (cart[id].qty <= 0) delete cart[id];
-  updateCartCount(); saveCart();
+  updateCartCount();
+  saveCart();
   currentSection === "shop" ? render() : renderCartPage();
 };
 
+	window.clearSearch = () => {
+  const searchInput = document.getElementById("search");
+  const clearBtn = document.getElementById("clearSearchBtn");
+  
+  if (searchInput) {
+    searchInput.value = "";
+    searchInput.focus();
+    render(); // Re-render list to show all products
+  }
+  
+  if (clearBtn) {
+    clearBtn.style.display = "none";
+  }
+};
+	
 function updateCartCount() {
   let c = 0;
   for (let i in cart) c += cart[i].qty;
   menuCartCount.textContent = c;
   headerCartCount.textContent = c;
 }
-
-function renderCartPage() {
-  if (!cartDetails) return;
-  cartDetails.innerHTML = "";
-  let t = 0;
-  for (let i in cart) {
-    const item = cart[i];
-    t += item.qty * item.price;
-    cartDetails.innerHTML += `
-    <div class="cart-item">
-      <img src="${item.img || 'https://via.placeholder.com/60x60'}" alt="${item.name}">
-      <div style="flex: 1;">
-        <strong style="display:block;margin-bottom:4px;color:var(--text-main);">${item.name}</strong>
-        <div style="color:var(--primary);font-weight:600;">₹${item.price} × ${item.qty} = ₹${item.qty * item.price}</div>
-      </div>
-      <div class="qty" style="display:flex;background:transparent;box-shadow:none;padding:0;">
-         <button onclick="chg('${i}',-1)" style="width:32px;height:32px;color:var(--primary);background:white;border:1px solid var(--border-color);border-radius:8px;">−</button>
-         <span style="margin:0 12px;color:var(--text-main);font-weight:600;">${item.qty}</span>
-         <button onclick="chg('${i}',1)" style="width:32px;height:32px;color:var(--primary);background:white;border:1px solid var(--border-color);border-radius:8px;">+</button>
-      </div>
-    </div>`;
-  }
-  
-  if (Object.keys(cart).length === 0) {
-    cartDetails.innerHTML = '<p class="small" style="text-align:center;padding:40px;color:var(--text-sub);">Your cart is empty</p>';
-    cartBar.classList.remove("active");
-    cartTotal.textContent = "0";
-    return;
-  }
-
-  const sub = t;
-  const fee = sub >= 200 ? 0 : 40;
-  const need = sub < 200 ? (200 - sub) : 0;
-  const total = sub + fee;
-  
-  cartDetails.innerHTML += `
-    <div style="margin-top:20px;padding-top:15px;border-top:2px dashed var(--border-color);">
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-        <span style="color:var(--text-sub);">Subtotal:</span><span style="font-weight:600;">₹${sub}</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
-        <span style="color:var(--text-sub);">Delivery Fee:</span>
-        <span style="font-weight:600;color:${fee>0?'#ff4757':'var(--primary)'}">${fee>0?'₹'+fee:'FREE'}</span>
-      </div>
-      ${need > 0 ? `<div style="background:rgba(255,193,7,0.1);color:#e67e22;padding:10px;border-radius:var(--radius-sm);margin:10px 0;text-align:center;font-size:13px;"><strong>Add ₹${need} more for FREE delivery!</strong></div>` : `<div style="background:rgba(12,131,31,0.1);color:var(--primary);padding:10px;border-radius:var(--radius-sm);margin:10px 0;text-align:center;font-size:13px;"><strong>🎉 You've earned FREE delivery!</strong></div>`}
-      <div style="display:flex;justify-content:space-between;margin-top:15px;padding-top:15px;border-top:1px solid var(--border-color);font-size:1.1rem;">
-        <span style="font-weight:700;color:var(--text-main);">Total:</span><span style="font-weight:700;color:var(--text-main);">₹${total}</span>
-      </div>
-    </div>`;
     
-  cartTotal.textContent = total;
-  cartBar.classList.add("active");
-}
-
-/* =================================================================
-   5. ADDRESS, AUTH & ORDER PLACEMENT (CRITICAL)
-   ================================================================= */
-// Address Functions
-window.showNewAddressForm = function() {
-  document.getElementById('addressForm').style.display = 'block';
-  document.getElementById('savedAddresses').style.display = 'none';
-  const isEditing = document.getElementById('addressForm').hasAttribute('data-edit-index');
-  if (!isEditing) {
-    ['deliveryName','deliveryMobile','houseNo','street','landmark','pincode','city','state'].forEach(id => document.getElementById(id).value = "");
-    document.getElementById('saveAddress').checked = false;
-    clearAllValidationStyles();
-  }
-};
-
-window.closeAddressForm = function() {
-  document.getElementById('addressForm').removeAttribute('data-edit-index');
-  document.getElementById('addressForm').style.display = 'none';
-  document.getElementById('savedAddresses').style.display = 'block';
-  // Clear fields
-  ['deliveryName','deliveryMobile','houseNo','street','landmark','pincode','city','state'].forEach(id => document.getElementById(id).value = "");
-  clearAllValidationStyles();
-};
-
-window.saveAddressOnly = async function() {
-  const user = auth.currentUser;
-  if (!user) { alert("Please login first"); return; }
+function showToast(message, type = "info", duration = 2000) {
+  // Remove existing toast
+  const existing = document.getElementById("toast");
+  if (existing) existing.remove();
   
-  const name = document.getElementById('deliveryName').value.trim();
-  const mobile = document.getElementById('deliveryMobile').value.trim();
-  const houseNo = document.getElementById('houseNo').value.trim();
-  const street = document.getElementById('street').value.trim();
-  const landmark = document.getElementById('landmark').value.trim();
-  const pincode = document.getElementById('pincode').value.trim();
-  const city = document.getElementById('city').value.trim();
-  const state = document.getElementById('state').value.trim();
+  // Create toast
+  const toast = document.createElement("div");
+  toast.id = "toast";
+  toast.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: ${type === "success" ? "var(--primary)" : "#ff9800"};
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 10000;
+    font-weight: 500;
+    font-size: 14px;
+    max-width: 300px;
+    word-wrap: break-word;
+    transform: translateX(400px);
+    transition: transform 0.3s ease;
+  `;
+  toast.textContent = message;
   
-  if(!validatePhoneNumber(mobile)) { alert("Invalid Phone"); return; }
-  if(!validateFullName(name).valid) { alert("Invalid Name"); return; }
-  if(!houseNo || !street || !pincode || !city || !state) { alert("Please fill all required fields"); return; }
-
-  try {
-    await saveUserAddress(user.uid, { name, mobile, houseNo, street, landmark, pincode, city, state, createdAt: new Date().toISOString() });
-    const form = document.getElementById('addressForm');
-    if(form) form.removeAttribute('data-edit-index');
-    loadSavedAddresses(user.uid);
-    showToast("✅ Address saved!", "success");
-  } catch (e) { console.error(e); alert("Failed to save: " + e.message); }
-};
-
-window.useAddress = function(index) {
-  const user = auth.currentUser;
-  if (!user) return;
-  getDoc(doc(db, "users", user.uid)).then((s) => {
-    if (s.exists()) {
-      const addr = s.data().addresses?.[index];
-      if (addr) {
-        document.getElementById('deliveryName').value = addr.name || "";
-        document.getElementById('deliveryMobile').value = addr.mobile || "";
-        document.getElementById('houseNo').value = addr.houseNo || "";
-        document.getElementById('street').value = addr.street || "";
-        document.getElementById('landmark').value = addr.landmark || "";
-        document.getElementById('pincode').value = addr.pincode || "";
-        document.getElementById('city').value = addr.city || "";
-        document.getElementById('state').value = addr.state || "";
-        document.getElementById('addressForm').setAttribute('data-edit-index', index);
-        document.getElementById('saveAddress').checked = true;
-        window.showNewAddressForm();
-      }
-    }
+  document.body.appendChild(toast);
+  
+  // Animate in
+  requestAnimationFrame(() => {
+    toast.style.transform = "translateX(0)";
   });
-};
-
-window.editAddress = window.useAddress; // Same logic for filling form
-
-window.deleteAddress = async function(index) {
-  if (!confirm("Delete this address?")) return;
-  const user = auth.currentUser;
-  if (!user) return;
-  try {
-    const ref = doc(db, "users", user.uid);
-    const s = await getDoc(ref);
-    if(s.exists()) {
-      const arr = s.data().addresses || [];
-      arr.splice(index, 1);
-      await setDoc(ref, { addresses: arr }, { merge: true });
-      loadSavedAddresses(user.uid);
-      showToast("Address deleted", "success");
-    }
-  } catch(e) { console.error(e); }
-};
-
-async function saveUserAddress(userId, addressData) {
-  const ref = doc(db, "users", userId);
-  const form = document.getElementById('addressForm');
-  const isEditing = form && form.hasAttribute('data-edit-index');
-  const idx = isEditing ? parseInt(form.getAttribute('data-edit-index')) : -1;
   
-  const s = await getDoc(ref);
-  if(s.exists()) {
-    const arr = s.data().addresses || [];
-    if(isEditing && idx >= 0 && idx < arr.length) {
-      arr[idx] = addressData; // update
-    } else {
-      // check duplicate
-      const exists = arr.some(a => a.houseNo === addressData.houseNo && a.street === addressData.street);
-      if(!exists) arr.push(addressData);
-    }
-    await setDoc(ref, { ...s.data(), addresses: arr }, { merge: true });
-  } else {
-    await setDoc(ref, { addresses: [addressData], name: addressData.name, phone: addressData.mobile, createdAt: new Date().toISOString() }, { merge: true });
-  }
+  // Auto remove after 2 seconds
+  setTimeout(() => {
+    toast.style.transform = "translateX(400px)";
+    setTimeout(() => {
+      if (toast.parentNode) toast.remove();
+    }, 300);
+  }, duration);
 }
 
-async function loadSavedAddresses(userId) {
-  if(!userId) return;
-  try {
-    const s = await getDoc(doc(db, "users", userId));
-    const list = document.getElementById('addressList');
-    const savedSection = document.getElementById('savedAddresses');
-    const form = document.getElementById('addressForm');
     
-    if(s.exists() && s.data().addresses?.length > 0) {
-      list.innerHTML = '';
-      s.data().addresses.forEach((addr, i) => {
-        list.innerHTML += `
-          <div class="address-card" style="border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;">
-            <div style="font-weight:600;margin-bottom:5px;color:var(--text-main);">${addr.name} | ${addr.mobile}</div>
-            <div style="font-size:13px;color:var(--text-sub);margin-bottom:8px;">${addr.houseNo}, ${addr.street}<br>${addr.city}, ${addr.state} - ${addr.pincode}</div>
-            <div style="display:flex;gap:10px;">
-              <button onclick="useAddress(${i})" style="background:var(--primary);color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;">Use</button>
-              <button onclick="editAddress(${i})" style="background:var(--text-sub);color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;">Edit</button>
-              <button onclick="deleteAddress(${i})" style="background:#ff4757;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;">Delete</button>
-            </div>
-          </div>`;
-      });
-      savedSection.style.display = 'block';
-      form.style.display = 'none';
-    } else {
-      savedSection.style.display = 'none';
-      form.style.display = 'block';
+if (search) {
+  search.oninput = (e) => {
+    // Show/Hide X button based on text
+    const clearBtn = document.getElementById("clearSearchBtn");
+    if (clearBtn) {
+      clearBtn.style.display = e.target.value.length > 0 ? "block" : "none";
     }
-  } catch(e) { console.error(e); }
+    render(); // Filter products
+  };
+}
+loadState();
+
+// (Since we are likely starting on 'All' category)
+if (currentSection === "shop") {
+   // Manually trigger the banner render for the current category
+   const info = BANNER_DATA[cat] || BANNER_DATA['All'];
+   const bannerContainer = document.getElementById('categoryBanner');
+   if (bannerContainer) {
+      bannerContainer.innerHTML = `
+        <div class="promo-banner" style="background: ${info.gradient}">
+          <div class="promo-text">
+            <div class="promo-title">${info.title}</div>
+            <div class="promo-sub">${info.sub}</div>
+          </div>
+          <div class="promo-icon">${info.icon}</div>
+        </div>
+      `;
+   }
 }
 
-function autoFillDeliveryDetails() {
-  const user = auth.currentUser;
-  if (!user) { document.getElementById('addressForm').style.display='block'; document.getElementById('savedAddresses').style.display='none'; return; }
-  
-  const form = document.getElementById('addressForm');
-  if(!form.hasAttribute('data-edit-index')) {
-    document.getElementById('deliveryName').value = user.displayName || "";
-    document.getElementById('deliveryMobile').value = user.phoneNumber || "";
-  }
-  loadSavedAddresses(user.uid);
-}
 
-// Location
-const HOME_LAT = 11.13899; const HOME_LNG = 79.54172; const MAX_DISTANCE_KM = 10;
-function distanceInKm(lat1, lon1, lat2, lon2) {
-  const R = 6371; const dLat = (lat2-lat1)*Math.PI/180; const dLon = (lon2-lon1)*Math.PI/180;
-  const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-window.getLocation = () => {
-  if (!navigator.geolocation) { locStatus.textContent = "Not supported"; return; }
-  locStatus.textContent = "Getting location...";
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      currentLat = pos.coords.latitude; currentLng = pos.coords.longitude;
-      locStatus.textContent = `Location captured ✅ (${currentLat.toFixed(5)}, ${currentLng.toFixed(5)})`;
-    },
-    () => { locStatus.textContent = "Permission denied"; },
-    { enableHighAccuracy: true, timeout: 10000 }
-  );
-};
-
-// PLACE ORDER (The Big Function)
-window.placeOrder = async () => {
-  if (!isWithinBusinessHours()) { alert("We are closed. Hours: 7AM - 11PM"); return; }
-  
-  let subtotal = 0; for (let i in cart) subtotal += cart[i].qty * cart[i].price;
-  
-  const name = document.getElementById('deliveryName').value.trim();
-  const mobile = document.getElementById('deliveryMobile').value.trim();
-  const houseNo = document.getElementById('houseNo').value.trim();
-  const street = document.getElementById('street').value.trim();
-  const pincode = document.getElementById('pincode').value.trim();
-  const city = document.getElementById('city').value.trim();
-  const state = document.getElementById('state').value.trim();
-  const landmark = document.getElementById('landmark').value.trim();
-  const saveAddress = document.getElementById('saveAddress').checked;
-
-  if(!validatePhoneNumber(mobile)) { alert("Invalid Phone"); return; }
-  if(!name || !houseNo || !street || !pincode || !city || !state) { alert("Fill all fields"); return; }
-  if(Object.keys(cart).length === 0) { alert("Cart empty"); return; }
-
-  const user = auth.currentUser;
-  if (!user) { alert("Login required"); return; }
-  if (currentLat === null) { alert("Live location required"); return; }
-
-  const distKm = distanceInKm(HOME_LAT, HOME_LNG, currentLat, currentLng);
-  if (distKm > MAX_DISTANCE_KM) { alert(`Too far! We only deliver within ${MAX_DISTANCE_KM}km.`); return; }
-
-  const deliveryFee = subtotal >= 200 ? 0 : 40;
-  const grandTotal = subtotal + deliveryFee;
-  const fullAddress = `${houseNo}, ${street}${landmark?', '+landmark:''}, ${city}, ${state} - ${pincode}`;
-
-  if (saveAddress) {
-    await saveUserAddress(user.uid, { name, mobile, houseNo, street, landmark, pincode, city, state, createdAt: new Date().toISOString() });
-  }
-
-  const deliveryMessage = isAfter8PM() ? `Date: ${formatDeliveryDate(getDeliveryDate())}` : 'Delivery: Today';
-
-  await addDoc(collection(db, "orders"), {
-    name, mobile, address: fullAddress,
-    addressDetails: { houseNo, street, landmark, pincode, city, state },
-    items: cart, subtotal, deliveryFee, total: grandTotal,
-    status: "NEW", createdAt: serverTimestamp(),
-    location: { lat: currentLat, lng: currentLng },
-    userId: user.uid, distanceKm: distKm,
-    orderedAfter8PM: isAfter8PM()
-  });
-
-  alert(`Order Placed!\nTotal: ₹${grandTotal}\n${deliveryMessage}`);
-  
-  cart = {}; updateCartCount(); saveCart(); renderCartPage();
-  // Clear form
-  ['deliveryName','deliveryMobile','houseNo','street','landmark','pincode','city','state'].forEach(id => document.getElementById(id).value = "");
-  document.getElementById('saveAddress').checked = false;
-  clearAllValidationStyles();
-  locStatus.textContent = ""; currentLat = null;
-  loadSavedAddresses(user.uid);
-  goBackToAllTab();
-};
-
-/* =================================================================
-   6. AUTH & OTP (Bottom Section)
-   ================================================================= */
+// phone auth
 window.sendOtp = async () => {
   let phone = loginMobile.value.trim();
   if (!phone.startsWith("+")) phone = "+91" + phone;
-  if (phone.length < 12) { alert("Enter valid mobile"); return; }
+  if (phone.length < 12) { alert("Enter valid mobile number"); return; }
+
   try {
-    sendOtpBtn.disabled = true; sendOtpBtn.innerHTML = '<span class="loading"></span> Sending...';
+    // Disable send button during process
+    sendOtpBtn.disabled = true;
+    sendOtpBtn.innerHTML = '<span class="loading"></span> Sending...';
+
     confirmationResultGlobal = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
-    showToast("OTP Sent", "success");
-    showOtpScreen(phone); startOtpTimer();
-  } catch (e) { console.error(e); alert(e.message); } 
-  finally { sendOtpBtn.disabled = false; sendOtpBtn.innerHTML = '<span>Send OTP</span>'; }
+  showToast("OTP sent to " + phone, "success", 2000);
+
+    // 👉 move to OTP page and start timer
+    showOtpScreen(phone);
+    startOtpTimer();
+
+  } catch (e) {
+    console.error(e);
+    alert(e.message);
+  } finally {
+    // Re-enable send button
+    sendOtpBtn.disabled = false;
+    sendOtpBtn.innerHTML = '<span>Send OTP</span>';
+  }
 };
+
 
 window.resendOtp = async () => {
   let phone = loginMobile.value.trim();
   if (!phone.startsWith("+")) phone = "+91" + phone;
+  if (phone.length < 12) { alert("Enter valid mobile number"); return; }
   try {
-    resendOtpBtn.disabled = true; resendOtpBtn.innerHTML = '<span class="loading"></span> Resending...';
+    // Disable resend button during process
+    resendOtpBtn.disabled = true;
+    resendOtpBtn.innerHTML = '<span class="loading"></span> Resending...';
+    
     confirmationResultGlobal = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
-    showToast("New OTP sent", "success");
+   showToast("New OTP sent to " + phone, "success", 2000);
+    
+    // Start new OTP timer
     startOtpTimer();
-  } catch (e) { alert(e.message); }
-  finally { resendOtpBtn.disabled = false; resendOtpBtn.innerHTML = '<span>Resend OTP</span>'; }
+    
+  } catch (e) {
+    console.error(e);
+    alert(e.message);
+  } finally {
+    // Re-enable resend button
+    resendOtpBtn.disabled = false;
+    resendOtpBtn.innerHTML = '<span>Resend OTP</span>';
+  }
 };
 
 window.verifyOtp = async () => {
-  if (isOtpExpired) { alert("OTP Expired"); return; }
-  if (!confirmationResultGlobal) { alert("Request OTP first"); return; }
+  if (isOtpExpired) {
+    alert("OTP has expired. Please resend a new OTP.");
+    return;
+  }
+  
+  if (!confirmationResultGlobal) { 
+    alert("Click 'Send OTP' first"); 
+    return; 
+  }
+  
   const otp = otpCode.value.trim();
-  if (!otp) { alert("Enter OTP"); return; }
+  if (!otp) {
+    alert("Please enter the OTP");
+    return;
+  }
+  
   try {
-    verifyOtpBtn.disabled = true; verifyOtpBtn.innerHTML = '<span class="loading"></span> Verifying...';
+    // Disable verify button during process
+    verifyOtpBtn.disabled = true;
+    verifyOtpBtn.innerHTML = '<span class="loading"></span> Verifying...';
+    
     await confirmationResultGlobal.confirm(otp);
-    showToast("Logged in!", "success");
-    clearOtpTimer(); otpTimer.style.display = "none";
-  } catch { alert("Wrong OTP"); }
-  finally { verifyOtpBtn.disabled = false; verifyOtpBtn.innerHTML = '<span>Verify OTP</span>'; }
+    showToast("Login successful!", "success", 2000);
+    
+    // Clear timer on successful verification
+    clearOtpTimer();
+    otpTimer.style.display = "none";
+    
+  } catch {
+    alert("Wrong OTP. Please try again.");
+  } finally {
+    // Re-enable verify button
+    verifyOtpBtn.disabled = false;
+    verifyOtpBtn.innerHTML = '<span>Verify OTP</span>';
+  }
 };
 
+// google auth
 window.googleLogin = async () => {
-  try { await signInWithPopup(auth, googleProvider); } catch (e) { alert(e.message); }
+  try {
+    await signInWithPopup(auth, googleProvider);
+  } catch (e) {
+    alert(e.message);
+  }
 };
-
 window.logout = async () => {
   try {
-    if (profileListenerUnsub) profileListenerUnsub();
+    if (profileListenerUnsub) { profileListenerUnsub(); profileListenerUnsub = null; }
     await signOut(auth);
-    cart = {}; localStorage.removeItem("vg_state"); updateCartCount();
-    resetOtpFields();
-    document.querySelector(".card.cart").style.display = "block";
-    document.getElementById("userBox").innerHTML = "";
-    const form = document.getElementById('addressForm');
-    if(form) form.removeAttribute('data-edit-index');
+    cart = {};
+    localStorage.removeItem("vg_state");
+    updateCartCount();
+    resetOtpFields(); // Reset OTP fields on logout
+    document.querySelector(".card.cart").style.display = "block";  // Show login card
+    document.getElementById("userBox").innerHTML = "";     
+    
+    // Clear address form edit index
+    const addressForm = document.getElementById('addressForm');
+    if (addressForm) {
+      addressForm.removeAttribute('data-edit-index');
+    }
+    
     showSection("main");
-  } catch (e) { console.error(e); }
+  } catch (e) {
+    console.error(e);
+  }
 };
-
-// Auth Listener
-let authInitialized = false;
+let authInitialized = false; // put this near your other top-level lets
+// auth state
 onAuthStateChanged(auth, async (user) => {
-  if (!authInitialized) { document.body.classList.remove("auth-loading"); authInitialized = true; }
-  if (profileListenerUnsub) profileListenerUnsub();
-  
+     if (!authInitialized) {
+    // first time auth state is known: show the app
+    document.body.classList.remove("auth-loading");
+    authInitialized = true;
+  }
+    
+  if (profileListenerUnsub) { profileListenerUnsub(); profileListenerUnsub = null; }
+
   if (!user) {
     document.getElementById("headerCartIcon").style.display = "none";
     document.getElementById("loginTitle").style.display = "block";
@@ -2004,70 +3055,583 @@ onAuthStateChanged(auth, async (user) => {
     userBox.style.display = "none";
     hamburgerBtn.style.display = "none";
     cartBar.classList.remove("active");
-    menuUserName.textContent = "Guest";
-    menuUserEmail.textContent = "Login";
+    menuUserName.textContent = "Guest User";
+    menuUserEmail.textContent = "Login to continue";
     showDefaultProfileIcon();
+    orderHistoryList.innerHTML = "<div class='small' style='text-align:center;padding:20px;color:var(--text-sub);'>Login to see your orders</div>";
+    
+    // Reset OTP fields when no user
     resetOtpFields();
+    return;
+  }
+
+  document.getElementById("headerCartIcon").style.display = "block";
+  document.getElementById("loginTitle").style.display = "none";
+  loginBox.style.display = "none";
+  userBox.style.display = "block";
+  hamburgerBtn.style.display = "block";
+    
+    document.querySelector(".card.cart").style.display = "none";  // Hide entire login card
+document.getElementById("userBox").innerHTML = "✅ Logged in"; // Show user status
+updateTimeStatus();                    // Line 1
+  setInterval(updateTimeStatus, 30000);  // Line 2
+  console.log("⏰ Time updates started");
+    
+  const userName =
+    loginName.value.trim() ||
+    user.displayName ||
+    user.email ||
+    user.phoneNumber ||
+    "Customer";
+  const userEmail = user.email || user.phoneNumber || "";
+
+  userProfileData.name = userName;
+  userProfileData.phone = user.phoneNumber || loginMobile.value || "";
+  userProfileData.address = "";
+
+  menuUserName.textContent = userName;
+  menuUserEmail.textContent = userEmail || "Logged in";
+
+  // Restore saved section OR default to shop
+  if (currentSection === "cart") {
+    showSection("cart");
+  } else if (currentSection === "orderHistory") {
+    showSection("orderHistory");
   } else {
-    document.getElementById("headerCartIcon").style.display = "block";
-    document.getElementById("loginTitle").style.display = "none";
-    loginBox.style.display = "none";
-    userBox.style.display = "block";
-    hamburgerBtn.style.display = "block";
-    document.querySelector(".card.cart").style.display = "none";
-    document.getElementById("userBox").innerHTML = "✅ Logged in";
-    
-    updateTimeStatus();
-    setInterval(updateTimeStatus, 30000);
-    
-    const uName = loginName.value || user.displayName || "Customer";
-    menuUserName.textContent = uName;
-    menuUserEmail.textContent = user.phoneNumber || user.email;
-    
-    // Check/Create User Doc
-    const ref = doc(db, "users", user.uid);
-    const s = await getDoc(ref);
-    if(s.exists()) {
-      if(s.data().photoURL) { showProfilePhoto(s.data().photoURL); userProfileImage = s.data().photoURL; }
+    showSection("shop");
+       updateCategoryButtons();
+  }
+  loadOrderHistory(user.uid);
+
+
+  const userDocRef = doc(db, "users", user.uid);
+  const snap = await getDoc(userDocRef);
+
+  if (snap.exists()) {
+    const existing = snap.data();
+    await setDoc(
+      userDocRef,
+      {
+        name: user.displayName || existing.name || "",
+        phone: user.phoneNumber || existing.phone || "",
+        email: user.email || existing.email || "",
+        photoURL: user.photoURL || existing.photoURL || ""
+      },
+      { merge: true }
+    );
+
+    if (existing.photoURL) {
+      showProfilePhoto(existing.photoURL);
+      userProfileImage = existing.photoURL;
+      if (user.photoURL !== existing.photoURL) {
+        updateProfile(user, { photoURL: existing.photoURL }).catch(console.error);
+      }
+    } else if (user.photoURL) {
+      showProfilePhoto(user.photoURL);
+      userProfileImage = user.photoURL;
+      setDoc(userDocRef, { photoURL: user.photoURL }, { merge: true }).catch(console.error);
     } else {
-      await setDoc(ref, { name: uName, phone: user.phoneNumber||"", email: user.email||"", photoURL: user.photoURL||"" }, { merge: true });
-      if(user.photoURL) showProfilePhoto(user.photoURL);
+      showDefaultProfileIcon();
     }
-    
-    loadOrderHistory(user.uid);
-    
-    // Initialize banner on login/load
-    if (currentSection === "shop") {
-       const info = BANNER_DATA[cat] || BANNER_DATA['All'];
-       const bannerContainer = document.getElementById('categoryBanner');
-       if (bannerContainer) {
-          bannerContainer.innerHTML = `
-            <div class="promo-banner" style="background: ${info.gradient}">
-              <div class="promo-text"><div class="promo-title">${info.title}</div><div class="promo-sub">${info.sub}</div></div>
-              <div class="promo-icon">${info.icon}</div>
-            </div>`;
-       }
+  } else {
+    await setDoc(
+      userDocRef,
+      {
+        name: user.displayName || "",
+        phone: user.phoneNumber || "",
+        email: user.email || "",
+        photoURL: user.photoURL || ""
+      },
+      { merge: true }
+    );
+    if (user.photoURL) {
+      showProfilePhoto(user.photoURL);
+      userProfileImage = user.photoURL;
+    } else {
+      showDefaultProfileIcon();
     }
   }
+
+  profileListenerUnsub = onSnapshot(
+    userDocRef,
+    (s) => {
+      if (s.exists()) {
+        const d = s.data();
+        if (d.photoURL) {
+          showProfilePhoto(d.photoURL);
+          userProfileImage = d.photoURL;
+        } else {
+          showDefaultProfileIcon();
+        }
+      }
+    },
+    () => {
+      if (userProfileImage) showProfilePhoto(userProfileImage);
+      else if (user.photoURL) showProfilePhoto(user.photoURL);
+      else showDefaultProfileIcon();
+    }
+  );
 });
 
-// Toast Helper
-function showToast(msg, type="info") {
-  const t = document.createElement("div"); t.id="toast";
-  t.style.cssText = `position:fixed;top:20px;right:20px;background:${type==="success"?"#0C831F":"#FFC107"};color:white;padding:12px 20px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);z-index:10000;font-weight:500;font-size:14px;transform:translateX(400px);transition:transform 0.3s ease;`;
-  t.textContent = msg;
-  document.body.appendChild(t);
-  requestAnimationFrame(() => t.style.transform="translateX(0)");
-  setTimeout(() => { t.style.transform="translateX(400px)"; setTimeout(()=>t.remove(),300); }, 2000);
+// order history
+function loadOrderHistory(userId) {
+  if (!userId) {
+    orderHistoryList.innerHTML = "<div class='small' style='text-align:center;padding:20px;color:var(--text-sub);'>Login to see your orders</div>";
+    return;
+  }
+  const q = query(
+    collection(db, "orders"),
+    where("userId", "==", userId),
+    orderBy("createdAt", "desc")
+  );
+  onSnapshot(
+    q,
+    (snap) => {
+      if (snap.empty) {
+        orderHistoryList.innerHTML = "<div class='small' style='text-align:center;padding:20px;color:var(--text-sub);'>No orders yet</div>";
+        return;
+      }
+      orderHistoryList.innerHTML = "";
+      snap.forEach((docSnap) => {
+        const o = docSnap.data();
+        const orderId = docSnap.id;
+        const created = o.createdAt?.toDate ? o.createdAt.toDate().toLocaleString() : "Recent";
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <div style="margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--border-color);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <strong>#${orderId.substring(0, 8)}</strong>
+                <span style="background:rgba(12, 131, 31, 0.1); color:var(--primary); padding:4px 8px; border-radius:4px; font-size:0.8rem; font-weight:600;">${o.status || "PROCESSING"}</span>
+            </div>
+            <div class="small" style="color:var(--text-sub); margin-top:4px;">${created}</div>
+            
+${o.addressDetails ? 
+      `<div style="margin-top:8px;font-size:13px;color:var(--text-sub); background:var(--bg-input); padding:8px; border-radius:8px;">
+        📍 ${o.addressDetails.houseNo}, ${o.addressDetails.street}, ${o.addressDetails.city}
+      </div>` : 
+      o.address ? `<div style="margin-top:8px;font-size:13px;color:var(--text-sub);">📍 ${o.address}</div>` : ''
+    }
+          </div>
+          <div id="orderItems-${orderId}"></div>
+          <div style="text-align:right;margin-top:15px;padding-top:15px;border-top:1px dashed var(--border-color);">
+  ${o.subtotal !== undefined ? `
+    <div style="margin-bottom: 5px; font-size: 13px; color:var(--text-sub);">
+      Subtotal: ₹${o.subtotal}
+    </div>
+    <div style="margin-bottom: 5px; font-size: 13px; color: ${o.deliveryFee > 0 ? '#ff4757' : 'var(--primary)'};">
+      Delivery Fee: ${o.deliveryFee > 0 ? '₹' + o.deliveryFee : 'FREE'}
+    </div>
+    <strong style="font-size:1.1rem; color:var(--text-main);">Total: ₹${o.total || calculateOrderTotal(o.items)}</strong>
+  ` : `
+    <strong>Total: ₹${calculateOrderTotal(o.items)}</strong>
+  `}
+</div>`;
+        orderHistoryList.appendChild(card);
+        const container = document.getElementById(`orderItems-${orderId}`);
+        if (o.items) {
+          for (let itemId in o.items) {
+            const item = o.items[itemId];
+            const product = data.find((p) => p.name === item.name);
+            const img = product ? product.img : "https://via.placeholder.com/60x60?text=Product";
+            container.innerHTML += `
+              <div class="order-item" style="display:flex; align-items:center; margin-bottom:12px;">
+                <img src="${img}" alt="${item.name}" class="order-item-image" style="width:50px; height:50px; border-radius:8px; margin-right:12px; object-fit:cover;">
+                <div class="order-item-info">
+                  <div class="order-item-name" style="font-weight:600; font-size:0.95rem;">${item.name}</div>
+                  <div class="order-item-details" style="font-size:0.85rem; color:var(--text-sub);">${item.qty} × ₹${item.price}</div>
+                </div>
+                <div style="margin-left:auto; font-weight:600;">₹${item.qty * item.price}</div>
+              </div>`;
+          }
+        }
+      });
+    },
+    () => {
+      orderHistoryList.innerHTML =
+        "<div class='small' style='text-align:center;padding:20px;color:#ff4757;'>Error loading orders</div>";
+    }
+  );
+}
+function calculateOrderTotal(items) {
+  let t = 0;
+  if (items) for (let id in items) t += items[id].qty * items[id].price;
+  return t;
 }
 
-// Recaptcha Init
+// geolocation + place order
+window.getLocation = () => {
+  if (!navigator.geolocation) {
+    locStatus.textContent = "Geolocation not supported in this browser.";
+    return;
+  }
+  locStatus.textContent = "Getting location...";
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      currentLat = pos.coords.latitude;
+      currentLng = pos.coords.longitude;
+      locStatus.textContent = `Location captured ✅ (${currentLat.toFixed(5)}, ${currentLng.toFixed(5)})`;
+    },
+    () => {
+      locStatus.textContent = "Unable to get location. Please allow location permission.";
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+};
+    // Home location (center)
+const HOME_LAT = 11.13899;
+const HOME_LNG = 79.54172;
+const MAX_DISTANCE_KM = 10;
+
+// Haversine distance in km between two lat/lng points
+function distanceInKm(lat1, lon1, lat2, lon2) {
+  const R = 6371; // Earth radius in km
+  const toRad = (v) => v * Math.PI / 180;
+
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+window.placeOrder = async () => {
+      if (!isWithinBusinessHours()) {
+    alert("Sorry, we're currently closed.\n\n" +
+          "Order Hours: 7:00 AM - 11:00 PM\n" +
+          "Please place your order during business hours.");
+    return;
+  }
+      let subtotal = 0;
+  for (let i in cart) {
+    subtotal += cart[i].qty * cart[i].price;
+  }
+  
+  // NEW: Get form values from new address fields
+  const name = document.getElementById('deliveryName').value.trim();
+  const mobile = document.getElementById('deliveryMobile').value.trim();
+  const houseNo = document.getElementById('houseNo').value.trim();
+  const street = document.getElementById('street').value.trim();
+  const landmark = document.getElementById('landmark').value.trim();
+  const pincode = document.getElementById('pincode').value.trim();
+  const city = document.getElementById('city').value.trim();
+  const state = document.getElementById('state').value.trim();
+  const saveAddress = document.getElementById('saveAddress').checked;
+
+ 
+ // Validate all fields
+let hasErrors = false;
+let errorMessages = [];
+
+
+// Phone validation
+if (!validatePhoneNumber(mobile)) {
+  hasErrors = true;
+  errorMessages.push("Please enter a valid 10-digit Indian mobile number (Example: 9876543210)");
+  
+  // Update field validation
+  updateFieldValidation('deliveryMobile', { 
+    valid: false, 
+    message: "Please enter a valid 10-digit Indian mobile number" 
+  });
+  
+  // Also hide the old mobileError element if it exists
+  const oldMobileError = document.getElementById('mobileError');
+  if (oldMobileError) {
+    oldMobileError.style.display = 'none';
+  }
+} else {
+  updateFieldValidation('deliveryMobile', { valid: true, message: "" });
+  
+  // Also hide the old mobileError element if it exists
+  const oldMobileError = document.getElementById('mobileError');
+  if (oldMobileError) {
+    oldMobileError.style.display = 'none';
+  }
+}
+
+// New field validations
+const nameValidation = validateFullName(name);
+if (!nameValidation.valid) {
+  hasErrors = true;
+  errorMessages.push(nameValidation.message);
+}
+updateFieldValidation('deliveryName', nameValidation);
+
+const houseNoValidation = validateHouseNumber(houseNo);
+if (!houseNoValidation.valid) {
+  hasErrors = true;
+  errorMessages.push(houseNoValidation.message);
+}
+updateFieldValidation('houseNo', houseNoValidation);
+
+const streetValidation = validateStreet(street);
+if (!streetValidation.valid) {
+  hasErrors = true;
+  errorMessages.push(streetValidation.message);
+}
+updateFieldValidation('street', streetValidation);
+
+const pincodeValidation = validatePincode(pincode);
+if (!pincodeValidation.valid) {
+  hasErrors = true;
+  errorMessages.push(pincodeValidation.message);
+}
+updateFieldValidation('pincode', pincodeValidation);
+
+const cityValidation = validateCity(city);
+if (!cityValidation.valid) {
+  hasErrors = true;
+  errorMessages.push(cityValidation.message);
+}
+updateFieldValidation('city', cityValidation);
+
+const stateValidation = validateState(state);
+if (!stateValidation.valid) {
+  hasErrors = true;
+  errorMessages.push(stateValidation.message);
+}
+updateFieldValidation('state', stateValidation);
+
+// Check for empty cart
+if (Object.keys(cart).length === 0) {
+  hasErrors = true;
+  errorMessages.push("Please add at least one item to your cart");
+}
+
+// If any errors, show them and stop
+if (hasErrors) {
+  alert("Please fix the following errors:\n\n• " + errorMessages.join("\n• "));
+  return;
+}
+
+  const user = auth.currentUser;
+  if (!user) { 
+    alert("Please login first"); 
+    return; 
+  }
+
+  // Require location before ordering
+  if (currentLat === null || currentLng === null) {
+    alert("Please share your live location before placing the order.");
+    return;
+  }
+
+  // Check distance from home location
+  const distKm = distanceInKm(HOME_LAT, HOME_LNG, currentLat, currentLng);
+  console.log("Distance from home (km):", distKm);
+
+  if (distKm > MAX_DISTANCE_KM) {
+    alert(
+      "Sorry, delivery not available in your area.\n\n" +
+      "You are approximately " + distKm.toFixed(1) + " km away.\n" +
+      "We currently deliver only within " + MAX_DISTANCE_KM + " km."
+    );
+    return;
+  }
+
+  // Calculate order total with delivery fee
+   // Calculate order total with delivery fee
+ 
+  const deliveryFee = subtotal >= 200 ? 0 : 40;
+  const grandTotal = subtotal + deliveryFee;
+
+    // NEW: Construct full address from split fields
+  const fullAddress = `${houseNo}, ${street}${landmark ? ', ' + landmark : ''}, ${city}, ${state} - ${pincode}`;
+
+   // NEW: Save address if checkbox is checked
+     console.log("🔘 Save address checkbox checked?", saveAddress);
+  console.log("👤 Current user:", user?.uid);
+  console.log("📱 Mobile number:", mobile);
+  console.log("🏠 Address data:", { name, houseNo, street, city, state, pincode });
+  if (saveAddress && user) {
+    await saveUserAddress(user.uid, {
+      name: name,
+      mobile: mobile,
+      houseNo: houseNo,
+      street: street,
+      landmark: landmark,
+      pincode: pincode,
+      city: city,
+      state: state,
+      createdAt: new Date().toISOString()
+    });
+  } else {
+    console.log("📝 Address not saved. Reason:", 
+      !saveAddress ? "Checkbox not checked" : "No user logged in");
+  }
+
+  userProfileData.name = name;
+  userProfileData.phone = mobile;
+  userProfileData.address = fullAddress;
+    
+ const deliveryMessage = isAfter8PM() ? 
+    `Delivery Date: ${formatDeliveryDate(getDeliveryDate())}` :
+    'Delivery: Today';
+    
+   await addDoc(collection(db, "orders"), {
+    name: name,
+    mobile: mobile,
+    address: fullAddress,
+    addressDetails: {
+      houseNo: houseNo,
+      street: street,
+      landmark: landmark,
+      pincode: pincode,
+      city: city,
+      state: state
+    },
+    items: cart,
+    subtotal: subtotal,
+    deliveryFee: deliveryFee,
+    total: grandTotal,
+    status: "NEW",
+    createdAt: serverTimestamp(),
+    location: { lat: currentLat, lng: currentLng },
+    userId: user.uid,
+    userPhone: user.phoneNumber || null,
+    userEmail: user.email || null,
+    distanceKm: distKm,
+    deliveryDate: getDeliveryDate().toISOString(),
+    orderedAfter8PM: isAfter8PM(),
+    saveAddress: saveAddress
+  });
+
+ alert(`Order placed successfully!\n\n` +
+        `Subtotal: ₹${subtotal}\n` +
+        `Delivery Fee: ₹${deliveryFee}\n` +
+        `Total: ₹${grandTotal}\n\n` +
+        `${deliveryMessage}`);
+  
+  cart = {};
+  updateCartCount();
+  saveCart();
+  renderCartPage();
+  
+  // NEW: Clear all address fields
+  document.getElementById('deliveryName').value = "";
+  document.getElementById('deliveryMobile').value = "";
+  document.getElementById('houseNo').value = "";
+  document.getElementById('street').value = "";
+  document.getElementById('landmark').value = "";
+  document.getElementById('pincode').value = "";
+  document.getElementById('city').value = "";
+  document.getElementById('state').value = "";
+  document.getElementById('saveAddress').checked = false;
+  // Hide mobile error if visible
+  const mobileError = document.getElementById('mobileError');
+  if (mobileError) mobileError.style.display = "none";
+  // Reset border color for mobile field
+  const mobileField = document.getElementById('deliveryMobile');
+  if (mobileField) mobileField.style.borderColor = "#e0e0e0";
+  
+  locStatus.textContent = "";
+  currentLat = null;
+  currentLng = null;
+      const addressForm = document.getElementById('addressForm');
+  if (addressForm) {
+    addressForm.removeAttribute('data-edit-index');
+  }
+  
+  // Reload saved addresses to show the newly added one
+  if (user) {
+    loadSavedAddresses(user.uid);
+  }
+  goBackToAllTab();
+};
+// Add this function AFTER the placeOrder() function ends
+async function saveUserAddress(userId, addressData) {
+  try {
+    console.log("🔄 saveUserAddress called for user:", userId);
+    console.log("📝 Address data to save:", addressData);
+    
+    const userDoc = await getDoc(doc(db, "users", userId));
+    const addressForm = document.getElementById('addressForm');
+    const isEditing = addressForm && addressForm.hasAttribute('data-edit-index');
+    const editIndex = isEditing ? parseInt(addressForm.getAttribute('data-edit-index')) : -1;
+    
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      console.log("📄 Current user data:", userData);
+      
+      // ✅ CRITICAL: Ensure addresses array exists
+      const addresses = userData.addresses || [];
+      console.log("🏠 Current addresses array:", addresses);
+      
+      if (isEditing && editIndex >= 0 && editIndex < addresses.length) {
+        // UPDATE EXISTING ADDRESS
+        console.log("✏️ Updating address at index:", editIndex);
+        addresses[editIndex] = addressData;
+        console.log("✅ Updated address at index:", editIndex, addresses[editIndex]);
+        showToast("✅ Address updated successfully!", "success");
+      } else {
+        // ADD NEW ADDRESS (check for duplicates)
+        const exists = addresses.some(addr => 
+          addr.houseNo === addressData.houseNo && 
+          addr.street === addressData.street && 
+          addr.pincode === addressData.pincode
+        );
+        
+        if (!exists) {
+          addresses.push(addressData);
+          console.log("✅ Adding new address to array:", addresses);
+          showToast("✅ New address added!", "success");
+        } else {
+          console.log("ℹ️ Address already exists, not saving duplicate");
+          showToast("ℹ️ Address already exists", "info");
+          return false; // Don't save duplicate
+        }
+      }
+      
+      // ✅ Save the ENTIRE user document with the updated addresses array
+      await setDoc(doc(db, "users", userId), {
+        ...userData, // Keep existing user data
+        addresses: addresses // Update addresses array
+      }, { merge: true });
+      
+      console.log("✅ Address saved successfully to Firestore");
+      return true;
+    } else {
+      // Create user document with addresses array
+      console.log("📝 Creating new user document with address");
+      await setDoc(doc(db, "users", userId), {
+        addresses: [addressData],
+        name: addressData.name,
+        phone: addressData.mobile,
+        createdAt: new Date().toISOString()
+      }, { merge: true });
+      console.log("✅ Created new user document with address");
+      showToast("✅ Address saved successfully!", "success");
+      return true;
+    }
+  } catch (error) {
+    console.error("❌ Error saving address:", error);
+    console.error("Error code:", error.code);
+    console.error("Error message:", error.message);
+    showToast("❌ Failed to save address: " + error.message, "error");
+    return false;
+  }
+}
+// Initialize recaptcha
 function initRecaptcha() {
   try {
-    recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", { size: "invisible" });
-  } catch (err) { console.error("Recaptcha error:", err); }
+    recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+      size: "invisible",
+      callback: (token) => {
+        console.log("reCAPTCHA verified");
+      }
+    });
+  } catch (err) {
+    console.error("reCAPTCHA init error:", err);
+  }
 }
 initRecaptcha();
+// Initialize OTP fields on page load
 resetOtpFields();
 </script>
 </body>
