@@ -58,18 +58,18 @@ body.auth-loading #appRoot { display: none; }
    HEADER & NAVIGATION
    ========================================= */
 header {
-  /* Rich Deep Green Gradient */
   background: linear-gradient(to right, #0f3d14, #1b5e20);
   color: white;
-  padding: 12px 20px; /* Slimmer, cleaner padding */
+  padding: 8px 16px; /* Reduced vertical padding since content is taller */
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start; /* Important for vertical stacking */
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15); /* Soft shadow for depth */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   border-bottom: none;
+  min-height: 80px; /* Ensure enough height for stacked icons */
 }
 
 	body.no-scroll {
@@ -83,6 +83,8 @@ header {
   display: flex;
   align-items: center;
   gap: 10px;
+  align-self: flex-start; /* Aligns logo to top to match the taller right side */
+  margin-top: 8px;        /* Small adjustment to align with the top icon */
 }
 	.app-name span {
   color: white !important; /* Force white text */
@@ -131,12 +133,13 @@ header {
   font-size: 10px;
   font-weight: 700;
 }
-	.header-right {
+.header-right {
   display: flex;
-  align-items: center;
-  gap: 8px; /* Better spacing between cart and menu */
+  flex-direction: column; /* Stacks items vertically */
+  align-items: center;    /* Centers them horizontally */
+  gap: 8px;              /* Space between Cart and Hamburger */
+  margin-left: auto;      /* Pushes this section to the far right */
 }
-
 	/* =========================================
    SUBMENU LOGIC (Fixes Minimize Issue)
    ========================================= */
@@ -1115,15 +1118,25 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
 </div>
 <script type="module">
 	// Remove Splash Screen after 2.5 seconds
+// SMART SPLASH SCREEN LOGIC
 document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(() => {
-    const splash = document.getElementById('splashScreen');
-    if(splash) {
-      splash.classList.add('splash-hidden');
-      // Completely remove from DOM after fade out to save memory
-      setTimeout(() => splash.remove(), 500);
-    }
-  }, 2000); // 2000ms = 2 seconds duration
+  const splash = document.getElementById('splashScreen');
+  
+  // Check if splash has already been shown in this session
+  if (sessionStorage.getItem('splashShown') === 'true') {
+    // If yes, remove it IMMEDIATELY (no animation)
+    if(splash) splash.style.display = 'none';
+  } else {
+    // If no, play the animation and save the flag
+    setTimeout(() => {
+      if(splash) {
+        splash.classList.add('splash-hidden');
+        setTimeout(() => splash.remove(), 500);
+        // Mark as shown for this session
+        sessionStorage.setItem('splashShown', 'true');
+      }
+    }, 2000); // 2 seconds duration
+  }
 });
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
