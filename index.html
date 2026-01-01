@@ -132,6 +132,17 @@ header {
 }
 
 .side-menu.active { left: 0; }
+	
+	.menu-footer {
+  margin-top: auto;       /* Pushes content to the absolute bottom */
+  padding: 24px;
+  text-align: center;
+  color: var(--text-placeholder); /* Lighter text color */
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px dashed var(--border-color); /* Optional: nice separator */
+}
 
 .menu-overlay {
   position: fixed;
@@ -684,6 +695,10 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
       <span class="menu-text">Logout</span>
     </a>
   </div>
+	<div class="menu-footer">
+    <div style="font-weight: 800; opacity: 0.6;">VG</div>
+    version 1.0
+  </div>
 </div>
 
 <div class="menu-overlay" id="menuOverlay" onclick="closeMenu()"></div>
@@ -701,7 +716,7 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
 
 <div class="container">
   <div class="card cart">
-    <h4 id="loginTitle">👤 Login to continue</h4>
+    <h4 id="loginTitle" style="padding-bottom: 10px; text-align: center">👤 Login to continue</h4>
     <div id="loginBox">
       <input id="loginName" placeholder="Your name">
       <input id="loginMobile" placeholder="Phone number (with or without +91)">
