@@ -824,42 +824,66 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
   background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
   z-index: 9999;
   display: flex;
+  flex-direction: column; /* STACKS LOGO AND TEXT VERTICALLY */
   align-items: center;
   justify-content: center;
   transition: opacity 0.5s ease-out;
 }
 .splash-container {
   position: relative;
-  height: 120px;
-  width: 340px; /* Slightly wider */
+  width: 320px; /* Container width */
+  height: 100px;
+  display: flex;
+  justify-content: space-between; /* Spreads the 3 groups out */
+  align-items: center;
 }
-	.splash-text {
+.splash-text {
   font-family: 'Poppins', sans-serif;
   font-size: 2.2rem;
   font-weight: 800;
   color: white;
-  opacity: 0;
-  transform: translateY(10px);
-  animation: fadeTextIn 0.8s ease-out forwards;
-  animation-delay: 1.2s; 
-  position: absolute;
-  top: 25px; /* Vertically align text */
   letter-spacing: -1px;
+  opacity: 0; /* Hidden initially */
+  transform: translateY(10px);
+  animation: fadeTextIn 0.5s ease-out forwards;
+  animation-delay: 1.2s; /* Wait for leaves to land */
 }
-	.splash-icon {
-  width: 50px;
-  height: 50px;
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  margin-top: -25px; 
-  margin-left: -25px; 
+	.splash-group {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px; /* Fixed width for stability */
+}
+.splash-icon {
+  width: 40px;
+  height: 40px;
+  position: absolute; /* Allows us to move them freely */
+  top: 5px;
+  left: 35px; /* Position next to the text */
   filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
 }
 	/* --- MOVEMENT KEYFRAMES (Adjusted for new positions) --- */
 
 /* 1. Moves to "we" position */
-.icon-pos-1 { animation: split1 1.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards; }
+.icon-pos-1 {
+  animation: splitFromCenter1 1.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+	@keyframes splitFromCenter1 {
+  0% {
+    /* Start at center of container (approx 110px right of this element) */
+    transform: translate(110px, 0) scale(2.5); 
+    opacity: 1;
+  }
+  40% {
+    /* Hold center briefly */
+    transform: translate(110px, 0) scale(2.5); 
+  }
+  100% {
+    /* Land in natural position */
+    transform: translate(0, 0) scale(1); 
+  }
+}
 @keyframes split1 {
   0% { transform: translate(0, 0) scale(2.5); opacity: 1; }
   40% { transform: translate(0, 0) scale(2.5); }
@@ -867,7 +891,22 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
 }
 
 /* 2. Moves to "THe" position */
-.icon-pos-2 { animation: split2 1.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards; }
+.icon-pos-2 {
+  animation: splitFromCenter2 1.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+	@keyframes splitFromCenter2 {
+  0% {
+    /* Start exactly where it is (since it's already in the center) */
+    transform: translate(0, 0) scale(2.5); 
+    opacity: 1;
+  }
+  40% {
+    transform: translate(0, 0) scale(2.5); 
+  }
+  100% {
+    transform: translate(0, 0) scale(1); 
+  }
+}
 @keyframes split2 {
   0% { transform: translate(0, 0) scale(2.5); opacity: 1; }
   40% { transform: translate(0, 0) scale(2.5); }
@@ -875,7 +914,22 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
 }
 
 /* 3. Moves to "Re" position */
-.icon-pos-3 { animation: split3 1.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards; }
+.icon-pos-3 {
+  animation: splitFromCenter3 1.5s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+}
+	@keyframes splitFromCenter3 {
+  0% {
+    /* Start at center of container (approx 110px left of this element) */
+    transform: translate(-110px, 0) scale(2.5); 
+    opacity: 1;
+  }
+  40% {
+    transform: translate(-110px, 0) scale(2.5); 
+  }
+  100% {
+    transform: translate(0, 0) scale(1); 
+  }
+}
 @keyframes split3 {
   0% { transform: translate(0, 0) scale(2.5); opacity: 1; }
   40% { transform: translate(0, 0) scale(2.5); }
@@ -945,6 +999,106 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
   0%, 100% { transform: rotate(0deg) scale(1); }
   50% { transform: rotate(10deg) scale(1.1); }
 }
+	/* --- HEART ANIMATION --- */
+@keyframes heartBlink {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; } /* Pulses bigger and slightly transparent */
+}
+
+.heart-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.5rem;  /* Adjust spacing from "We" */
+  margin-right: 0.5rem; /* Adjust spacing from "THe" */
+  opacity: 0; /* Hidden initially */
+  animation: fadeTextIn 0.5s ease-out forwards 1.2s; /* Fade in with text */
+}
+
+.heart-icon-svg {
+  fill: #ff4757; /* Red Heart Color */
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+  animation: heartBlink 1.2s infinite ease-in-out; /* Infinite blinking */
+}
+	/* =========================================
+   SPLASH SCREEN - SINGLE LEAF SPLIT FIX
+   ========================================= */
+
+/* LOGIC: 
+   1. The 'Outer' leaves move roughly 130px to reach the center.
+   2. The 'Inner' leaves move roughly 45px to reach the center.
+   3. We start the 'Inner' and 'Right' leaves with opacity: 0 so they are invisible 
+      at the very start, creating the illusion of just ONE leaf (Leaf 1) visible.
+*/
+
+/* 1. Far Left Leaf ("We") - The "Main" Leaf (Always Visible) */
+.leaf-fly-1 { animation: flyLeftOuter 1.6s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+@keyframes flyLeftOuter {
+  0% { 
+    transform: translate(130px, 0) scale(2.5); 
+    opacity: 1; 
+  }
+  100% { 
+    transform: translate(0, 0) scale(1); 
+    opacity: 1;
+  }
+}
+
+/* 2. Mid Left Leaf ("re") - Starts Hidden */
+.leaf-fly-2 { animation: flyLeftInner 1.6s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+@keyframes flyLeftInner {
+  0% { 
+    transform: translate(45px, 0) scale(2.5); 
+    opacity: 0; /* Hidden initially so we don't see a "stack" */
+  }
+  5% { opacity: 1; } /* Reveal quickly as it splits */
+  100% { 
+    transform: translate(0, 0) scale(1); 
+    opacity: 1;
+  }
+}
+
+/* 3. Mid Right Leaf ("He") - Starts Hidden */
+.leaf-fly-3 { animation: flyRightInner 1.6s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+@keyframes flyRightInner {
+  0% { 
+    transform: translate(-45px, 0) scale(2.5); 
+    opacity: 0; 
+  }
+  5% { opacity: 1; }
+  100% { 
+    transform: translate(0, 0) scale(1); 
+    opacity: 1;
+  }
+}
+
+/* 4. Far Right Leaf ("re") - Starts Hidden */
+.leaf-fly-4 { animation: flyRightOuter 1.6s cubic-bezier(0.25, 1, 0.5, 1) forwards; }
+@keyframes flyRightOuter {
+  0% { 
+    transform: translate(-130px, 0) scale(2.5); 
+    opacity: 0; 
+  }
+  5% { opacity: 1; }
+  100% { 
+    transform: translate(0, 0) scale(1); 
+    opacity: 1;
+  }
+}
+	.splash-tagline {
+  font-family: 'Poppins', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #fff;       /* White text */
+  letter-spacing: 3px; /* Wide spacing for premium look */
+  text-transform: uppercase;
+  margin-top: 5px;   /* Space between logo and tagline */
+  
+  /* Animation Config */
+  opacity: 0;
+  transform: translateY(10px);
+  animation: fadeTextIn 0.8s ease-out forwards 2s; /* Delays until logo is done */
+}
 /* Validation States */
 .invalid { border-color: #ff4757 !important; background-color: #fff8f8 !important; }
 .valid { border-color: var(--primary) !important; background-color: #f0fff4 !important; }
@@ -957,11 +1111,10 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
 <div id="splashScreen">
   <div class="splash-container">
     
-    <!-- First part: "w" with leaf -->
-    <div style="position: absolute; left: 40px; top: 25px; display: flex; align-items: center;">
-      <span class="splash-text">w</span>
-      <div class="splash-icon icon-pos-1" style="position: relative; left: 0; top: 0;">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div class="splash-group" style="margin-left: 2rem;">
+      <span class="splash-text">We</span>
+      <div class="splash-icon leaf-fly-1">
+        <svg style="margin-left: 0.3rem; margin-top: -0.2rem;" width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M21 3C21 3 21 11 14 16C12 17.5 9 18 9 18C9 18 12 12 12 12C12 12 13 8 21 3Z" fill="#FFC107"/>
           <path d="M21 3C21 3 13 4 8 9C4 13 4 19 4 19C4 19 6 19 14 16C18 14.5 21 3 21 3Z" fill="#FFC107" fill-opacity="0.5"/>
           <path d="M4 19C4 19 4 21 3 22" stroke="#FFC107" stroke-width="2" stroke-linecap="round"/>
@@ -969,11 +1122,10 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
       </div>
     </div>
 
-    <!-- Second part: "TH" with leaf -->
-    <div style="position: absolute; left: 120px; top: 25px; display: flex; align-items: center;">
-      <span class="splash-text">TH</span>
-      <div class="splash-icon icon-pos-2" style="position: relative; left: 0; top: 0;">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div class="splash-group" style="margin-left: -0.6rem;">
+      <span class="splash-text">re</span>
+      <div class="splash-icon leaf-fly-2">
+        <svg style="margin-left: -0.4rem; margin-top: -0.2rem;" width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M21 3C21 3 21 11 14 16C12 17.5 9 18 9 18C9 18 12 12 12 12C12 12 13 8 21 3Z" fill="#FFC107"/>
           <path d="M21 3C21 3 13 4 8 9C4 13 4 19 4 19C4 19 6 19 14 16C18 14.5 21 3 21 3Z" fill="#FFC107" fill-opacity="0.5"/>
           <path d="M4 19C4 19 4 21 3 22" stroke="#FFC107" stroke-width="2" stroke-linecap="round"/>
@@ -981,11 +1133,16 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
       </div>
     </div>
 
-    <!-- Third part: "R" with leaf -->
-    <div style="position: absolute; left: 230px; top: 25px; display: flex; align-items: center;">
-      <span class="splash-text">R</span>
-      <div class="splash-icon icon-pos-3" style="position: relative; left: 0; top: 0;">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div class="heart-wrapper">
+      <svg class="heart-icon-svg" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+      </svg>
+    </div>
+
+    <div class="splash-group" style="margin-right: 4rem;">
+      <span class="splash-text">He</span>
+      <div class="splash-icon leaf-fly-3">
+        <svg style="margin-left: 0rem; margin-top: -0.2rem;" width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
           <path d="M21 3C21 3 21 11 14 16C12 17.5 9 18 9 18C9 18 12 12 12 12C12 12 13 8 21 3Z" fill="#FFC107"/>
           <path d="M21 3C21 3 13 4 8 9C4 13 4 19 4 19C4 19 6 19 14 16C18 14.5 21 3 21 3Z" fill="#FFC107" fill-opacity="0.5"/>
           <path d="M4 19C4 19 4 21 3 22" stroke="#FFC107" stroke-width="2" stroke-linecap="round"/>
@@ -993,7 +1150,18 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
       </div>
     </div>
 
-  </div>
+    <div class="splash-group" style="margin-left: -5.1rem; margin-right: 3rem;">
+      <span class="splash-text">re</span>
+      <div class="splash-icon leaf-fly-4">
+        <svg style="margin-left: -0.4rem; margin-top: -0.2rem;" width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M21 3C21 3 21 11 14 16C12 17.5 9 18 9 18C9 18 12 12 12 12C12 12 13 8 21 3Z" fill="#FFC107"/>
+          <path d="M21 3C21 3 13 4 8 9C4 13 4 19 4 19C4 19 6 19 14 16C18 14.5 21 3 21 3Z" fill="#FFC107" fill-opacity="0.5"/>
+          <path d="M4 19C4 19 4 21 3 22" stroke="#FFC107" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+
+  </div><div class="splash-tagline">At Your Door</div>
 </div>
 <div id="appRoot">
 <div class="side-menu" id="sideMenu">
@@ -1256,11 +1424,11 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
       if(splash) {
         splash.classList.add('splash-hidden');
-        setTimeout(() => splash.remove(), 500);
+        setTimeout(() => splash.remove(), 700);
         // Mark as shown for this session
         sessionStorage.setItem('splashShown', 'true');
       }
-    }, 2000); // 2 seconds duration
+    }, 3100); // 2 seconds duration
   }
 });
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
