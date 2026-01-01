@@ -112,6 +112,34 @@ header {
   border: 2px solid white;
 }
 
+	/* =========================================
+   SUBMENU LOGIC (Fixes Minimize Issue)
+   ========================================= */
+.submenu {
+  display: none; /* Hidden by default */
+  background: rgba(0, 0, 0, 0.02); /* Slight gray background for hierarchy */
+  border-radius: var(--radius-sm);
+  margin-top: 4px;
+}
+
+.submenu.active {
+  display: block; /* Show when active class is present */
+  animation: slideDown 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Optional: Rotate the arrow when active */
+/* Note: Since the arrow is separate from the ID being toggled, 
+   this purely fixes the minimize/expand functionality */
+.menu-arrow {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--text-placeholder);
+}
 /* =========================================
    SIDE MENU (DRAWER)
    ========================================= */
