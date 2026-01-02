@@ -2905,12 +2905,13 @@ onSnapshot(productsRef, (snapshot) => {
       cat: v.cat,
       img: v.img,
       unit: v.unit,
-      astockcount: v.Astockcount || 0,  // Available stock count
-      inStock: v.Stock || false  // Boolean for display
+      astockcount: v.astockcount || 0,  // ✅ LOWERCASE astockcount
+      inStock: v.stock !== false  // ✅ LOWERCASE stock
     };
   });
   render();
 });
+
 
 
 
