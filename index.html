@@ -2906,11 +2906,12 @@ onSnapshot(productsRef, (snapshot) => {
       img: v.img,
       unit: v.unit,
       astockcount: v.Astockcount || 0,  // Available stock count
-      stock: v.Stock || false  // Boolean flag
+      inStock: v.Stock || false  // Boolean for display
     };
   });
   render();
 });
+
 
 
 function render() {
