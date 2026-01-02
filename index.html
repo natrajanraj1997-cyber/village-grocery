@@ -7,7 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
 <style>
 /* =========================================
    MODERN UI VARS (Blinkit/Swiggy Style)
@@ -1211,6 +1210,17 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
       <span class="menu-text">Logout</span>
     </a>
   </div>
+	<div class="menu-section">
+    <div class="menu-title">Information</div>
+    <a href="#" class="menu-item" onclick="showSection('about'); closeMenu();">
+      <span class="menu-icon">ℹ️</span>
+      <span class="menu-text">About Us</span>
+    </a>
+    <a href="#" class="menu-item" onclick="showSection('contact'); closeMenu();">
+      <span class="menu-icon">📞</span>
+      <span class="menu-text">Contact Us</span>
+    </a>
+  </div>
 	<div class="menu-footer">
     <div style="font-weight: 800; opacity: 0.6;">VG</div>
     version 1.0
@@ -1404,7 +1414,45 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
     </div>
   </div>
 </div>
+<div id="aboutSection" class="content-section hidden">
+    <button class="back-button" onclick="goBackToAllTab()">← Back</button>
+    <div class="card">
+      <h4 style="color:var(--primary); margin-bottom:10px;">Village Roots Grocery</h4>
+      <h5 style="color:var(--text-sub); margin-bottom:15px; font-weight:500;">Bringing City Convenience to Villages</h5>
+      
+      <p style="font-size:0.9rem; color:var(--text-main); margin-bottom:15px;">
+        Born from real village life in Tamil Nadu, we know the struggle: walking 2-3 km just for daily essentials like rice, vegetables, or milk. Tired of long trips on rough roads, our team of local developers built this app to solve it.
+      </p>
+      
+      <h5 style="margin-top:20px; margin-bottom:8px;">Our Mission</h5>
+      <p style="font-size:0.9rem; color:var(--text-sub);">
+        Transform villages into self-sufficient hubs with city-level shopping. One-tap ordering, real-time delivery tracking, and COD make groceries accessible from home – no more travel hassles.
+      </p>
 
+      <h5 style="margin-top:20px; margin-bottom:8px;">Why We Started</h5>
+      <ul style="font-size:0.9rem; color:var(--text-sub); padding-left:20px; margin-bottom:20px;">
+        <li><strong>Personal Pain:</strong> In village roots, we faced the same daily trek for basics.</li>
+        <li><strong>Vision:</strong> Every village gets doorstep delivery, boosting local shops and saving time.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div id="contactSection" class="content-section hidden">
+    <button class="back-button" onclick="goBackToAllTab()">← Back</button>
+    <div class="card" style="text-align:center; padding: 40px 20px;">
+      <div style="font-size: 3rem; margin-bottom:10px;">📞</div>
+      <h4>Contact Support</h4>
+      <p style="color:var(--text-sub); margin-bottom:20px;">Need help with an order?</p>
+      
+      <a href="tel:7708016597" class="btn-primary" style="text-decoration:none; display:flex; justify-content:center;">
+        <span>Call 7708016597</span>
+      </a>
+      
+      <p style="font-size:0.8rem; color:var(--text-placeholder); margin-top:20px;">
+        Available 7:00 AM - 11:00 PM
+      </p>
+    </div>
+  </div>
 <div class="cart-bar" id="cartBar">
   <button id="placeBtn" onclick="placeOrder()">Place Order</button>
 </div>
@@ -2320,28 +2368,41 @@ window.toggleSubmenu = (id) => document.getElementById(id).classList.toggle("act
 
 window.showSection = (section) => {
   closeMenu();
+  // Hide all sections
   document.querySelectorAll(".content-section").forEach((el) => el.classList.add("hidden"));
+  
+  // Show Cart Bar only on cart page
   cartBar.classList.toggle("active", section === "cart");
+  
   currentSection = section;
-    saveState();
+  saveState();
+
   if (section === "shop") {
     shopSection.classList.remove("hidden");
     updateShopBackButtonVisibility();
     render();
- } else if (section === "cart") {
+  } else if (section === "cart") {
     cartSection.classList.remove("hidden");
     renderCartPage();
-    // Auto-fill delivery details when user logs in
     setTimeout(() => {
       const currentUser = auth.currentUser;
       if (currentUser) {
         autoFillDeliveryDetails();
       }
-    }, 100); // Small delay to ensure DOM is ready
+    }, 100);
   } else if (section === "orderHistory") {
     orderHistorySection.classList.remove("hidden");
+  } else if (section === "about") {
+    // NEW: Show About Section
+    document.getElementById("aboutSection").classList.remove("hidden");
+  } else if (section === "contact") {
+    // NEW: Show Contact Section
+    document.getElementById("contactSection").classList.remove("hidden");
   } else {
+    // Default to main/shop
     currentSection = "main";
+    // If you have a specific main landing logic, put it here, 
+    // otherwise usually it goes back to shop logic
   }
 };
 
