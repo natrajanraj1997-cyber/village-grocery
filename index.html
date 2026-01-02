@@ -2913,8 +2913,6 @@ onSnapshot(productsRef, (snapshot) => {
 });
 
 
-
-
 function render() {
   if (!list) return;
   list.innerHTML = "";
@@ -3071,35 +3069,62 @@ window.setCat = (c) => {
   updateShopBackButtonVisibility();
   saveState();
 };
-window.add = id => {
+
+	window.add = (id) => {
   const product = data.find(p => p.id === id);
+  
+  // Check if product exists and has stock > 0
   if (!product || product.astockcount <= 0) {
     showToast('Out of stock!', 'error');
     return;
   }
+
+  // Initial Add
   if (!cart[id]) {
     cart[id] = { qty: 1, price: product.price, name: product.name, img: product.img };
-  } else if (cart[id].qty < product.astockcount) {
-    cart[id].qty++;
   } else {
-    showToast(`Only ${product.astockcount} left!`, 'error');
+    // If already in cart, check limit before adding
+    if (cart[id].qty < product.astockcount) {
+      cart[id].qty++;
+    } else {
+      showToast(`Only ${product.astockcount} left in stock!`, 'error');
+    }
   }
-  updateCartCount(); saveCart();
-  render();
+  updateCartCount();
+  saveCart();
+  // Depending on where user is, re-render the correct view
+  currentSection === "shop" ? render() : renderCartPage();
 };
 
 window.chg = (id, d) => {
   const product = data.find(p => p.id === id);
   if (!product) return;
-  const newQty = (cart[id]?.qty || 0) + d;
-  if (newQty > 0 && newQty <= product.astockcount) {
-    if (newQty === 0) delete cart[id];
-    else cart[id].qty = newQty;
-  } else if (newQty > product.astockcount) {
-    showToast(`Only ${product.astockcount} available!`, 'error');
+  
+  // Calculate what the NEW quantity would be
+  const currentQty = cart[id]?.qty || 0;
+  const newQty = currentQty + d;
+  
+  // 1. If removing items (d is -1)
+  if (d < 0) {
+    if (newQty <= 0) {
+      delete cart[id]; // Remove from cart
+    } else {
+      cart[id].qty = newQty; // Decrease qty
+    }
+  } 
+  // 2. If adding items (d is +1)
+  else {
+    if (newQty <= product.astockcount) {
+      cart[id].qty = newQty; // Increase qty
+    } else {
+      showToast(`Only ${product.astockcount} available!`, 'error');
+      return; // Stop here, don't update
+    }
   }
-  updateCartCount(); saveCart();
-  render();
+  updateCartCount();
+  saveCart();
+  // Re-render current view
+  currentSection === "shop" ? render() : renderCartPage();
 };
 
 	window.clearSearch = () => {
@@ -3801,7 +3826,6 @@ for (const [productId, item] of Object.entries(cart)) {
   });
 }
 
-	
  alert(`Order placed successfully!\n\n` +
         `Subtotal: ₹${subtotal}\n` +
         `Delivery Fee: ₹${deliveryFee}\n` +
