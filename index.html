@@ -3813,17 +3813,21 @@ if (hasErrors) {
 // After successful order creation, reduce stock
 for (const [productId, item] of Object.entries(cart)) {
   const productRef = doc(db, 'products', productId);
+  const productSnap = await getDoc(productRef);
   
-  onSnapshot(productRef, (snap) => {
-    const currentData = snap.data();
-    const newAstockcount = (currentData.Astockcount || 0) - item.qty;
+  if (productSnap.exists()) {
+    const currentData = productSnap.data();
+    const currentAstockcount = currentData.astockcount || 0;
+    const newAstockcount = Math.max(0, currentAstockcount - item.qty);
     
-    // Auto-set Stock boolean: true if count > 0, false if 0
-    setDoc(productRef, {
-      Astockcount: Math.max(0, newAstockcount),  // Never go below 0
-      Stock: newAstockcount > 0  // true or false
+    // Update both astockcount and stock boolean
+    await setDoc(productRef, {
+      astockcount: newAstockcount,
+      stock: newAstockcount > 0  // true if > 0, false if = 0
     }, { merge: true });
-  });
+    
+    console.log(`✅ Updated ${productId}: astockcount=${newAstockcount}, stock=${newAstockcount > 0}`);
+  }
 }
 
  alert(`Order placed successfully!\n\n` +
