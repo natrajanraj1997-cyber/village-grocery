@@ -1443,7 +1443,7 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
 <div id="aboutSection" class="content-section hidden">
     <button class="back-button" onclick="goBackToAllTab()">← Back</button>
     <div class="card">
-      <h4 style="color:var(--primary); margin-bottom:10px;">Village Roots Grocery</h4>
+      <h4 style="color:var(--primary); margin-bottom:10px;">Village Grocery</h4>
       <h5 style="color:var(--text-sub); margin-bottom:15px; font-weight:500;">Bringing City Convenience to Villages</h5>
       
       <p style="font-size:0.9rem; color:var(--text-main); margin-bottom:15px;">
@@ -2896,12 +2896,22 @@ async function loadSavedAddresses(userId) {
 // products
 const productsRef = collection(db, "products");
 onSnapshot(productsRef, (snapshot) => {
-  data = snapshot.docs.map((d) => {
+  data = snapshot.docs.map(d => {
     const v = d.data();
-    return { id: d.id, name: v.Name, price: v.price, cat: v.cat, img: v.img, inStock: v.stock, unit: v.unit };
+    return {
+      id: d.id,
+      name: v.Name,
+      price: v.price,
+      cat: v.cat,
+      img: v.img,
+      unit: v.unit,
+      astockcount: v.Astockcount || 0,  // Available stock count
+      stock: v.Stock || false  // Boolean flag
+    };
   });
-  if (currentSection === "shop") render();
+  render();
 });
+
 
 function render() {
   if (!list) return;
@@ -3059,23 +3069,35 @@ window.setCat = (c) => {
   updateShopBackButtonVisibility();
   saveState();
 };
-window.add = (id) => {
-  const product = data.find((p) => p.id === id);
-  if (!product) return;
-  if (!cart[id]) cart[id] = { qty: 1, price: product.price, name: product.name, img: product.img };
-  else cart[id].qty += 1;
-  updateCartCount();
-  saveCart();
-  currentSection === "shop" ? render() : renderCartPage();
+window.add = id => {
+  const product = data.find(p => p.id === id);
+  if (!product || product.astockcount <= 0) {
+    showToast('Out of stock!', 'error');
+    return;
+  }
+  if (!cart[id]) {
+    cart[id] = { qty: 1, price: product.price, name: product.name, img: product.img };
+  } else if (cart[id].qty < product.astockcount) {
+    cart[id].qty++;
+  } else {
+    showToast(`Only ${product.astockcount} left!`, 'error');
+  }
+  updateCartCount(); saveCart();
+  render();
 };
 
 window.chg = (id, d) => {
-  if (!cart[id]) return;
-  cart[id].qty += d;
-  if (cart[id].qty <= 0) delete cart[id];
-  updateCartCount();
-  saveCart();
-  currentSection === "shop" ? render() : renderCartPage();
+  const product = data.find(p => p.id === id);
+  if (!product) return;
+  const newQty = (cart[id]?.qty || 0) + d;
+  if (newQty > 0 && newQty <= product.astockcount) {
+    if (newQty === 0) delete cart[id];
+    else cart[id].qty = newQty;
+  } else if (newQty > product.astockcount) {
+    showToast(`Only ${product.astockcount} available!`, 'error');
+  }
+  updateCartCount(); saveCart();
+  render();
 };
 
 	window.clearSearch = () => {
@@ -3761,7 +3783,23 @@ if (hasErrors) {
     orderedAfter8PM: isAfter8PM(),
     saveAddress: saveAddress
   });
+// After successful order creation, reduce stock
+for (const [productId, item] of Object.entries(cart)) {
+  const productRef = doc(db, 'products', productId);
+  
+  onSnapshot(productRef, (snap) => {
+    const currentData = snap.data();
+    const newAstockcount = (currentData.Astockcount || 0) - item.qty;
+    
+    // Auto-set Stock boolean: true if count > 0, false if 0
+    setDoc(productRef, {
+      Astockcount: Math.max(0, newAstockcount),  // Never go below 0
+      Stock: newAstockcount > 0  // true or false
+    }, { merge: true });
+  });
+}
 
+	
  alert(`Order placed successfully!\n\n` +
         `Subtotal: ₹${subtotal}\n` +
         `Delivery Fee: ₹${deliveryFee}\n` +
