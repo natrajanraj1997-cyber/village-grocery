@@ -1098,6 +1098,27 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
   transform: translateY(10px);
   animation: fadeTextIn 0.8s ease-out forwards 2s; /* Delays until logo is done */
 }
+	/* =========================================
+   SCROLLABLE MENU CONTAINER
+   ========================================= */
+.menu-scroll-container {
+  flex: 1;              /* Takes all remaining height */
+  overflow-y: auto;     /* Enables vertical scrolling */
+  overflow-x: hidden;   /* Prevents horizontal scrolling */
+  -webkit-overflow-scrolling: touch; /* Smooth scroll on iOS */
+}
+
+/* Optional: Make the scrollbar thin and subtle */
+.menu-scroll-container::-webkit-scrollbar {
+  width: 4px;
+}
+.menu-scroll-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+.menu-scroll-container::-webkit-scrollbar-thumb {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
 /* Validation States */
 .invalid { border-color: #ff4757 !important; background-color: #fff8f8 !important; }
 .valid { border-color: var(--primary) !important; background-color: #f0fff4 !important; }
@@ -1164,6 +1185,7 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
 </div>
 <div id="appRoot">
 <div class="side-menu" id="sideMenu">
+  
   <div class="user-profile">
     <div class="profile-image-container">
       <div class="profile-image" id="profileImage">👤</div>
@@ -1178,50 +1200,54 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
     </div>
   </div>
 
-  <div class="menu-section">
-    <div class="menu-title">Categories</div>
-    <a href="#" class="menu-item" onclick="toggleSubmenu('categoriesSubmenu')">
-      <span class="menu-icon">📁</span>
-      <span class="menu-text">All Categories</span>
-      <span class="menu-arrow">▼</span>
-    </a>
-    <div class="submenu active" id="categoriesSubmenu">
-      <div class="submenu-item" onclick="setCat('All'); showSection('shop'); closeMenu();">All</div>
-      <div class="submenu-item" onclick="setCat('Grocery'); showSection('shop'); closeMenu();">Grocery</div>
-      <div class="submenu-item" onclick="setCat('Kitchen'); showSection('shop'); closeMenu();">Kitchen</div>
-      <div class="submenu-item" onclick="setCat('Bathroom'); showSection('shop'); closeMenu();">Bathroom</div>
-      <div class="submenu-item" onclick="setCat('Dress'); showSection('shop'); closeMenu();">Dress</div>
+  <div class="menu-scroll-container">
+    
+    <div class="menu-section">
+      <div class="menu-title">Categories</div>
+      <a href="#" class="menu-item" onclick="toggleSubmenu('categoriesSubmenu')">
+        <span class="menu-icon">📁</span>
+        <span class="menu-text">All Categories</span>
+        <span class="menu-arrow">▼</span>
+      </a>
+      <div class="submenu active" id="categoriesSubmenu">
+        <div class="submenu-item" onclick="setCat('All'); showSection('shop'); closeMenu();">All</div>
+        <div class="submenu-item" onclick="setCat('Grocery'); showSection('shop'); closeMenu();">Grocery</div>
+        <div class="submenu-item" onclick="setCat('Kitchen'); showSection('shop'); closeMenu();">Kitchen</div>
+        <div class="submenu-item" onclick="setCat('Bathroom'); showSection('shop'); closeMenu();">Bathroom</div>
+        <div class="submenu-item" onclick="setCat('Dress'); showSection('shop'); closeMenu();">Dress</div>
+      </div>
     </div>
-  </div>
 
-  <div class="menu-section">
-    <div class="menu-title">Account</div>
-    <a href="#" class="menu-item" onclick="showSection('cart'); closeMenu();">
-      <span class="menu-icon">🛒</span>
-      <span class="menu-text">Cart</span>
-      <span class="cart-count-badge" id="menuCartCount">0</span>
-    </a>
-    <a href="#" class="menu-item" onclick="showSection('orderHistory'); closeMenu();">
-      <span class="menu-icon">📜</span>
-      <span class="menu-text">Order History</span>
-    </a>
-    <a href="#" class="menu-item" onclick="logout()" style="color:#ff4757;">
-      <span class="menu-icon">🚪</span>
-      <span class="menu-text">Logout</span>
-    </a>
-  </div>
-	<div class="menu-section">
-    <div class="menu-title">Information</div>
-    <a href="#" class="menu-item" onclick="showSection('about'); closeMenu();">
-      <span class="menu-icon">ℹ️</span>
-      <span class="menu-text">About Us</span>
-    </a>
-    <a href="#" class="menu-item" onclick="showSection('contact'); closeMenu();">
-      <span class="menu-icon">📞</span>
-      <span class="menu-text">Contact Us</span>
-    </a>
-  </div>
-	<div class="menu-footer">
+    <div class="menu-section">
+      <div class="menu-title">Account</div>
+      <a href="#" class="menu-item" onclick="showSection('cart'); closeMenu();">
+        <span class="menu-icon">🛒</span>
+        <span class="menu-text">Cart</span>
+        <span class="cart-count-badge" id="menuCartCount">0</span>
+      </a>
+      <a href="#" class="menu-item" onclick="showSection('orderHistory'); closeMenu();">
+        <span class="menu-icon">📜</span>
+        <span class="menu-text">Order History</span>
+      </a>
+      <a href="#" class="menu-item" onclick="logout()" style="color:#ff4757;">
+        <span class="menu-icon">🚪</span>
+        <span class="menu-text">Logout</span>
+      </a>
+    </div>
+
+    <div class="menu-section">
+      <div class="menu-title">Information</div>
+      <a href="#" class="menu-item" onclick="showSection('about'); closeMenu();">
+        <span class="menu-icon">ℹ️</span>
+        <span class="menu-text">About Us</span>
+      </a>
+      <a href="#" class="menu-item" onclick="showSection('contact'); closeMenu();">
+        <span class="menu-icon">📞</span>
+        <span class="menu-text">Contact Us</span>
+      </a>
+    </div>
+
+  </div> <div class="menu-footer">
     <div style="font-weight: 800; opacity: 0.6;">VG</div>
     version 1.0
   </div>
