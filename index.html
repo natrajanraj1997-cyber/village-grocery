@@ -1125,6 +1125,12 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
 .field-error { color: #ff4757 !important; font-size: 0.8rem !important; margin-top: -8px !important; margin-bottom: 12px !important; }
 
 </style>
+	<link rel="manifest" href="manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+</script>
 </head>
 
 <body class="auth-loading">
@@ -4001,4 +4007,5 @@ initRecaptcha();
 resetOtpFields();
 </script>
 </body>
+
 </html>
