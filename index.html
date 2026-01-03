@@ -1518,6 +1518,12 @@ import {
   signOut, onAuthStateChanged, GoogleAuthProvider,
   signInWithPopup, updateProfile
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+	
+	// Add this line with your other imports
+import { 
+  getAnalytics, 
+  logEvent 
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCYDLsQLFvuTV1N0mXtZFVYcSQqOkGfCrE",
@@ -1531,6 +1537,7 @@ const firebaseConfig = {
 
 
 const app = initializeApp(firebaseConfig);
+	const analytics = getAnalytics(app);
 const db = getFirestore(app);
 const storage = getStorage(app, "gs://grocery-orders-3ce26.firebasestorage.app");
 
@@ -2410,6 +2417,14 @@ window.showSection = (section) => {
   } else if (section === "cart") {
     cartSection.classList.remove("hidden");
     renderCartPage();
+	  let val = 0;
+    for (let i in cart) val += cart[i].qty * cart[i].price;
+    
+    logEvent(analytics, 'begin_checkout', {
+      currency: 'INR',
+      value: val,
+      items: Object.values(cart).map(i => ({ item_name: i.name, price: i.price, quantity: i.qty }))
+    });
     setTimeout(() => {
       const currentUser = auth.currentUser;
       if (currentUser) {
@@ -3040,6 +3055,7 @@ function renderCartPage() {
 
 window.setCat = (c) => {
   cat = c;
+	logEvent(analytics, 'view_item_list', { item_list_name: c });
   updateCategoryButtons();
   
   // --- NEW BANNER LOGIC START ---
@@ -3092,6 +3108,16 @@ window.setCat = (c) => {
   }
   updateCartCount();
   saveCart();
+		logEvent(analytics, 'add_to_cart', {
+    currency: 'INR',
+    value: product.price,
+    items: [{
+      item_id: product.id,
+      item_name: product.name,
+      price: product.price,
+      item_category: product.cat
+    }]
+  });
   // Depending on where user is, re-render the correct view
   currentSection === "shop" ? render() : renderCartPage();
 };
@@ -3810,6 +3836,18 @@ if (hasErrors) {
     orderedAfter8PM: isAfter8PM(),
     saveAddress: saveAddress
   });
+	logEvent(analytics, 'purchase', {
+  transaction_id: "ORD-" + Date.now(), // Generate a temp ID or use the doc ID if available
+  value: grandTotal,
+  currency: 'INR',
+  shipping: deliveryFee,
+  items: Object.values(cart).map(item => ({
+    item_name: item.name,
+    item_category: "General", // or map from product data if available
+    price: item.price,
+    quantity: item.qty
+  }))
+});
 // After successful order creation, reduce stock
 for (const [productId, item] of Object.entries(cart)) {
   const productRef = doc(db, 'products', productId);
