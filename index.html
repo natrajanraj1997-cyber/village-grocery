@@ -1125,12 +1125,6 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
 .field-error { color: #ff4757 !important; font-size: 0.8rem !important; margin-top: -8px !important; margin-bottom: 12px !important; }
 
 </style>
-	<link rel="manifest" href="manifest.json">
-<script>
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-  }
-</script>
 </head>
 
 <body class="auth-loading">
@@ -2273,20 +2267,21 @@ function showDefaultProfileIcon() {
 }
 
 function showProfilePhoto(url) {
-  const img = new Image();
-  img.crossOrigin = 'anonymous';
-  img.onload = () => {
-    profileImage.innerHTML = "";
-    profileImage.style.backgroundImage = `url(${url})`;
-    profileImage.style.backgroundSize = "cover";
-    profileImage.style.backgroundPosition = "center";
-    profileImage.style.backgroundColor = "transparent";
-  };
-  img.onerror = () => {
-    console.error("Failed to load profile image:", url);
-    showDefaultProfileIcon();
-  };
-  img.src = url;
+  if (!url) { 
+    showDefaultProfileIcon(); 
+    return; 
+  }
+  
+  // DIRECTLY set the style. This bypasses strict CORS checks that cause 
+  // the image to fail loading in JS even if the URL is valid.
+  profileImage.innerHTML = "";
+  profileImage.style.backgroundImage = `url('${url}')`;
+  profileImage.style.backgroundSize = "cover";
+  profileImage.style.backgroundPosition = "center";
+  profileImage.style.backgroundColor = "transparent";
+  
+  // Update the global variable
+  userProfileImage = url;
 }
 
 // ✅ SIMPLIFIED: Profile image upload without complex modal
@@ -3379,17 +3374,21 @@ window.logout = async () => {
   }
 };
 let authInitialized = false; // put this near your other top-level lets
+
 // auth state
 onAuthStateChanged(auth, async (user) => {
-     if (!authInitialized) {
-    // first time auth state is known: show the app
+  if (!authInitialized) {
     document.body.classList.remove("auth-loading");
     authInitialized = true;
   }
-    
-  if (profileListenerUnsub) { profileListenerUnsub(); profileListenerUnsub = null; }
+
+  if (profileListenerUnsub) { 
+    profileListenerUnsub(); 
+    profileListenerUnsub = null; 
+  }
 
   if (!user) {
+    // --- NO USER ---
     document.getElementById("headerCartIcon").style.display = "none";
     document.getElementById("loginTitle").style.display = "block";
     loginBox.style.display = "block";
@@ -3400,118 +3399,87 @@ onAuthStateChanged(auth, async (user) => {
     menuUserEmail.textContent = "Login to continue";
     showDefaultProfileIcon();
     orderHistoryList.innerHTML = "<div class='small' style='text-align:center;padding:20px;color:var(--text-sub);'>Login to see your orders</div>";
-    
-    // Reset OTP fields when no user
     resetOtpFields();
     return;
   }
 
+  // --- USER LOGGED IN ---
   document.getElementById("headerCartIcon").style.display = "block";
   document.getElementById("loginTitle").style.display = "none";
   loginBox.style.display = "none";
   userBox.style.display = "block";
   hamburgerBtn.style.display = "block";
-    
-    document.querySelector(".card.cart").style.display = "none";  // Hide entire login card
-document.getElementById("userBox").innerHTML = "✅ Logged in"; // Show user status
-updateTimeStatus();                    // Line 1
-  setInterval(updateTimeStatus, 30000);  // Line 2
-  console.log("⏰ Time updates started");
-    
-  const userName =
-    loginName.value.trim() ||
-    user.displayName ||
-    user.email ||
-    user.phoneNumber ||
-    "Customer";
+  
+  document.querySelector(".card.cart").style.display = "none"; 
+  document.getElementById("userBox").innerHTML = "✅ Logged in"; 
+  
+  updateTimeStatus();
+  setInterval(updateTimeStatus, 30000);
+
+  // Set basic info immediately from Auth Object (if available)
+  const userName = user.displayName || loginName.value.trim() || "Village Customer";
   const userEmail = user.email || user.phoneNumber || "";
+  
+  menuUserName.textContent = userName;
+  menuUserEmail.textContent = userEmail;
 
   userProfileData.name = userName;
-  userProfileData.phone = user.phoneNumber || loginMobile.value || "";
-  userProfileData.address = "";
+  userProfileData.phone = user.phoneNumber || "";
 
-  menuUserName.textContent = userName;
-  menuUserEmail.textContent = userEmail || "Logged in";
-
-  // Restore saved section OR default to shop
-  if (currentSection === "cart") {
-    showSection("cart");
-  } else if (currentSection === "orderHistory") {
-    showSection("orderHistory");
-  } else {
-    showSection("shop");
-       updateCategoryButtons();
-  }
+  // Restore section
+  if (currentSection === "cart") showSection("cart");
+  else if (currentSection === "orderHistory") showSection("orderHistory");
+  else { showSection("shop"); updateCategoryButtons(); }
+  
   loadOrderHistory(user.uid);
 
-
+  // --- PROFILE SYNC LOGIC (Fixed for Mobile Auth) ---
   const userDocRef = doc(db, "users", user.uid);
-  const snap = await getDoc(userDocRef);
 
-  if (snap.exists()) {
-    const existing = snap.data();
-    await setDoc(
-      userDocRef,
-      {
-        name: user.displayName || existing.name || "",
-        phone: user.phoneNumber || existing.phone || "",
-        email: user.email || existing.email || "",
-        photoURL: user.photoURL || existing.photoURL || ""
-      },
-      { merge: true }
-    );
-
-    if (existing.photoURL) {
-      showProfilePhoto(existing.photoURL);
-      userProfileImage = existing.photoURL;
-      if (user.photoURL !== existing.photoURL) {
-        updateProfile(user, { photoURL: existing.photoURL }).catch(console.error);
+  // 1. Setup Live Listener IMMEDIATELY (This is the source of truth)
+  profileListenerUnsub = onSnapshot(userDocRef, (s) => {
+    if (s.exists()) {
+      const d = s.data();
+      // If Firestore has a photo, force show it
+      if (d.photoURL) {
+        showProfilePhoto(d.photoURL);
+      } else {
+        // If Firestore is empty, try Auth object, else default
+        if(user.photoURL) showProfilePhoto(user.photoURL);
+        else showDefaultProfileIcon();
       }
-    } else if (user.photoURL) {
-      showProfilePhoto(user.photoURL);
-      userProfileImage = user.photoURL;
-      setDoc(userDocRef, { photoURL: user.photoURL }, { merge: true }).catch(console.error);
-    } else {
-      showDefaultProfileIcon();
     }
-  } else {
-    await setDoc(
-      userDocRef,
-      {
-        name: user.displayName || "",
+  });
+
+  // 2. Background Sync (Update User Doc if needed)
+  try {
+    const snap = await getDoc(userDocRef);
+    
+    if (snap.exists()) {
+      const existing = snap.data();
+      // Sync Auth Photo -> Firestore if Auth has it but Firestore doesn't
+      if (user.photoURL && !existing.photoURL) {
+         await setDoc(userDocRef, { photoURL: user.photoURL }, { merge: true });
+      }
+      // Sync Firestore Photo -> Auth Profile (Fixes empty Auth profile on phone login)
+      if (existing.photoURL && !user.photoURL) {
+         updateProfile(user, { photoURL: existing.photoURL }).catch(e => console.log("Profile update non-fatal error"));
+      }
+    } else {
+      // Create new user doc if missing
+      await setDoc(userDocRef, {
+        name: userName,
         phone: user.phoneNumber || "",
         email: user.email || "",
-        photoURL: user.photoURL || ""
-      },
-      { merge: true }
-    );
-    if (user.photoURL) {
-      showProfilePhoto(user.photoURL);
-      userProfileImage = user.photoURL;
-    } else {
-      showDefaultProfileIcon();
+        photoURL: user.photoURL || "",
+        createdAt: new Date().toISOString()
+      }, { merge: true });
+      
+      if (user.photoURL) showProfilePhoto(user.photoURL);
     }
+  } catch (e) {
+    console.error("User sync error:", e);
   }
-
-  profileListenerUnsub = onSnapshot(
-    userDocRef,
-    (s) => {
-      if (s.exists()) {
-        const d = s.data();
-        if (d.photoURL) {
-          showProfilePhoto(d.photoURL);
-          userProfileImage = d.photoURL;
-        } else {
-          showDefaultProfileIcon();
-        }
-      }
-    },
-    () => {
-      if (userProfileImage) showProfilePhoto(userProfileImage);
-      else if (user.photoURL) showProfilePhoto(user.photoURL);
-      else showDefaultProfileIcon();
-    }
-  );
 });
 
 // order history
@@ -4007,5 +3975,4 @@ initRecaptcha();
 resetOtpFields();
 </script>
 </body>
-
 </html>
