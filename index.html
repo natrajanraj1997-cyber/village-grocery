@@ -3253,19 +3253,35 @@ if (currentSection === "shop") {
 
 // phone auth
 window.sendOtp = async () => {
+  // 1. VALIDATE NAME FIRST
+  const nameInput = document.getElementById("loginName");
+  const nameVal = nameInput.value.trim();
+
+  if (nameVal === "") {
+    alert("⚠️ Please enter your name to continue.");
+    nameInput.focus();
+    nameInput.style.border = "1px solid #ff4757"; // Highlight red
+    return; // Stop execution
+  } else {
+    nameInput.style.border = "1px solid transparent"; // Reset border
+  }
+
+  // 2. VALIDATE MOBILE
   let phone = loginMobile.value.trim();
   if (!phone.startsWith("+")) phone = "+91" + phone;
-  if (phone.length < 12) { alert("Enter valid mobile number"); return; }
+  
+  if (phone.length < 12) { 
+    alert("Enter valid mobile number"); 
+    return; 
+  }
 
   try {
-    // Disable send button during process
     sendOtpBtn.disabled = true;
     sendOtpBtn.innerHTML = '<span class="loading"></span> Sending...';
 
     confirmationResultGlobal = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
-  showToast("OTP sent to " + phone, "success", 2000);
+    showToast("OTP sent to " + phone, "success", 2000);
 
-    // 👉 move to OTP page and start timer
     showOtpScreen(phone);
     startOtpTimer();
 
@@ -3273,7 +3289,6 @@ window.sendOtp = async () => {
     console.error(e);
     alert(e.message);
   } finally {
-    // Re-enable send button
     sendOtpBtn.disabled = false;
     sendOtpBtn.innerHTML = '<span>Send OTP</span>';
   }
@@ -3376,6 +3391,7 @@ window.logout = async () => {
 let authInitialized = false; // put this near your other top-level lets
 
 // auth state
+
 onAuthStateChanged(auth, async (user) => {
   if (!authInitialized) {
     document.body.classList.remove("auth-loading");
@@ -3416,14 +3432,15 @@ onAuthStateChanged(auth, async (user) => {
   updateTimeStatus();
   setInterval(updateTimeStatus, 30000);
 
-  // Set basic info immediately from Auth Object (if available)
-  const userName = user.displayName || loginName.value.trim() || "Village Customer";
-  const userEmail = user.email || user.phoneNumber || "";
+  // 1. CAPTURE NAME FROM INPUT (If fresh login)
+  const inputName = loginName.value.trim();
   
-  menuUserName.textContent = userName;
-  menuUserEmail.textContent = userEmail;
-
-  userProfileData.name = userName;
+  // Set initial display (Use input name if available, otherwise 'Loading...')
+  let displayName = inputName || user.displayName || "Village Customer";
+  
+  menuUserName.textContent = displayName;
+  menuUserEmail.textContent = user.email || user.phoneNumber || "";
+  userProfileData.name = displayName;
   userProfileData.phone = user.phoneNumber || "";
 
   // Restore section
@@ -3433,42 +3450,46 @@ onAuthStateChanged(auth, async (user) => {
   
   loadOrderHistory(user.uid);
 
-  // --- PROFILE SYNC LOGIC (Fixed for Mobile Auth) ---
+  // --- DATABASE SYNC ---
   const userDocRef = doc(db, "users", user.uid);
 
-  // 1. Setup Live Listener IMMEDIATELY (This is the source of truth)
+  // A. Start Listener (Updates UI when DB loads)
   profileListenerUnsub = onSnapshot(userDocRef, (s) => {
     if (s.exists()) {
       const d = s.data();
-      // If Firestore has a photo, force show it
-      if (d.photoURL) {
-        showProfilePhoto(d.photoURL);
-      } else {
-        // If Firestore is empty, try Auth object, else default
-        if(user.photoURL) showProfilePhoto(user.photoURL);
-        else showDefaultProfileIcon();
+      // Update Name in Menu from Database (Crucial for Auto-login)
+      if (d.name) {
+        menuUserName.textContent = d.name;
+        userProfileData.name = d.name;
       }
+      // Update Photo
+      if (d.photoURL) showProfilePhoto(d.photoURL);
+      else showDefaultProfileIcon();
     }
   });
 
-  // 2. Background Sync (Update User Doc if needed)
+  // B. Save Name to Database (Only if inputName exists)
   try {
     const snap = await getDoc(userDocRef);
     
     if (snap.exists()) {
       const existing = snap.data();
-      // Sync Auth Photo -> Firestore if Auth has it but Firestore doesn't
-      if (user.photoURL && !existing.photoURL) {
-         await setDoc(userDocRef, { photoURL: user.photoURL }, { merge: true });
-      }
-      // Sync Firestore Photo -> Auth Profile (Fixes empty Auth profile on phone login)
-      if (existing.photoURL && !user.photoURL) {
-         updateProfile(user, { photoURL: existing.photoURL }).catch(e => console.log("Profile update non-fatal error"));
-      }
+      
+      // LOGIC: If we have an input name, overwrite DB name. 
+      // If no input name (auto-login), keep existing DB name.
+      const nameToSave = inputName ? inputName : (existing.name || "Village Customer");
+
+      await setDoc(userDocRef, { 
+         name: nameToSave,
+         phone: user.phoneNumber || existing.phone || "",
+         email: user.email || existing.email || "",
+         photoURL: existing.photoURL || user.photoURL || "" 
+      }, { merge: true });
+
     } else {
-      // Create new user doc if missing
+      // NEW USER DOCUMENT
       await setDoc(userDocRef, {
-        name: userName,
+        name: inputName || "Village Customer", // Save the mandatory name
         phone: user.phoneNumber || "",
         email: user.email || "",
         photoURL: user.photoURL || "",
