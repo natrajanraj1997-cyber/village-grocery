@@ -683,8 +683,8 @@ window.printOrder = (id) => {
 // ==========================================
 function subscribeProducts() {
   if (unsubProducts) return;
-  // FIX: Using "Products" (Capital P)
-  const q = collection(db, "Products"); 
+  // ✅ FIX: Changed back to "products" (lowercase)
+  const q = collection(db, "products"); 
   unsubProducts = onSnapshot(q, (snapshot) => {
     allProducts = [];
     snapshot.forEach(d => allProducts.push({ id: d.id, ...d.data() }));
@@ -728,8 +728,8 @@ window.renderProducts = () => {
 
 window.toggleStock = async (id, isChecked) => {
   try {
-    // FIX: Using "Products" (Capital P)
-    const productRef = doc(db, "Products", id); 
+    // ✅ FIX: Changed back to "products" (lowercase)
+    const productRef = doc(db, "products", id); 
     
     await updateDoc(productRef, { 
       stock: isChecked,
@@ -740,8 +740,8 @@ window.toggleStock = async (id, isChecked) => {
     
   } catch (e) {
     console.error("Firebase Error:", e);
-    // If it fails again, we will know why
-    alert("❌ Error: " + e.message);
+    // This alert will help us if it fails again
+    alert("❌ Error: " + e.code + " - " + e.message);
     renderProducts(); 
   }
 };
