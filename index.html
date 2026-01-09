@@ -2641,6 +2641,21 @@ if (hasErrors) {
 }
 
   try {
+	  let subtotal = 0;
+    for (let i in cart) subtotal += cart[i].qty * cart[i].price;
+
+    // --- NEW: Analytics Event ---
+    logEvent(analytics, 'add_shipping_info', {
+      currency: 'INR',
+      value: subtotal,
+      shipping_tier: 'Ground',
+      items: Object.values(cart).map(item => ({
+        item_id: item.id,
+        item_name: item.name,
+        price: item.price,
+        quantity: item.qty
+      }))
+    });
     // Save address to Firestore
     await saveUserAddress(user.uid, {
       name: name,
@@ -3765,7 +3780,17 @@ if (hasErrors) {
     return;
   }
 
-  // Calculate order total with delivery fee
+logEvent(analytics, 'add_shipping_info', {
+    currency: 'INR',
+    value: subtotal, // 'subtotal' is already calculated at top of placeOrder
+    shipping_tier: 'Ground',
+    items: Object.values(cart).map(item => ({
+      item_id: item.id,
+      item_name: item.name,
+      price: item.price,
+      quantity: item.qty
+    }))
+  });
    // Calculate order total with delivery fee
  
   const deliveryFee = subtotal >= 200 ? 0 : 40;
