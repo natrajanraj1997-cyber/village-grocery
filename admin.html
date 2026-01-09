@@ -726,19 +726,26 @@ window.renderProducts = () => {
 };
 
 window.toggleStock = async (id, isChecked) => {
+  console.log("Attempting to toggle product ID:", id); // Check console for ID
+  
   try {
-    // Update both stock boolean AND astockcount logic
-    await updateDoc(doc(db, "products", id), { 
+    const productRef = doc(db, "products", id);
+    
+    // Attempt the update
+    await updateDoc(productRef, { 
       stock: isChecked,
-      // If turning ON, give it default stock (e.g., 50) if it was 0
-      // If turning OFF, keep count but set stock=false
       astockcount: isChecked ? 50 : 0 
     });
+    
     showToast(isChecked ? "Product Enabled" : "Product Disabled");
+    
   } catch (e) {
-    alert("Failed to update stock");
-    // Revert switch visually if failed (optional, but good UX)
-    renderProducts();
+    // THIS IS THE IMPORTANT PART:
+    console.error("Firebase Error:", e);
+    alert("❌ FIREBASE ERROR:\n" + e.code + "\n\nMessage: " + e.message);
+    
+    // Revert the switch visually because it failed
+    renderProducts(); 
   }
 };
 
