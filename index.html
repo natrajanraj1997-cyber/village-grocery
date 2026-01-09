@@ -1119,6 +1119,29 @@ input::placeholder { color: var(--text-placeholder); font-weight: 400; }
   background-color: rgba(0, 0, 0, 0.1);
   border-radius: 4px;
 }
+	/* --- Add these lines to your CSS --- */
+
+/* The strike-through style for the old price */
+.old-price {
+  text-decoration: line-through;
+  color: var(--text-sub);
+  font-size: 0.85rem;
+  margin-right: 6px;
+  font-weight: 400;
+}
+
+/* The 10% OFF badge style */
+.offer-badge {
+  background: #ff4757; /* Red color for attention */
+  color: white;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: 700;
+  margin-left: 8px;
+  vertical-align: middle;
+  display: inline-block;
+}
 /* Validation States */
 .invalid { border-color: #ff4757 !important; background-color: #fff8f8 !important; }
 .valid { border-color: var(--primary) !important; background-color: #f0fff4 !important; }
@@ -2937,29 +2960,53 @@ onSnapshot(productsRef, (snapshot) => {
       img: v.img,
       unit: v.unit,
       astockcount: v.astockcount || 0,  // ✅ LOWERCASE astockcount
-      inStock: v.stock !== false  // ✅ LOWERCASE stock
+      inStock: v.stock !== false,  // ✅ LOWERCASE stock
+		offer: v.offer || 0 // <--- ADD THIS LINE (Defaults to 0 if empty)
     };
   });
   render();
 });
 
-
 function render() {
   if (!list) return;
   list.innerHTML = "";
   const txt = (search?.value || "").toLowerCase();
+  
   data
     .filter((p) => p.name.toLowerCase().includes(txt) && (cat === "All" || p.cat === cat))
     .forEach((p) => {
       const qty = cart[p.id]?.qty || 0;
+
+      // --- NEW PRICE LOGIC START ---
+      let finalPrice = p.price;
+      let priceHTML = `<p>₹${p.price}</p>`; // Default view (no offer)
+
+      // If there is an offer (e.g., 10), calculate the new price
+      if (p.offer > 0) {
+         let discountAmount = Math.ceil((p.price * p.offer) / 100);
+         finalPrice = p.price - discountAmount;
+
+         // Create the HTML: Strike old price, Show new price
+         priceHTML = `
+           <p>
+             <span class="old-price">₹${p.price}</span> 
+             ₹${finalPrice}
+           </p>`;
+      }
+      // --- NEW PRICE LOGIC END ---
+
       list.innerHTML += `
       <div class="card product">
         <div style="display:flex; align-items:center;">
           <img src="${p.img}">
           <div class="product-info">
-            <h4>${p.name} ${p.unit ? "<span class='unit'>(" + p.unit + ")</span>" : ""}</h4>
+            <h4>
+                ${p.name} 
+                ${p.unit ? "<span class='unit'>(" + p.unit + ")</span>" : ""}
+                ${p.offer > 0 ? `<span class="offer-badge">${p.offer}% OFF</span>` : ""}
+            </h4>
             <span class="category-tag">${p.cat}</span>
-            <p>₹${p.price}</p>
+            ${priceHTML}
             ${p.inStock ? "" : '<div class="out">OUT OF STOCK</div>'}
           </div>
         </div>
@@ -2974,6 +3021,7 @@ function render() {
         </div>
       </div>`;
     });
+
   if (data.length === 0) {
     list.innerHTML = '<div class="card small" style="text-align:center;padding:24px; color:var(--text-sub);">No products found. Try a different search.</div>';
   }
@@ -3102,7 +3150,7 @@ window.setCat = (c) => {
   saveState();
 };
 
-	window.add = (id) => {
+window.add = (id) => {
   const product = data.find(p => p.id === id);
   
   // Check if product exists and has stock > 0
@@ -3111,9 +3159,18 @@ window.setCat = (c) => {
     return;
   }
 
+  // --- NEW: Calculate Discounted Price for Cart ---
+  let finalCartPrice = product.price;
+  if (product.offer > 0) {
+     let discount = Math.ceil((product.price * product.offer) / 100);
+     finalCartPrice = product.price - discount;
+  }
+  // -----------------------------------------------
+
   // Initial Add
   if (!cart[id]) {
-    cart[id] = { qty: 1, price: product.price, name: product.name, img: product.img };
+    // We use finalCartPrice here so the cart uses the cheaper price
+    cart[id] = { qty: 1, price: finalCartPrice, name: product.name, img: product.img };
   } else {
     // If already in cart, check limit before adding
     if (cart[id].qty < product.astockcount) {
@@ -3122,18 +3179,22 @@ window.setCat = (c) => {
       showToast(`Only ${product.astockcount} left in stock!`, 'error');
     }
   }
+  
   updateCartCount();
   saveCart();
-		logEvent(analytics, 'add_to_cart', {
+  
+  // Update Analytics with the correct price
+  logEvent(analytics, 'add_to_cart', {
     currency: 'INR',
-    value: product.price,
+    value: finalCartPrice,
     items: [{
       item_id: product.id,
       item_name: product.name,
-      price: product.price,
+      price: finalCartPrice,
       item_category: product.cat
     }]
   });
+  
   // Depending on where user is, re-render the correct view
   currentSection === "shop" ? render() : renderCartPage();
 };
