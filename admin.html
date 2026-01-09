@@ -63,7 +63,7 @@ header {
 .brand { font-weight: 700; font-size: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 10px; }
 .brand span { color: var(--text-main); }
 
-/* --- FIX: Hidden by default, shown via JS --- */
+/* Hidden by default, shown via JS */
 .nav-controls { display: none; gap: 12px; align-items: center; } 
 
 /* Navigation Tabs (Orders vs Products) */
@@ -683,7 +683,8 @@ window.printOrder = (id) => {
 // ==========================================
 function subscribeProducts() {
   if (unsubProducts) return;
-  const q = collection(db, "products");
+  // FIX: Using "Products" (Capital P)
+  const q = collection(db, "Products"); 
   unsubProducts = onSnapshot(q, (snapshot) => {
     allProducts = [];
     snapshot.forEach(d => allProducts.push({ id: d.id, ...d.data() }));
@@ -726,12 +727,10 @@ window.renderProducts = () => {
 };
 
 window.toggleStock = async (id, isChecked) => {
-  console.log("Attempting to toggle product ID:", id); // Check console for ID
-  
   try {
-    const productRef = doc(db, "products", id);
+    // FIX: Using "Products" (Capital P)
+    const productRef = doc(db, "Products", id); 
     
-    // Attempt the update
     await updateDoc(productRef, { 
       stock: isChecked,
       astockcount: isChecked ? 50 : 0 
@@ -740,11 +739,9 @@ window.toggleStock = async (id, isChecked) => {
     showToast(isChecked ? "Product Enabled" : "Product Disabled");
     
   } catch (e) {
-    // THIS IS THE IMPORTANT PART:
     console.error("Firebase Error:", e);
-    alert("❌ FIREBASE ERROR:\n" + e.code + "\n\nMessage: " + e.message);
-    
-    // Revert the switch visually because it failed
+    // If it fails again, we will know why
+    alert("❌ Error: " + e.message);
     renderProducts(); 
   }
 };
