@@ -332,7 +332,7 @@ const statusFeedback = document.getElementById("statusFeedback");
 const soundToggleBtn = document.getElementById("soundToggleBtn");
 const newOrderCounter = document.getElementById("newOrderCounter");
 const newOrderCount = document.getElementById("newOrderCount");
-const navControls = document.getElementById("navControls"); // --- NEW ---
+const navControls = document.getElementById("navControls");
 
 // Stats elements
 const totalOrdersEl = document.getElementById("totalOrders");
@@ -363,7 +363,6 @@ window.switchView = (viewName) => {
   document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
   
   document.getElementById(viewName + 'View').classList.add('active');
-  // Highlight active tab logic roughly
   if(viewName === 'orders') document.querySelector('.nav-tab:nth-child(1)').classList.add('active');
   else document.querySelector('.nav-tab:nth-child(2)').classList.add('active');
 };
@@ -483,21 +482,20 @@ window.logoutAdmin = async () => {
 function showAdmin(){
   loginBox.style.display = "none";
   adminContent.style.display = "block";
-  navControls.style.display = "flex"; // --- SHOW MENU ---
+  navControls.style.display = "flex";
   
   const savedSound = localStorage.getItem('soundEnabled');
   if (savedSound !== null) soundEnabled = savedSound === 'true';
   soundToggleBtn.classList.toggle('muted', !soundEnabled);
   initAudio();
   subscribeOrders();
-  subscribeProducts(); // NEW: Load products
+  subscribeProducts(); // Load products
 }
 
 function hideAdmin(){
   loginBox.style.display = "block";
   adminContent.style.display = "none";
-  navControls.style.display = "none"; // --- HIDE MENU ---
-  
+  navControls.style.display = "none";
   stopNotificationSound();
   newOrderCounter.style.display = 'none';
   if (unsubOrders) { unsubOrders(); unsubOrders = null; }
@@ -679,12 +677,12 @@ window.printOrder = (id) => {
 };
 
 // ==========================================
-// PRODUCT MANAGEMENT (NEW)
+// PRODUCT MANAGEMENT (CORRECTED)
 // ==========================================
 function subscribeProducts() {
   if (unsubProducts) return;
-  // FIX: Changed "products" to "Products" (Capital P)
-  const q = collection(db, "Products");
+  // FIX: Using "products" (lowercase) because Rowy and your Customer App use lowercase
+  const q = collection(db, "products");
   unsubProducts = onSnapshot(q, (snapshot) => {
     allProducts = [];
     snapshot.forEach(d => allProducts.push({ id: d.id, ...d.data() }));
@@ -695,9 +693,11 @@ function subscribeProducts() {
 window.renderProducts = () => {
   const searchTerm = document.getElementById("productSearchInput").value.toLowerCase();
   
-  const filtered = allProducts.filter(p => 
-    p.Name.toLowerCase().includes(searchTerm)
-  );
+  const filtered = allProducts.filter(p => {
+    // FIX: Safety check for Name. If Name is missing, use empty string.
+    const name = p.Name || ""; 
+    return name.toLowerCase().includes(searchTerm);
+  });
 
   if (filtered.length === 0) {
     productList.innerHTML = `<div class="empty-state">No products found</div>`;
@@ -706,14 +706,14 @@ window.renderProducts = () => {
 
   let html = '';
   filtered.forEach(p => {
-    // Check stock status based on your schema
     const isActive = (p.stock !== false); 
+    const prodName = p.Name || "Unnamed Product"; // Fallback name
     
     html += `
       <div class="product-card">
         <img src="${p.img || 'https://via.placeholder.com/60'}" class="prod-img">
         <div class="prod-info">
-          <div class="prod-name">${p.Name}</div>
+          <div class="prod-name">${prodName}</div>
           <div class="prod-price">₹${p.price}</div>
         </div>
         <label class="switch">
@@ -728,20 +728,19 @@ window.renderProducts = () => {
 
 window.toggleStock = async (id, isChecked) => {
   try {
-    // FIX: Changed "products" to "Products" (Capital P)
-    const productRef = doc(db, "Products", id); 
+    // FIX: Using "products" (lowercase) here too
+    const productRef = doc(db, "products", id);
     
     await updateDoc(productRef, { 
       stock: isChecked,
       astockcount: isChecked ? 50 : 0 
     });
-    
     showToast(isChecked ? "Product Enabled" : "Product Disabled");
-    
   } catch (e) {
-    console.error("Firebase Error:", e);
-    alert("❌ Error: " + e.message);
-    renderProducts(); 
+    console.error("Stock Toggle Error:", e);
+    // User-friendly error
+    alert("Error updating: " + e.message);
+    renderProducts();
   }
 };
 
