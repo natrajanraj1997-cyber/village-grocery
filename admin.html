@@ -728,21 +728,20 @@ window.renderProducts = () => {
 
 window.toggleStock = async (id, isChecked) => {
   try {
-    // FIX: Using "products" (lowercase) here too
     const productRef = doc(db, "products", id);
     
     await updateDoc(productRef, { 
-      stock: isChecked,
-      astockcount: isChecked ? 50 : 0 
+      stock: isChecked  // Just toggle availability boolean
+      // Remove astockcount: isChecked ? 50 : 0  ← Delete this line
     });
     showToast(isChecked ? "Product Enabled" : "Product Disabled");
   } catch (e) {
     console.error("Stock Toggle Error:", e);
-    // User-friendly error
     alert("Error updating: " + e.message);
     renderProducts();
   }
 };
+
 
 </script>
 </body>
