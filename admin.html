@@ -15,8 +15,6 @@
 :root {
   --primary: #059669;       /* Modern Emerald Green */
   --primary-dark: #047857;
-  --primary-light: #d1fae5;
-  --secondary: #f59e0b;     /* Amber */
   --bg-body: #f3f4f6;       /* Light Cool Gray */
   --bg-card: #ffffff;
   --text-main: #111827;     /* Deep Black/Blue */
@@ -24,17 +22,13 @@
   --border: #e5e7eb;
   
   /* Status Colors */
-  --status-new-bg: #fee2e2;
-  --status-new-text: #ef4444;
-  --status-prog-bg: #dbeafe;
-  --status-prog-text: #3b82f6;
-  --status-done-bg: #d1fae5;
-  --status-done-text: #059669;
-  --status-cancel-bg: #f3f4f6;
-  --status-cancel-text: #9ca3af;
+  --status-new-bg: #fee2e2; --status-new-text: #ef4444;
+  --status-prog-bg: #dbeafe; --status-prog-text: #3b82f6;
+  --status-done-bg: #d1fae5; --status-done-text: #059669;
+  --status-cancel-bg: #f3f4f6; --status-cancel-text: #9ca3af;
 
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --radius: 12px;
   --radius-lg: 16px;
   --transition: all 0.2s ease-in-out;
@@ -66,32 +60,22 @@ header {
   border-bottom: 1px solid var(--border);
 }
 
-.brand {
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: var(--primary);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
+.brand { font-weight: 700; font-size: 1.25rem; color: var(--primary); display: flex; align-items: center; gap: 10px; }
 .brand span { color: var(--text-main); }
 
-/* Sound Toggle */
-#soundToggleBtn {
-  background: var(--bg-body);
-  border: 1px solid var(--border);
-  width: 40px; 
-  height: 40px;
-  border-radius: 50%;
-  cursor: pointer;
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-  font-size: 1.2rem;
-  transition: var(--transition);
+/* --- FIX: Hidden by default, shown via JS --- */
+.nav-controls { display: none; gap: 12px; align-items: center; } 
+
+/* Navigation Tabs (Orders vs Products) */
+.nav-tab-group { background: #e5e7eb; padding: 4px; border-radius: 8px; display: flex; gap: 4px; }
+.nav-tab {
+  padding: 6px 16px; border: none; border-radius: 6px; font-weight: 600; font-size: 0.9rem; cursor: pointer; color: var(--text-sub); transition: var(--transition);
 }
-#soundToggleBtn:hover { transform: scale(1.05); background: #e5e7eb; }
+.nav-tab.active { background: white; color: var(--text-main); box-shadow: var(--shadow-sm); }
+
+#soundToggleBtn {
+  background: var(--bg-body); border: 1px solid var(--border); width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: var(--transition);
+}
 #soundToggleBtn.muted::after { content: "🔕"; opacity: 0.6; }
 #soundToggleBtn:not(.muted)::after { content: "🔔"; }
 
@@ -99,38 +83,11 @@ header {
    LOGIN SCREEN
    ========================================= */
 #loginBox {
-  max-width: 400px;
-  margin: 100px auto 20px;
-  background: var(--bg-card);
-  padding: 40px;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  text-align: center;
-  border: 1px solid var(--border);
-  animation: slideUp 0.5s ease;
+  max-width: 400px; margin: 100px auto 20px; background: var(--bg-card); padding: 40px; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); text-align: center; border: 1px solid var(--border);
 }
-
-@keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-
-#loginBox h3 { font-size: 1.5rem; margin-bottom: 8px; color: var(--text-main); }
-#loginBox p { color: var(--text-sub); font-size: 0.9rem; margin-bottom: 24px; }
-
 #googleBtn {
-  width: 100%;
-  padding: 12px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  font-weight: 600;
-  color: var(--text-main);
-  cursor: pointer;
-  transition: var(--transition);
+  width: 100%; padding: 12px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; gap: 12px; font-weight: 600; color: var(--text-main); cursor: pointer; transition: var(--transition);
 }
-#googleBtn:hover { background: #f9fafb; border-color: #d1d5db; }
 #googleBtn img { width: 20px; }
 
 /* =========================================
@@ -138,284 +95,109 @@ header {
    ========================================= */
 #adminContent { display: none; padding: 24px; max-width: 1200px; margin: 0 auto; }
 
-.admin-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-}
-
-.admin-header h3 { font-size: 1.5rem; font-weight: 700; }
-
-#logoutBtn {
-  padding: 8px 20px;
-  background: #fee2e2;
-  color: #ef4444;
-  border: none;
-  border-radius: var(--radius);
-  font-weight: 600;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: var(--transition);
-}
-#logoutBtn:hover { background: #fecaca; }
+/* Views Logic */
+.view-section { display: none; }
+.view-section.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
 
 /* STATS GRID */
-.stats-bar {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 16px;
-  margin-bottom: 32px;
-}
-
+.stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-bottom: 32px; }
 .stat-card {
-  background: var(--bg-card);
-  padding: 20px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  transition: var(--transition);
+  background: var(--bg-card); padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; align-items: flex-start;
 }
-.stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-
-.stat-label { font-size: 0.85rem; font-weight: 500; color: var(--text-sub); margin-bottom: 4px; }
+.stat-label { font-size: 0.85rem; font-weight: 500; color: var(--text-sub); }
 .stat-value { font-size: 1.8rem; font-weight: 700; color: var(--text-main); }
-
-/* Color accents for stats */
 .stat-card:nth-child(1) .stat-value { color: var(--primary); }
-.stat-card:nth-child(2) .stat-value { color: #f59e0b; }
-.stat-card:nth-child(3) .stat-value { color: #3b82f6; }
-.stat-card:nth-child(4) .stat-value { color: var(--text-main); }
 
-/* FILTERS */
-.filter-bar {
-  background: #e5e7eb;
-  padding: 4px;
-  border-radius: var(--radius);
-  display: inline-flex;
-  gap: 4px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
+/* FILTERS & SEARCH */
+.filter-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+#searchInput, #productSearchInput {
+  padding: 10px 16px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.9rem; width: 280px; background-color: white;
 }
-
-.filter-btn {
-  padding: 8px 20px;
-  border-radius: 8px;
-  border: none;
-  background: transparent;
-  color: var(--text-sub);
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.filter-btn:hover { color: var(--text-main); }
+.filter-tabs { background: #e5e7eb; padding: 4px; border-radius: var(--radius); display: inline-flex; gap: 4px; flex-wrap: wrap; }
+.filter-btn { padding: 8px 16px; border-radius: 8px; border: none; background: transparent; color: var(--text-sub); font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: var(--transition); }
 .filter-btn.active { background: white; color: var(--primary); box-shadow: var(--shadow-sm); }
 
 /* =========================================
-   ORDER CARD DESIGN (PREMIUM)
+   ORDER CARDS
    ========================================= */
 #ordersList { display: flex; flex-direction: column; gap: 20px; }
-
 .order-card {
-  background: var(--bg-card);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-  transition: var(--transition);
-  animation: fadeIn 0.4s ease;
+  background: var(--bg-card); border-radius: var(--radius-lg); border: 1px solid var(--border); box-shadow: var(--shadow-sm); overflow: hidden;
 }
-@keyframes fadeIn { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
-
-.order-card:hover { box-shadow: var(--shadow-md); border-color: #d1d5db; }
-
-/* Card Header */
-.card-header-strip {
-  padding: 16px 24px;
-  background: #f9fafb;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
+.card-header-strip { padding: 16px 24px; background: #f9fafb; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
 .order-id { font-family: monospace; font-weight: 600; color: var(--text-sub); font-size: 0.9rem; }
 .order-meta { display: flex; gap: 12px; align-items: center; }
-.order-date { font-size: 0.85rem; color: var(--text-sub); font-weight: 500; }
-
-/* Status Badge */
-.status-badge {
-  padding: 4px 12px;
-  border-radius: 99px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
+.status-badge { padding: 4px 12px; border-radius: 99px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 .status-badge.new { background: var(--status-new-bg); color: var(--status-new-text); }
 .status-badge.inprogress { background: var(--status-prog-bg); color: var(--status-prog-text); }
 .status-badge.delivered { background: var(--status-done-bg); color: var(--status-done-text); }
 .status-badge.cancelled { background: var(--status-cancel-bg); color: var(--status-cancel-text); }
 
-/* Card Body */
 .card-body { padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-
 @media(max-width: 768px) { .card-body { grid-template-columns: 1fr; } }
 
-/* Customer Info Column */
-.customer-info h4 { font-size: 0.85rem; text-transform: uppercase; color: var(--text-sub); letter-spacing: 1px; margin-bottom: 12px; }
-.info-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
-.info-icon { font-size: 1.1rem; }
-.info-text { font-size: 0.95rem; color: var(--text-main); font-weight: 500; }
-.info-text.sub { font-size: 0.9rem; color: var(--text-sub); font-weight: 400; }
+.info-row { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; font-size: 0.95rem; }
+.location-box { margin-top: 12px; background: #ecfdf5; padding: 8px 12px; border-radius: 8px; color: var(--primary-dark); font-size: 0.85rem; display: flex; align-items: center; gap: 8px; border: 1px solid #d1fae5; text-decoration: none; }
 
-.location-box {
-  margin-top: 12px;
-  background: #ecfdf5;
-  padding: 8px 12px;
-  border-radius: 8px;
-  color: var(--primary-dark);
-  font-size: 0.85rem;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid #d1fae5;
-}
+.order-details-box { background: #f9fafb; border-radius: var(--radius); padding: 16px; border: 1px solid var(--border); }
+.order-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.9rem; }
+.order-total-row { display: flex; justify-content: space-between; align-items: center; padding-top: 12px; border-top: 2px solid var(--border); font-size: 1.1rem; font-weight: 700; color: var(--primary); }
 
-/* Order Details Column */
-.order-details-box {
-  background: #f9fafb;
-  border-radius: var(--radius);
-  padding: 16px;
-  border: 1px solid var(--border);
-}
-
-.order-item-list { list-style: none; margin-bottom: 16px; max-height: 200px; overflow-y: auto; }
-.order-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-bottom: 1px dashed var(--border);
-  font-size: 0.9rem;
-}
-.order-item:last-child { border-bottom: none; }
-.item-qty { font-weight: 600; color: var(--text-main); margin-right: 8px; }
-.item-name { color: var(--text-main); flex: 1; }
-.item-price { font-weight: 600; color: var(--text-sub); }
-
-.order-total-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-top: 12px;
-  border-top: 2px solid var(--border);
-  font-size: 1.1rem;
-}
-.total-label { font-weight: 600; color: var(--text-sub); }
-.total-amount { font-weight: 700; color: var(--primary); }
-
-/* Card Footer (Actions) */
-.card-footer {
-  padding: 16px 24px;
-  border-top: 1px solid var(--border);
-  background: #fff;
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.action-btn {
-  padding: 10px 20px;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: var(--transition);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
+.card-footer { padding: 16px 24px; border-top: 1px solid var(--border); background: #fff; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.action-btn { padding: 10px 20px; border-radius: 8px; border: 1px solid transparent; font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: var(--transition); }
 .btn-new { background: white; border-color: var(--status-new-text); color: var(--status-new-text); }
-.btn-new:hover { background: var(--status-new-bg); }
-
 .btn-prog { background: white; border-color: var(--status-prog-text); color: var(--status-prog-text); }
-.btn-prog:hover { background: var(--status-prog-bg); }
-
-.btn-done { background: var(--primary); color: white; box-shadow: 0 4px 6px rgba(5, 150, 105, 0.2); }
-.btn-done:hover { background: var(--primary-dark); transform: translateY(-1px); }
-
+.btn-done { background: var(--primary); color: white; }
 .btn-cancel { background: transparent; color: var(--text-sub); }
-.btn-cancel:hover { background: #f3f4f6; color: var(--text-main); }
+.btn-print { background: #64748b; color: white; }
 
 /* =========================================
-   NOTIFICATIONS & MODALS
+   PRODUCT MANAGEMENT STYLES
    ========================================= */
-.status-toast {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  background: #333;
-  color: white;
-  padding: 12px 24px;
-  border-radius: 50px;
-  box-shadow: var(--shadow-md);
-  z-index: 1000;
-  display: none;
-  font-size: 0.9rem;
-  animation: slideIn 0.3s ease;
+#productList { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
+
+.product-card {
+  background: white; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; padding: 16px; display: flex; align-items: center; gap: 16px; transition: var(--transition);
 }
+.product-card:hover { border-color: var(--primary); box-shadow: var(--shadow-sm); }
+
+.prod-img { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; background: #f3f4f6; }
+.prod-info { flex: 1; }
+.prod-name { font-weight: 600; font-size: 1rem; color: var(--text-main); margin-bottom: 4px; }
+.prod-price { color: var(--text-sub); font-size: 0.9rem; }
+
+/* IOS Toggle Switch */
+.switch { position: relative; display: inline-block; width: 48px; height: 26px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--primary); }
+input:checked + .slider:before { transform: translateX(22px); }
+
+/* =========================================
+   NOTIFICATIONS
+   ========================================= */
+.status-toast { position: fixed; top: 20px; right: 20px; background: #333; color: white; padding: 12px 24px; border-radius: 50px; z-index: 1000; display: none; animation: slideIn 0.3s ease; }
 @keyframes slideIn { from{transform:translateX(100%);} to{transform:translateX(0);} }
 
-/* New Order Notification */
-.new-order-alert {
-  position: fixed;
-  top: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #111827;
-  color: #fff;
-  padding: 12px 24px;
-  border-radius: 99px;
-  display: none;
-  align-items: center;
-  gap: 12px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-  z-index: 2000;
-  cursor: pointer;
-  animation: bounceIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-@keyframes bounceIn { 0%{transform:translate(-50%, -20px); opacity:0;} 100%{transform:translate(-50%, 0); opacity:1;} }
-
+.new-order-alert { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); background: #111827; color: #fff; padding: 12px 24px; border-radius: 99px; display: none; align-items: center; gap: 12px; z-index: 2000; cursor: pointer; }
 .alert-badge { background: #ef4444; color: white; padding: 2px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 700; }
 
-/* Empty State */
-.empty-state {
-  text-align: center;
-  padding: 80px 20px;
-  color: var(--text-sub);
-}
+.empty-state { text-align: center; padding: 80px 20px; color: var(--text-sub); }
 .empty-icon { font-size: 3rem; margin-bottom: 16px; display: block; opacity: 0.5; }
 
-/* Code Panel (Hidden mostly) */
+/* Code Panel (Hidden) */
 .code-panel { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 3000; }
 .code-content { position: absolute; right: 0; top: 0; bottom: 0; width: 500px; background: #1e1e1e; padding: 20px; overflow: auto; color: #ccc; }
 .code-toggle { position: fixed; bottom: 20px; right: 20px; background: #333; color: #fff; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; opacity: 0.5; }
 
-/* Responsive Adjustments */
+/* Responsive */
 @media (max-width: 600px) {
-  .admin-header { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .filter-bar { width: 100%; justify-content: space-between; }
-  .filter-btn { flex: 1; text-align: center; padding: 8px 4px; font-size: 0.8rem; }
+  header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .nav-controls { width: 100%; justify-content: space-between; }
+  .filter-bar { flex-direction: column; align-items: stretch; }
+  #searchInput, #productSearchInput { width: 100%; margin-bottom: 10px; }
   .card-footer { justify-content: stretch; }
   .action-btn { flex: 1; justify-content: center; }
 }
@@ -425,13 +207,21 @@ header {
 
 <header>
   <div class="brand">
-    <span>👨‍💼</span> Village Grocery <span>Admin</span>
+    <span>👨‍💼</span> Village Grocery
   </div>
-  <button id="soundToggleBtn" title="Toggle Sound Notifications"></button>
+  
+  <div class="nav-controls" id="navControls">
+    <div class="nav-tab-group">
+      <button class="nav-tab active" onclick="switchView('orders')">Orders</button>
+      <button class="nav-tab" onclick="switchView('products')">Products</button>
+    </div>
+    <button id="soundToggleBtn" title="Toggle Sound Notifications"></button>
+    <button onclick="logoutAdmin()" style="font-size:0.8rem; background:none; border:none; color:var(--text-sub); cursor:pointer;">Logout</button>
+  </div>
 </header>
 
 <div id="statusFeedback" class="status-toast">
-  ✅ Status Updated
+  ✅ Update Successful
 </div>
 
 <div id="newOrderCounter" class="new-order-alert">
@@ -449,39 +239,49 @@ header {
 </div>
 
 <div id="adminContent">
-  
-  <div class="admin-header">
-    <h3>Dashboard Overview</h3>
-    <button id="logoutBtn">Sign Out</button>
+
+  <div id="ordersView" class="view-section active">
+    <div class="stats-bar">
+      <div class="stat-card">
+        <div class="stat-label">Total Orders</div>
+        <div class="stat-value" id="totalOrders">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Pending</div>
+        <div class="stat-value" id="pendingOrders">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Delivered</div>
+        <div class="stat-value" id="deliveredOrders">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Today</div>
+        <div class="stat-value" id="todayOrders">0</div>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <input type="text" id="searchInput" placeholder="🔍 Search Name, Phone, or ID..." onkeyup="filterOrders(currentFilter)"> 
+      <div class="filter-tabs">
+        <button class="filter-btn active" onclick="filterOrders('ALL')">All</button>
+        <button class="filter-btn" onclick="filterOrders('NEW')">New</button>
+        <button class="filter-btn" onclick="filterOrders('INPROGRESS')">Processing</button>
+        <button class="filter-btn" onclick="filterOrders('DELIVERED')">Completed</button>
+      </div>
+    </div>
+
+    <div id="ordersList" class="loading">Loading orders...</div>
   </div>
 
-  <div class="stats-bar">
-    <div class="stat-card">
-      <div class="stat-label">Total Orders</div>
-      <div class="stat-value" id="totalOrders">0</div>
+  <div id="productsView" class="view-section">
+    <div class="filter-bar">
+      <input type="text" id="productSearchInput" placeholder="🔍 Search Products..." onkeyup="renderProducts()"> 
+      <div style="font-size:0.9rem; color:var(--text-sub); margin-left:auto;">
+        Toggle switch to turn stock ON/OFF
+      </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-label">Pending</div>
-      <div class="stat-value" id="pendingOrders">0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Delivered</div>
-      <div class="stat-value" id="deliveredOrders">0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Today</div>
-      <div class="stat-value" id="todayOrders">0</div>
-    </div>
+    <div id="productList">Loading products...</div>
   </div>
-
-  <div class="filter-bar">
-    <button class="filter-btn active" onclick="filterOrders('ALL')">All Orders</button>
-    <button class="filter-btn" onclick="filterOrders('NEW')">New</button>
-    <button class="filter-btn" onclick="filterOrders('INPROGRESS')">Processing</button>
-    <button class="filter-btn" onclick="filterOrders('DELIVERED')">Completed</button>
-  </div>
-
-  <div id="ordersList" class="loading">Loading...</div>
 
 </div>
 
@@ -493,10 +293,6 @@ header {
   </div>
 </div>
 <button class="code-toggle" onclick="toggleCodePanel()">💻</button>
-
-<div id="soundNotification" style="display:none"></div>
-<button id="confirmSoundBtn" style="display:none"></button>
-<button id="viewOrderBtn" style="display:none"></button>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
@@ -511,7 +307,7 @@ import {
   signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// --- FIREBASE CONFIG (SAME AS BEFORE) ---
+// --- FIREBASE CONFIG ---
 const firebaseConfig = {
   apiKey: "AIzaSyCYDLsQLFvuTV1N0mXtZFVYcSQqOkGfCrE",
   authDomain: "grocery-orders-3ce26.firebaseapp.com",
@@ -530,12 +326,13 @@ const provider = new GoogleAuthProvider();
 const loginBox = document.getElementById("loginBox");
 const adminContent = document.getElementById("adminContent");
 const ordersList = document.getElementById("ordersList");
+const productList = document.getElementById("productList");
 const googleBtn = document.getElementById("googleBtn");
-const logoutBtn = document.getElementById("logoutBtn");
 const statusFeedback = document.getElementById("statusFeedback");
 const soundToggleBtn = document.getElementById("soundToggleBtn");
 const newOrderCounter = document.getElementById("newOrderCounter");
 const newOrderCount = document.getElementById("newOrderCount");
+const navControls = document.getElementById("navControls"); // --- NEW ---
 
 // Stats elements
 const totalOrdersEl = document.getElementById("totalOrders");
@@ -544,8 +341,10 @@ const deliveredOrdersEl = document.getElementById("deliveredOrders");
 const todayOrdersEl = document.getElementById("todayOrders");
 
 // Variables
-let unsub = null;
+let unsubOrders = null;
+let unsubProducts = null;
 let allOrders = [];
+let allProducts = [];
 let currentFilter = 'ALL';
 let soundEnabled = true;
 let audioContext = null;
@@ -557,6 +356,17 @@ let currentOrderId = null;
 let previousOrderCount = 0;
 
 const ALLOWED_EMAILS = ["natrajanraj1997@gmail.com"];
+
+// --- VIEW NAVIGATION ---
+window.switchView = (viewName) => {
+  document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+  
+  document.getElementById(viewName + 'View').classList.add('active');
+  // Highlight active tab logic roughly
+  if(viewName === 'orders') document.querySelector('.nav-tab:nth-child(1)').classList.add('active');
+  else document.querySelector('.nav-tab:nth-child(2)').classList.add('active');
+};
 
 // --- AUDIO LOGIC ---
 function initAudio() {
@@ -604,26 +414,21 @@ soundToggleBtn.onclick = () => {
   if (soundEnabled) {
     soundToggleBtn.classList.remove('muted');
     initAudio();
-    showToast("🔔 Sound notifications enabled");
+    showToast("🔔 Sound Enabled");
   } else {
     soundToggleBtn.classList.add('muted');
     stopNotificationSound();
-    showToast("🔕 Sound notifications muted");
+    showToast("🔕 Sound Muted");
   }
   localStorage.setItem('soundEnabled', soundEnabled);
 };
 
-// --- NOTIFICATION LOGIC ---
+// --- NOTIFICATIONS ---
 function showNewOrderNotification(order) {
   currentOrderId = order.id;
   newOrderQueue.push(order);
   updateNewOrderCounter();
-  
-  if (soundEnabled) {
-    playNotificationSound();
-  }
-  
-  // Show the banner
+  if (soundEnabled) playNotificationSound();
   newOrderCounter.style.display = 'flex';
 }
 
@@ -634,7 +439,6 @@ function updateNewOrderCounter() {
   else newOrderCounter.style.display = 'none';
 }
 
-// Click on banner stops sound
 newOrderCounter.onclick = () => {
   stopNotificationSound();
   newOrderCounter.style.display = 'none';
@@ -657,13 +461,96 @@ function showToast(msg) {
   setTimeout(() => statusFeedback.style.display = 'none', 3000);
 }
 
-// --- MAIN LOGIC ---
+// --- AUTH & SETUP ---
+onAuthStateChanged(auth, (user) => {
+  if (user && ALLOWED_EMAILS.includes(user.email)) {
+    showAdmin();
+  } else {
+    hideAdmin();
+  }
+});
+
+googleBtn.onclick = async () => {
+  try { await signInWithPopup(auth, provider); } 
+  catch (err) { alert("Login failed"); }
+};
+
+window.logoutAdmin = async () => {
+  stopNotificationSound();
+  await signOut(auth);
+};
+
+function showAdmin(){
+  loginBox.style.display = "none";
+  adminContent.style.display = "block";
+  navControls.style.display = "flex"; // --- SHOW MENU ---
+  
+  const savedSound = localStorage.getItem('soundEnabled');
+  if (savedSound !== null) soundEnabled = savedSound === 'true';
+  soundToggleBtn.classList.toggle('muted', !soundEnabled);
+  initAudio();
+  subscribeOrders();
+  subscribeProducts(); // NEW: Load products
+}
+
+function hideAdmin(){
+  loginBox.style.display = "block";
+  adminContent.style.display = "none";
+  navControls.style.display = "none"; // --- HIDE MENU ---
+  
+  stopNotificationSound();
+  newOrderCounter.style.display = 'none';
+  if (unsubOrders) { unsubOrders(); unsubOrders = null; }
+  if (unsubProducts) { unsubProducts(); unsubProducts = null; }
+}
+
+// ==========================================
+// ORDER MANAGEMENT
+// ==========================================
+window.setStatus = async (id, status, btn) => {
+  const origText = btn.innerText;
+  btn.innerText = "...";
+  try {
+    await updateDoc(doc(db, "orders", id), { status: status });
+    if (status !== 'NEW') {
+      newOrderQueue = newOrderQueue.filter(o => o.id !== id);
+      stopNotificationSound();
+      updateNewOrderCounter();
+    }
+    showToast(`Updated to ${status}`);
+  } catch (e) {
+    alert("Update failed");
+  } finally {
+    btn.innerText = origText;
+  }
+};
+
 window.filterOrders = (filter) => {
-  currentFilter = filter;
-  document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-  event.target.classList.add('active');
+  if (filter) currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.innerText.toUpperCase().includes(currentFilter === 'ALL' ? 'ALL' : currentFilter));
+  });
   renderOrders();
 };
+
+function subscribeOrders(){
+  if (unsubOrders) return;
+  const q = query(collection(db, "orders"), orderBy("createdAt","desc"));
+  unsubOrders = onSnapshot(q, (snapshot) => {
+    const oldOrders = [...allOrders];
+    allOrders = [];
+    snapshot.forEach(d => allOrders.push({ id: d.id, ...d.data() }));
+    
+    // Check for new orders
+    if (oldOrders.length > 0) {
+       const newOnes = allOrders.filter(n => n.status === 'NEW' && !oldOrders.some(o => o.id === n.id));
+       if (newOnes.length > 0) newOnes.forEach(o => showNewOrderNotification(o));
+    }
+    
+    updateStats();
+    renderOrders();
+  });
+}
 
 function updateStats() {
   const today = new Date();
@@ -682,33 +569,31 @@ function updateStats() {
   deliveredOrdersEl.textContent = delivered.length;
   todayOrdersEl.textContent = todayOrders.length;
   
-  // Detect new order
   const currentNewOrders = allOrders.filter(order => order.status === 'NEW');
   if (currentNewOrders.length > previousOrderCount) {
-    const newOrder = currentNewOrders[0];
-    showNewOrderNotification(newOrder);
+    showNewOrderNotification(currentNewOrders[0]);
   }
   previousOrderCount = currentNewOrders.length;
   updateNewOrderCounter();
 }
 
 function renderOrders() {
-  const filteredOrders = currentFilter === 'ALL' 
-    ? allOrders 
-    : allOrders.filter(o => o.status === currentFilter);
+  const searchTerm = document.getElementById("searchInput").value.toLowerCase();
+  const filteredOrders = allOrders.filter(o => {
+    const statusMatch = (currentFilter === 'ALL') || (o.status === currentFilter);
+    const searchMatch = 
+      (o.name && o.name.toLowerCase().includes(searchTerm)) ||
+      (o.mobile && o.mobile.includes(searchTerm)) ||
+      (o.id && o.id.toLowerCase().includes(searchTerm));
+    return statusMatch && searchMatch;
+  });
   
   if (filteredOrders.length === 0) {
-    ordersList.innerHTML = `
-      <div class="empty-state">
-        <span class="empty-icon">📭</span>
-        <h3>No orders found</h3>
-        <p>There are no orders in this category.</p>
-      </div>`;
+    ordersList.innerHTML = `<div class="empty-state"><span class="empty-icon">📭</span><h3>No orders found</h3></div>`;
     return;
   }
   
   let html = '';
-  
   filteredOrders.forEach((order) => {
     const items = order.items || {};
     let itemsHtml = '';
@@ -719,7 +604,6 @@ function renderOrders() {
       const itemName = it.name || key;
       const itemTotal = it.qty * (it.price || 0);
       subtotal += itemTotal;
-      
       itemsHtml += `
         <li class="order-item">
           <div><span class="item-qty">${it.qty}x</span> <span class="item-name">${itemName}</span></div>
@@ -729,147 +613,135 @@ function renderOrders() {
 
     const deliveryFee = order.deliveryFee !== undefined ? order.deliveryFee : (subtotal >= 200 ? 0 : 40);
     const grandTotal = order.total !== undefined ? order.total : (subtotal + deliveryFee);
-    
     const created = order.createdAt?.toDate ? order.createdAt.toDate() : new Date();
     const dateStr = created.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
     const timeStr = created.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-    
     const status = order.status || "NEW";
     const statusClass = status.toLowerCase();
-
-    // Map Link
     const mapLink = order.location ? 
-      `<a href="https://www.google.com/maps/search/?api=1&query=${order.location.lat},${order.location.lng}" target="_blank" class="location-box">
-         📍 View Location on Map
-       </a>` : '';
+      `<a href="https://maps.google.com/?q=${order.location.lat},${order.location.lng}" target="_blank" class="location-box">📍 View Location</a>` : '';
 
     html += `
       <div class="order-card" id="order-${order.id}">
         <div class="card-header-strip">
           <div class="order-id">#${order.id.substring(0,8)}</div>
-          <div class="order-meta">
-            <span class="order-date">${dateStr}, ${timeStr}</span>
-            <span class="status-badge ${statusClass}">${status}</span>
-          </div>
+          <div class="order-meta"><span class="order-date">${dateStr}, ${timeStr}</span><span class="status-badge ${statusClass}">${status}</span></div>
         </div>
-
         <div class="card-body">
           <div class="customer-info">
-            <h4>Customer Details</h4>
-            <div class="info-row">
-              <span class="info-icon">👤</span>
-              <div>
-                <div class="info-text">${order.name || 'Unknown'}</div>
-              </div>
-            </div>
-            <div class="info-row">
-              <span class="info-icon">📞</span>
-              <a href="tel:${order.mobile}" class="info-text" style="text-decoration:none; color:inherit;">${order.mobile || '--'}</a>
-            </div>
-            <div class="info-row">
-              <span class="info-icon">🏠</span>
-              <div class="info-text sub">${order.address || 'No address'}</div>
-            </div>
+            <h4>Customer</h4>
+            <div class="info-row">👤 ${order.name || 'Unknown'}</div>
+            <div class="info-row">📞 <a href="tel:${order.mobile}" style="text-decoration:none; color:inherit;">${order.mobile || '--'}</a></div>
+            <div class="info-row">🏠 ${order.address || 'No address'}</div>
             ${mapLink}
           </div>
-
           <div class="order-details-box">
             <ul class="order-item-list">${itemsHtml}</ul>
-            <div class="order-total-row">
-              <span class="total-label">Total Amount</span>
-              <span class="total-amount">₹${grandTotal}</span>
-            </div>
+            <div class="order-total-row"><span>Total</span><span>₹${grandTotal}</span></div>
           </div>
         </div>
-
         <div class="card-footer">
           <button class="action-btn btn-new" onclick="setStatus('${order.id}','NEW', this)">Mark New</button>
           <button class="action-btn btn-prog" onclick="setStatus('${order.id}','INPROGRESS', this)">Processing</button>
           <button class="action-btn btn-done" onclick="setStatus('${order.id}','DELIVERED', this)">✅ Complete</button>
           <button class="action-btn btn-cancel" onclick="setStatus('${order.id}','CANCELLED', this)">Cancel</button>
+          <button class="action-btn btn-print" onclick="printOrder('${order.id}')">🖨️ Print</button>
         </div>
       </div>
     `;
   });
-  
   ordersList.innerHTML = html;
 }
 
-// --- AUTH & SETUP ---
-onAuthStateChanged(auth, (user) => {
-  if (user && ALLOWED_EMAILS.includes(user.email)) {
-    showAdmin();
-  } else {
-    hideAdmin();
-  }
-});
-
-googleBtn.onclick = async () => {
-  try { await signInWithPopup(auth, provider); } 
-  catch (err) { alert("Login failed"); }
-};
-
-logoutBtn.onclick = async () => {
-  stopNotificationSound();
-  await signOut(auth);
-};
-
-function showAdmin(){
-  loginBox.style.display = "none";
-  adminContent.style.display = "block";
-  const savedSound = localStorage.getItem('soundEnabled');
-  if (savedSound !== null) soundEnabled = savedSound === 'true';
-  soundToggleBtn.classList.toggle('muted', !soundEnabled);
-  initAudio();
-  subscribeOrders();
-}
-
-function hideAdmin(){
-  loginBox.style.display = "block";
-  adminContent.style.display = "none";
-  stopNotificationSound();
-  newOrderCounter.style.display = 'none';
-  if (unsub) { unsub(); unsub = null; }
-}
-
-// --- ACTIONS ---
-window.setStatus = async (id, status, btn) => {
-  const origText = btn.innerText;
-  btn.innerText = "...";
-  try {
-    await updateDoc(doc(db, "orders", id), { status: status });
-    
-    if (status !== 'NEW') {
-      newOrderQueue = newOrderQueue.filter(o => o.id !== id);
-      stopNotificationSound();
-      updateNewOrderCounter();
+window.printOrder = (id) => {
+  const order = allOrders.find(o => o.id === id);
+  if (!order) return;
+  const printWindow = window.open('', '', 'width=400,height=600');
+  let itemsHtml = '';
+  let subtotal = 0;
+  if (order.items) {
+    for (let key in order.items) {
+      const i = order.items[key];
+      const lineTotal = i.qty * i.price;
+      subtotal += lineTotal;
+      itemsHtml += `<tr><td style="padding:4px 0; border-bottom:1px solid #eee;">${i.name}</td><td style="text-align:center; border-bottom:1px solid #eee;">${i.qty}</td><td style="text-align:right; border-bottom:1px solid #eee;">₹${lineTotal}</td></tr>`;
     }
-    showToast(`Status updated to ${status}`);
-  } catch (e) {
-    alert("Update failed");
-  } finally {
-    btn.innerText = origText;
   }
+  const delivery = order.deliveryFee || (subtotal >= 200 ? 0 : 40);
+  const finalTotal = order.total || (subtotal + delivery);
+  printWindow.document.write(`
+    <html><head><title>Receipt #${id.substring(0,6)}</title><style>body{font-family:'Courier New',monospace;padding:20px;font-size:12px;color:#000;}h3{text-align:center;margin:0 0 10px 0;}.meta{text-align:center;margin-bottom:15px;font-size:10px;}table{width:100%;border-collapse:collapse;}th{text-align:left;border-bottom:1px dashed #000;padding:5px 0;}.total-row{font-weight:bold;font-size:14px;margin-top:10px;border-top:1px dashed #000;padding-top:5px;text-align:right;}.footer{margin-top:20px;text-align:center;font-size:10px;}</style></head>
+    <body><h3>Village Grocery</h3><div class="meta">Date: ${new Date().toLocaleString()}<br>Order ID: #${id.substring(0,8)}</div><div style="margin-bottom:15px; border-bottom:1px solid #000; padding-bottom:10px;"><strong>${order.name}</strong><br>${order.mobile}<br>${order.address}</div><table><thead><tr><th>Item</th><th>Qty</th><th style="text-align:right;">Amt</th></tr></thead><tbody>${itemsHtml}</tbody></table><div style="text-align:right; margin-top:5px;">Delivery: ₹${delivery}</div><div class="total-row">TOTAL: ₹${finalTotal}</div><div class="footer">Thank you for shopping!</div></body></html>
+  `);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
 };
 
-function subscribeOrders(){
-  if (unsub) return;
-  const q = query(collection(db, "orders"), orderBy("createdAt","desc"));
-  unsub = onSnapshot(q, (snapshot) => {
-    const oldOrders = [...allOrders];
-    allOrders = [];
-    snapshot.forEach(d => allOrders.push({ id: d.id, ...d.data() }));
-    
-    // Check for new vs old logic
-    if (oldOrders.length > 0) {
-       const newOnes = allOrders.filter(n => n.status === 'NEW' && !oldOrders.some(o => o.id === n.id));
-       if (newOnes.length > 0) newOnes.forEach(o => showNewOrderNotification(o));
-    }
-    
-    updateStats();
-    renderOrders();
+// ==========================================
+// PRODUCT MANAGEMENT (NEW)
+// ==========================================
+function subscribeProducts() {
+  if (unsubProducts) return;
+  const q = collection(db, "products");
+  unsubProducts = onSnapshot(q, (snapshot) => {
+    allProducts = [];
+    snapshot.forEach(d => allProducts.push({ id: d.id, ...d.data() }));
+    renderProducts();
   });
 }
+
+window.renderProducts = () => {
+  const searchTerm = document.getElementById("productSearchInput").value.toLowerCase();
+  
+  const filtered = allProducts.filter(p => 
+    p.Name.toLowerCase().includes(searchTerm)
+  );
+
+  if (filtered.length === 0) {
+    productList.innerHTML = `<div class="empty-state">No products found</div>`;
+    return;
+  }
+
+  let html = '';
+  filtered.forEach(p => {
+    // Check stock status based on your schema
+    const isActive = (p.stock !== false); 
+    
+    html += `
+      <div class="product-card">
+        <img src="${p.img || 'https://via.placeholder.com/60'}" class="prod-img">
+        <div class="prod-info">
+          <div class="prod-name">${p.Name}</div>
+          <div class="prod-price">₹${p.price}</div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleStock('${p.id}', this.checked)">
+          <span class="slider"></span>
+        </label>
+      </div>
+    `;
+  });
+  productList.innerHTML = html;
+};
+
+window.toggleStock = async (id, isChecked) => {
+  try {
+    // Update both stock boolean AND astockcount logic
+    await updateDoc(doc(db, "products", id), { 
+      stock: isChecked,
+      // If turning ON, give it default stock (e.g., 50) if it was 0
+      // If turning OFF, keep count but set stock=false
+      astockcount: isChecked ? 50 : 0 
+    });
+    showToast(isChecked ? "Product Enabled" : "Product Disabled");
+  } catch (e) {
+    alert("Failed to update stock");
+    // Revert switch visually if failed (optional, but good UX)
+    renderProducts();
+  }
+};
+
 </script>
 </body>
 </html>
