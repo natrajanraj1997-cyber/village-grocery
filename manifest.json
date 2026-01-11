@@ -3,7 +3,7 @@
   "short_name": "Village Grocery",
   "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#0C831F",
   "theme_color": "#0C831F",
   "description": "Order fresh groceries from home in Tamil Nadu. Fast delivery to your doorstep.",
   "orientation": "portrait",
