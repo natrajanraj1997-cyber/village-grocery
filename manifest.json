@@ -5,19 +5,18 @@
   "display": "standalone",
   "background_color": "#0C831F",
   "theme_color": "#0C831F",
-  "description": "Order fresh groceries from home in Tamil Nadu. Fast delivery to your doorstep.",
+  "description": "Order fresh groceries from home in Tamil Nadu.",
   "orientation": "portrait",
   "categories": ["shopping", "food"],
-  "iarc_rating_id": "",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/natrajanraj1997-cyber/village-grocery/main/images/90D836C8-D01A-40C6-B480-2DE5094E151A.png?v=4",
+      "src": "https://raw.githubusercontent.com/natrajanraj1997-cyber/village-grocery/main/images/Logo.png?v=5",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "https://raw.githubusercontent.com/natrajanraj1997-cyber/village-grocery/main/images/90D836C8-D01A-40C6-B480-2DE5094E151A.png?v=4",
+      "src": "https://raw.githubusercontent.com/natrajanraj1997-cyber/village-grocery/main/images/Logo.png?v=5",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -25,13 +24,13 @@
   ],
   "screenshots": [
     {
-      "src": "https://raw.githubusercontent.com/natrajanraj1997-cyber/village-grocery/main/images/90D836C8-D01A-40C6-B480-2DE5094E151A.png?v=4",
+      "src": "https://raw.githubusercontent.com/natrajanraj1997-cyber/village-grocery/main/images/Logo.png?v=5",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide"
     },
     {
-      "src": "https://raw.githubusercontent.com/natrajanraj1997-cyber/village-grocery/main/images/90D836C8-D01A-40C6-B480-2DE5094E151A.png?v=4",
+      "src": "https://raw.githubusercontent.com/natrajanraj1997-cyber/village-grocery/main/images/Logo.png?v=5",
       "sizes": "512x512",
       "type": "image/png"
     }
