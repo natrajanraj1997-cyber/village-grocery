@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "in.villagegrocery.twa",
+        "sha256_cert_fingerprints": ["34:7E:51:80:96:BF:93:23:67:BF:5A:99:63:86:CB:48:33:0B:29:F8:2C:C3:24:F3:DE:39:09:C9:56:11:08:4A"]
+      }
+    }]
