@@ -3,6 +3,6 @@
       "target": {
         "namespace": "android_app",
         "package_name": "in.villagegrocery.twa",
-        "sha256_cert_fingerprints": ["34:7E:51:80:96:BF:93:23:67:BF:5A:99:63:86:CB:48:33:0B:29:F8:2C:C3:24:F3:DE:39:09:C9:56:11:08:4A"]
+        "sha256_cert_fingerprints": ["92:9A:A5:5D:7B:15:94:2B:9B:4F:EA:23:EB:1F:5E:AB:F8:DA:D2:CD:41:AE:55:D4:17:5E:4B:26:86:E0:76:7F"]
       }
     }]
