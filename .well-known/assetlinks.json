@@ -2,7 +2,7 @@
       "relation": ["delegate_permission/common.handle_all_urls"],
       "target": {
         "namespace": "android_app",
-        "package_name": "in.villagegrocery.twa",
-        "sha256_cert_fingerprints": ["92:9A:A5:5D:7B:15:94:2B:9B:4F:EA:23:EB:1F:5E:AB:F8:DA:D2:CD:41:AE:55:D4:17:5E:4B:26:86:E0:76:7F"]
+        "package_name": "in.villagegrocery.www.twa",
+        "sha256_cert_fingerprints": ["6C:1E:A6:4E:C6:FE:7E:64:5A:3A:B1:CA:43:B5:30:B0:F5:84:5C:E4:DD:31:9D:61:E0:A3:74:98:7E:AA:1D:51"]
       }
     }]
