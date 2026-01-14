@@ -1,8 +1,9 @@
 [{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "in.villagegrocery.twa",
-        "sha256_cert_fingerprints": ["B9:9A:3E:40:AC:C9:4A:83:0A:91:FD:B7:9E:AB:7F:C1:70:8F:4A:4A:A4:44:7A:DC:D1:5A:95:D6:BE:FB:E8:63"]
-      }
-    }]
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "in.villagegrocery.twa",
+    "sha256_cert_fingerprints":
+    ["9E:A8:8C:D5:23:F0:1B:2E:B3:CE:DA:A9:EE:C0:7F:2E:E4:5B:2C:67:72:4B:2F:9C:C6:2B:F1:7A:32:F0:FE:16"]
+  }
+}]
