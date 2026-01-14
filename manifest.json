@@ -3,19 +3,19 @@
   "short_name": "Village Grocery",
   "start_url": "/index.html",
   "display": "standalone",
-  "background_color": "#114517",
+  "background_color": "#134417",
   "theme_color": "#0C831F",
   "description": "Order fresh groceries from home in Tamil Nadu.",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/natrajanraj1997-cyber/village-grocery/main/images/90D836C8-D01A-40C6-B480-2DE5094E151A.png",
+      "src": "https://raw.githubusercontent.com/natrajanraj1997-cyber/village-grocery/main/images/Logos.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "https://raw.githubusercontent.com/natrajanraj1997-cyber/village-grocery/main/images/90D836C8-D01A-40C6-B480-2DE5094E151A.png",
+      "src": "https://raw.githubusercontent.com/natrajanraj1997-cyber/village-grocery/main/images/Logos.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
@@ -23,13 +23,13 @@
   ],
   "screenshots": [
     {
-      "src": "https://raw.githubusercontent.com/natrajanraj1997-cyber/village-grocery/main/images/90D836C8-D01A-40C6-B480-2DE5094E151A.png",
+      "src": "https://raw.githubusercontent.com/natrajanraj1997-cyber/village-grocery/main/images/Logos.png",
       "sizes": "512x512",
       "type": "image/png",
       "form_factor": "wide"
     },
     {
-      "src": "https://raw.githubusercontent.com/natrajanraj1997-cyber/village-grocery/main/images/90D836C8-D01A-40C6-B480-2DE5094E151A.png",
+      "src": "https://raw.githubusercontent.com/natrajanraj1997-cyber/village-grocery/main/images/Logos.png",
       "sizes": "512x512",
       "type": "image/png"
     }
